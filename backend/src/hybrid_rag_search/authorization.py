@@ -23,6 +23,7 @@ class AuthorizedScope:
     user_id: UUID
     tenant_id: UUID
     collection_ids: tuple[UUID, ...]
+    excluded_document_ids: tuple[UUID, ...] = ()
 
 
 class Authorization:
@@ -85,7 +86,16 @@ class Authorization:
                 if collection_id not in allowed:
                     raise AccessDenied(404, "Collection not found")
                 allowed = (collection_id,)
-            return AuthorizedScope(user.id, tenant_id, allowed)
+            excluded = tuple(
+                await session.scalars(
+                    select(Document.id).where(
+                        Document.tenant_id == tenant_id,
+                        Document.collection_id.in_(allowed),
+                        Document.status.in_((DocumentStatus.DELETING, DocumentStatus.DELETED)),
+                    )
+                )
+            )
+            return AuthorizedScope(user.id, tenant_id, allowed, excluded)
 
     async def document_scope(
         self, user_id: UUID | None, tenant_id: UUID, document_id: UUID
@@ -108,3 +118,43 @@ class Authorization:
             if document is None:
                 raise AccessDenied(404, "Document not found")
         return scope
+
+    async def membership(self, user_id: UUID | None, tenant_id: UUID) -> Membership:
+        user = await self.user(user_id)
+        async with self.sessions() as session:
+            membership = await session.scalar(
+                select(Membership).where(
+                    Membership.user_id == user.id, Membership.tenant_id == tenant_id
+                )
+            )
+            if membership is None or membership.role not in ("owner", "admin", "member"):
+                raise AccessDenied(403, "Workspace access denied")
+            return membership
+
+    async def require(
+        self,
+        user_id: UUID | None,
+        tenant_id: UUID,
+        permission: str,
+        collection_id: UUID | None = None,
+    ) -> Membership:
+        """Require an action level; hide collections the user cannot read."""
+        member = await self.membership(user_id, tenant_id)
+        if collection_id is not None:
+            await self.scope(user_id, tenant_id, collection_id)
+        if member.role in ("owner", "admin"):
+            return member
+        if collection_id is None:
+            raise AccessDenied(403, "Workspace administration required")
+        async with self.sessions() as session:
+            grant = await session.scalar(
+                select(CollectionGrant.permission).where(
+                    CollectionGrant.tenant_id == tenant_id,
+                    CollectionGrant.collection_id == collection_id,
+                    CollectionGrant.membership_id == member.id,
+                )
+            )
+        levels = {"read": 0, "write": 1, "manage": 2}
+        if grant not in levels or levels[grant] < levels[permission]:
+            raise AccessDenied(403, "Collection permission denied")
+        return member

@@ -50,51 +50,59 @@ class IngestionJobService:
             raise ValueError("Ingestion pipeline version must be a stable identity")
 
         async with self.sessions.begin() as session:
-            document = await session.scalar(
-                select(Document)
+            result = await self.enqueue_in_session(
+                session, tenant_id, document_id, pipeline_version
+            )
+        if result.status is IngestionJobStatus.QUEUED:
+            await self.publisher.publish(result.job_id)
+        return result
+
+    async def enqueue_in_session(
+        self, session: AsyncSession, tenant_id: UUID, document_id: UUID, pipeline_version: str
+    ) -> EnqueueResult:
+        """Create durable work in a caller-owned transaction; do not publish yet."""
+        document = await session.scalar(
+            select(Document)
+            .where(Document.tenant_id == tenant_id, Document.id == document_id)
+            .with_for_update()
+        )
+        if document is None:
+            raise DocumentNotFound("Document not found")
+        if document.status in (DocumentStatus.DELETING, DocumentStatus.DELETED):
+            raise DocumentUnavailable("Document is deleted or deleting")
+
+        statement = (
+            insert(IngestionJob)
+            .values(
+                tenant_id=tenant_id,
+                document_id=document_id,
+                content_hash=document.content_hash,
+                pipeline_version=pipeline_version,
+            )
+            .on_conflict_do_nothing(constraint="uq_ingestion_jobs_document_recipe")
+            .returning(IngestionJob.id)
+        )
+        job_id = await session.scalar(statement)
+        created = job_id is not None
+        if created:
+            status = IngestionJobStatus.QUEUED
+            await session.execute(
+                update(Document)
                 .where(Document.tenant_id == tenant_id, Document.id == document_id)
-                .with_for_update()
+                .values(status=DocumentStatus.PROCESSING, error_message=None)
             )
-            if document is None:
-                raise DocumentNotFound("Document not found")
-            if document.status in (DocumentStatus.DELETING, DocumentStatus.DELETED):
-                raise DocumentUnavailable("Document is deleted or deleting")
-
-            statement = (
-                insert(IngestionJob)
-                .values(
-                    tenant_id=tenant_id,
-                    document_id=document_id,
-                    content_hash=document.content_hash,
-                    pipeline_version=pipeline_version,
-                )
-                .on_conflict_do_nothing(constraint="uq_ingestion_jobs_document_recipe")
-                .returning(IngestionJob.id)
-            )
-            job_id = await session.scalar(statement)
-            created = job_id is not None
-            if created:
-                status = IngestionJobStatus.QUEUED
+        else:
+            existing = (
                 await session.execute(
-                    update(Document)
-                    .where(Document.tenant_id == tenant_id, Document.id == document_id)
-                    .values(status=DocumentStatus.PROCESSING, error_message=None)
-                )
-            else:
-                existing = (
-                    await session.execute(
-                        select(IngestionJob.id, IngestionJob.status).where(
-                            IngestionJob.tenant_id == tenant_id,
-                            IngestionJob.document_id == document_id,
-                            IngestionJob.content_hash == document.content_hash,
-                            IngestionJob.pipeline_version == pipeline_version,
-                        )
+                    select(IngestionJob.id, IngestionJob.status).where(
+                        IngestionJob.tenant_id == tenant_id,
+                        IngestionJob.document_id == document_id,
+                        IngestionJob.content_hash == document.content_hash,
+                        IngestionJob.pipeline_version == pipeline_version,
                     )
-                ).one()
-                job_id = existing.id
-                status = IngestionJobStatus(existing.status)
-
+                )
+            ).one()
+            job_id = existing.id
+            status = IngestionJobStatus(existing.status)
         assert job_id is not None
-        if status is IngestionJobStatus.QUEUED:
-            await self.publisher.publish(job_id)
         return EnqueueResult(job_id, created, status)

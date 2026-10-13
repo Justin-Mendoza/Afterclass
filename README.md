@@ -4,7 +4,7 @@ A production-style enterprise search system built to explore the engineering beh
 
 The project intentionally focuses on the **search system around the language model**, rather than building another generic “chat with a PDF” application.
 
-> **Current status:** Day 16 demo identities and tenant/collection authorization are implemented. Day 15 retrieval baselines are verified on the synthetic workspace and a fixed SciFact subset; full SciFact is deferred. Next: collection, document, permission, and job APIs. Identity verification is simulated; authorization is enforced.
+> **Current status:** Day 17 collection, document, permission, upload, and job APIs are implemented, including durable upload retry keys and coordinated deletion. Day 15 retrieval baselines are verified on the synthetic workspace and a fixed SciFact subset; full SciFact is deferred. Next: grounded answers and citation mapping. Identity verification is simulated; authorization is enforced.
 
 ---
 
@@ -578,18 +578,20 @@ Implemented work includes:
 - neural reranking
 - versioned evaluation datasets and verified synthetic/SciFact-subset baselines
 - demo identities and database-backed tenant/collection authorization
+- collection, document, permission, upload, and job management APIs
 
 ### Next Milestone
 
-**Day 17**
+**Day 18**
 
-Build collection, document, permission, and job management APIs on the Day 16
-permission policy. See the [Day 16 runbook](docs/tickets/day-16.md) for demo
-identities, API examples, and authorization verification.
+Collection, document, permission, and job management APIs are implemented on the
+Day 16 policy. Read the [Day 17 runbook](docs/tickets/day-17.md) for upload retry
+semantics, permission levels, deletion behavior, and a runnable API walkthrough.
+Next: Day 18 grounded generation and request-bound citations.
 
 ### Upcoming
 
-**Days 17–22**
+**Days 18–22**
 
 Cited-answer product:
 

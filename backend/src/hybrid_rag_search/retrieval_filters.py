@@ -93,8 +93,13 @@ class RetrievalFilters:
     source_date_from: datetime | None = None
     source_date_to: datetime | None = None
     collection_ids: tuple[UUID, ...] | None = None
+    excluded_document_ids: tuple[UUID, ...] = ()
 
     def __post_init__(self) -> None:
+        if not isinstance(self.excluded_document_ids, tuple) or any(
+            not isinstance(value, UUID) for value in self.excluded_document_ids
+        ):
+            raise ValueError("Excluded document IDs must be a tuple of UUIDs")
         if not isinstance(self.tenant_id, UUID):
             raise ValueError("Retrieval tenant ID must be a UUID")
         if self.collection_id is not None and not isinstance(self.collection_id, UUID):
@@ -133,6 +138,22 @@ class RetrievalFilters:
                 {"terms": {"collection_id": [str(value) for value in self.collection_ids]}}
                 if self.collection_ids
                 else {"match_none": {}}
+            )
+        if self.excluded_document_ids:
+            clauses.append(
+                {
+                    "bool": {
+                        "must_not": [
+                            {
+                                "terms": {
+                                    "document_id": [
+                                        str(value) for value in self.excluded_document_ids
+                                    ]
+                                }
+                            }
+                        ]
+                    }
+                }
             )
         if self.source_type is not None:
             clauses.append({"term": {"source_type": self.source_type}})
