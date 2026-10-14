@@ -42,6 +42,7 @@ async def test_all_modes_scope_candidates_and_diagnostics_before_reranking(monke
     settings = Settings(
         _env_file=None, cohere_embed_model=FakeEmbeddingProvider.MODEL, cohere_embed_dimensions=3
     )
+    scope = replace(scope, excluded_document_ids=(uuid4(),))
     bodies = []
     corrupt = False
 

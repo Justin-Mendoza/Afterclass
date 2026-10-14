@@ -8,16 +8,21 @@ from fastapi import APIRouter, Depends, Header, HTTPException, Response
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
+from hybrid_rag_search.api_errors import APIError
 from hybrid_rag_search.authorization import AccessDenied, Authorization
 from hybrid_rag_search.config import get_settings
 from hybrid_rag_search.database import async_database_url
 from hybrid_rag_search.documents import DocumentNotFound, DocumentService, DocumentUnavailable
 from hybrid_rag_search.lexical_retrieval import RetrievalError
+from hybrid_rag_search.management_schemas import ErrorView
 from hybrid_rag_search.providers.errors import ProviderError
 from hybrid_rag_search.search import AuthorizedSearch, SearchMode
 from hybrid_rag_search.storage import LocalFileStorage
 
-router = APIRouter(prefix="/v1")
+router = APIRouter(
+    prefix="/v1",
+    responses={code: {"model": ErrorView} for code in (401, 403, 404, 422, 503)},
+)
 DemoUser = Annotated[UUID | None, Header(alias="X-Demo-User-ID")]
 
 
@@ -65,7 +70,7 @@ async def search(
     except AccessDenied as error:
         raise HTTPException(error.status_code, error.detail) from None
     except (RetrievalError, ProviderError) as error:
-        raise HTTPException(503, error.code) from None
+        raise APIError(503, error.code, "Search dependency is unavailable.") from None
 
 
 @router.get("/workspaces/{workspace_id}/documents/{document_id}/content", tags=["documents"])
@@ -83,5 +88,7 @@ async def document_content(
         )
     except AccessDenied as error:
         raise HTTPException(error.status_code, error.detail) from None
+    except OSError:
+        raise APIError(503, "storage_unavailable", "Original file is unavailable.") from None
     except (DocumentNotFound, DocumentUnavailable):
         raise HTTPException(404, "Document not found") from None

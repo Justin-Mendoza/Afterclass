@@ -49,6 +49,7 @@ services:
       ]
     environment: &backend_environment
       APP_ENV: development
+      UPLOAD_MAX_BYTES: ${UPLOAD_MAX_BYTES:-20971520}
       DATABASE_URL: postgresql://${POSTGRES_USER:-hybrid_rag}:${POSTGRES_PASSWORD:-local-development-only}@postgres:5432/${POSTGRES_DB:-hybrid_rag}
       OPENSEARCH_URL: http://opensearch:9200
       OPENSEARCH_INDEX_SCHEMA_VERSION: ${OPENSEARCH_INDEX_SCHEMA_VERSION:-chunks-v3}

@@ -137,3 +137,7 @@ build:
 	npm --prefix frontend run build
 
 check: format-check lint typecheck test build
+
+.PHONY: management-test
+management-test:
+	.venv/bin/pytest backend/tests/test_management.py backend/tests/test_authorization_api.py --no-cov

@@ -179,6 +179,7 @@ class IngestionJob(Base):
     )
 
     __table_args__ = (
+        UniqueConstraint("tenant_id", "id"),
         ForeignKeyConstraint(
             ["tenant_id", "document_id"],
             ["documents.tenant_id", "documents.id"],

@@ -21,7 +21,9 @@ def score_ranking(ranking: Sequence[str], judgments: Mapping[str, int]) -> dict[
     )
 
     def dcg(grades: Sequence[int]) -> float:
-        return sum((2**grade - 1) / math.log2(rank + 1) for rank, grade in enumerate(grades, 1))
+        return sum(
+            (math.pow(2, grade) - 1) / math.log2(rank + 1) for rank, grade in enumerate(grades, 1)
+        )
 
     ideal = dcg(sorted(judgments.values(), reverse=True)[:10])
     scores["ndcg@10"] = dcg([judgments.get(key, 0) for key in documents[:10]]) / ideal

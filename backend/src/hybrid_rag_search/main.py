@@ -4,8 +4,10 @@ from fastapi import FastAPI, Response, status
 from pydantic import BaseModel
 
 from hybrid_rag_search.api import router as product_router
+from hybrid_rag_search.api_errors import install_errors
 from hybrid_rag_search.config import get_settings
 from hybrid_rag_search.health import dependency_status
+from hybrid_rag_search.management_api import router as management_router
 
 
 class HealthResponse(BaseModel):
@@ -21,7 +23,9 @@ class ReadinessResponse(BaseModel):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Hybrid RAG Search API", version="0.1.0")
+    install_errors(app)
     app.include_router(product_router)
+    app.include_router(management_router)
 
     async def live() -> HealthResponse:
         return HealthResponse(status="ok", environment=settings.app_env)

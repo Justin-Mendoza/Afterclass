@@ -38,6 +38,8 @@ class AuthorizedSearch:
             "collection_ids": scope.collection_ids,
             "debug": debug,
         }
+        if scope.excluded_document_ids:
+            options["excluded_document_ids"] = scope.excluded_document_ids
         lexical = OpenSearchBM25Retriever.from_settings(self.settings)
         if mode == "bm25":
             lexical_response = await lexical.search(query, **options)
@@ -71,7 +73,9 @@ class AuthorizedSearch:
                 else:
                     raise ValueError("Unknown search mode")
         if any(
-            item.tenant_id != scope.tenant_id or item.collection_id not in scope.collection_ids
+            item.tenant_id != scope.tenant_id
+            or item.collection_id not in scope.collection_ids
+            or item.document_id in scope.excluded_document_ids
             for item in evidence
         ):
             raise RetrievalError("retrieval_scope_violation", retryable=False)

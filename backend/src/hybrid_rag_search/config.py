@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     rerank_candidate_limit: int = Field(default=20, gt=0)
     rerank_result_limit: int = Field(default=10, gt=0)
     retrieval_deadline_seconds: float = Field(default=8.0, gt=0, allow_inf_nan=False)
+    upload_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     storage_root: Path = Path(".data/originals")
     tokenizer_root: Path = Path(".data/tokenizers")
     ingestion_artifact_root: Path = Path(".data/ingestion-artifacts")

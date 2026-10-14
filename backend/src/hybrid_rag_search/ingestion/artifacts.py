@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import tempfile
 from dataclasses import dataclass
 from enum import StrEnum
@@ -190,3 +191,15 @@ class LocalArtifactStorage:
         if not isinstance(reference, ArtifactRef):
             raise ValueError("Artifact delete requires an ArtifactRef")
         self._path(reference.key).unlink(missing_ok=True)
+
+    def delete_job(self, tenant_id: UUID, job_id: UUID) -> None:
+        """Remove all artifacts, including uncheckpointed files, for one job."""
+        if not isinstance(tenant_id, UUID) or not isinstance(job_id, UUID):
+            raise ValueError("Artifact deletion requires UUID identities")
+        directory = self.root / str(tenant_id) / str(job_id)
+        if directory.is_symlink() or (directory.exists() and not directory.is_dir()):
+            raise ValueError("Artifact job directory is invalid")
+        if directory.exists():
+            # _path rejects symlinked ancestors before touching any content.
+            self._path(f"{tenant_id}/{job_id}/parsed/{'0' * 64}.json")
+            shutil.rmtree(directory)

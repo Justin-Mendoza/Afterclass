@@ -98,9 +98,7 @@ def test_api_contract_and_safe_error_responses(monkeypatch):
         for error in (DocumentNotFound(), DocumentUnavailable()):
             documents.error = error
             response = client.get(path, headers=headers)
-            assert response.status_code == 404 and response.json() == {
-                "detail": "Document not found"
-            }
+            assert response.status_code == 404 and response.json()["error"]["code"] == "not_found"
         policy.error = AccessDenied(404, "Document not found")
         assert client.get(path, headers=headers).status_code == 404
         policy.error = AccessDenied(403, "Workspace access denied")
@@ -113,7 +111,7 @@ def test_api_contract_and_safe_error_responses(monkeypatch):
         ):
             retrieval.error = error
             response = client.post("/v1/search", headers=headers, json=request)
-            assert response.status_code == 503 and response.json()["detail"] == error.code
+            assert response.status_code == 503 and response.json()["error"]["code"] == error.code
         assert client.post("/debug/search", json={"dataset": "scifact"}).status_code == 404
 
 

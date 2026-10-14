@@ -35,6 +35,7 @@ class LexicalRetriever(Protocol):
         tenant_id: UUID,
         collection_id: UUID | None = None,
         collection_ids: tuple[UUID, ...] | None = None,
+        excluded_document_ids: tuple[UUID, ...] = (),
         source_type: str | None = None,
         author: str | None = None,
         source_date_from: datetime | None = None,
@@ -52,6 +53,7 @@ class DenseRetriever(Protocol):
         tenant_id: UUID,
         collection_id: UUID | None = None,
         collection_ids: tuple[UUID, ...] | None = None,
+        excluded_document_ids: tuple[UUID, ...] = (),
         source_type: str | None = None,
         author: str | None = None,
         source_date_from: datetime | None = None,
@@ -137,6 +139,7 @@ class HybridRetriever:
         tenant_id: UUID,
         collection_id: UUID | None = None,
         collection_ids: tuple[UUID, ...] | None = None,
+        excluded_document_ids: tuple[UUID, ...] = (),
         source_type: str | None = None,
         author: str | None = None,
         source_date_from: datetime | None = None,
@@ -157,6 +160,7 @@ class HybridRetriever:
             source_date_from,
             source_date_to,
             collection_ids,
+            excluded_document_ids,
         )
         started = time.perf_counter()
         lexical, dense = await asyncio.gather(
@@ -170,6 +174,11 @@ class HybridRetriever:
                 source_date_to=filters.source_date_to,
                 limit=self.config.candidate_limit,
                 debug=debug,
+                **(
+                    {"excluded_document_ids": filters.excluded_document_ids}
+                    if filters.excluded_document_ids
+                    else {}
+                ),
                 **(
                     {"collection_ids": filters.collection_ids}
                     if filters.collection_ids is not None
@@ -186,6 +195,11 @@ class HybridRetriever:
                 source_date_to=filters.source_date_to,
                 limit=self.config.candidate_limit,
                 debug=debug,
+                **(
+                    {"excluded_document_ids": filters.excluded_document_ids}
+                    if filters.excluded_document_ids
+                    else {}
+                ),
                 **(
                     {"collection_ids": filters.collection_ids}
                     if filters.collection_ids is not None

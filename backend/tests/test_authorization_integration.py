@@ -206,9 +206,10 @@ async def test_demo_api_enforces_real_permissions_across_all_modes_and_direct_id
                                     and response.text == texts[collection]
                                 )
                             else:
-                                assert response.status_code == 404 and response.json() == {
-                                    "detail": "Document not found"
-                                }
+                                assert (
+                                    response.status_code == 404
+                                    and response.json()["error"]["code"] == "not_found"
+                                )
                         foreign = DEMO_TENANT_ID if tenant == SECOND_TENANT_ID else SECOND_TENANT_ID
                         assert (
                             await client.post(
@@ -277,7 +278,7 @@ async def test_demo_api_enforces_real_permissions_across_all_modes_and_direct_id
                             path.replace(str(docs[ENGINEERING_COLLECTION_ID]), str(uuid4())),
                             headers=headers,
                         )
-                    ).json() == {"detail": "Document not found"}
+                    ).json()["error"]["code"] == "not_found"
                     assert (
                         await client.post("/debug/search", json={"dataset": "synthetic-workspace"})
                     ).status_code == 404
