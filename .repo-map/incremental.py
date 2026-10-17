@@ -270,31 +270,34 @@ def build_map(repo, target, previous, mid, spec, config, client, revision, chang
             'summary': result['summary'], 'api_calls_last_update': calls}
 
 
-def overview(specs):
-    def node(mid):
-        return {'id': mid.replace('-', '_'), 'label': mid.replace('-', ' '), 'finding_ids': []}
-    ids = sorted(specs)
+def overview(map_dirs):
+    """Reuse each subsystem's analyzed architecture view; dependencies stay metadata."""
     views = []
-    if len(ids) <= 6:
-        views.append({'title': 'Subsystem overview', 'description': 'Arrows show configured or import-inferred dependencies. Open a subsystem below for code, user, and data flows.',
-                      'nodes': [node(mid) for mid in ids],
-                      'edges': [{'from': mid.replace('-', '_'), 'to': dep.replace('-', '_'), 'label': 'Uses', 'uncertain': True, 'finding_ids': []}
-                                for mid in ids for dep in specs[mid]['depends_on']]})
-    # Large or dense graphs use small dependency neighborhoods, never a giant graph.
-    if not views or len(views[0]['edges']) > 8:
-        views = []
-        for mid in ids:
-            deps = specs[mid]['depends_on']
-            for start in range(0, max(1, len(deps)), 4):
-                group = deps[start:start + 4]
-                views.append({'title': f'{mid}: connections', 'description': 'Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.',
-                              'nodes': [node(x) for x in [mid, *group]],
-                              'edges': [{'from': mid.replace('-', '_'), 'to': d.replace('-', '_'), 'label': 'Uses', 'uncertain': True, 'finding_ids': []} for d in group]})
-    return {'summary': 'Separate subsystem maps with an overview of their dependency hints.', 'diagrams': views, 'unknowns': ['Import inference is incomplete; configure aliases and cross-service dependencies explicitly.']}
+    for mid, directory in sorted(map_dirs.items()):
+        path = directory / 'map.json'
+        if not path.is_file():
+            raise base.MapError(f'Missing analyzed map for overview subsystem {mid}')
+        data = json.loads(path.read_text())
+        diagrams = data.get('map', {}).get('diagrams', [])
+        if not diagrams:
+            raise base.MapError(f'No analyzed architecture diagram for overview subsystem {mid}')
+        source_diagram = diagrams[0]
+        diagram = {
+            'title': f'{mid}: {source_diagram["title"]}'[:100],
+            'description': source_diagram['description'],
+            'nodes': [{k: node[k] for k in ('id', 'label')} | {'finding_ids': []}
+                      for node in source_diagram['nodes']],
+            'edges': [{k: edge[k] for k in ('from', 'to', 'label', 'uncertain')} | {'finding_ids': []}
+                      for edge in source_diagram['edges']],
+        }
+        views.append(diagram)
+    return {'summary': 'An overview assembled from each source-analyzed subsystem architecture diagram.',
+            'diagrams': views,
+            'unknowns': ['Subsystem relationships are shown as dependency metadata, not asserted runtime calls.']}
 
 
-def write_index(state, specs, entries, revision, rerender=False):
-    result = overview(specs)
+def write_index(state, entries, map_dirs, revision, rerender=False):
+    result = overview(map_dirs)
     directory = state / 'overview'
     previous = json.loads((directory / 'map.json').read_text()) if (directory / 'map.json').is_file() else None
     if rerender or previous is None or previous['map'] != result or not map_outputs_exist(directory):
@@ -305,7 +308,7 @@ def write_index(state, specs, entries, revision, rerender=False):
         directory.mkdir(parents=True, exist_ok=True)
         try:
             meta = {'revision': revision, 'generated_at': base.dt.datetime.now(base.dt.timezone.utc).isoformat()}
-            coverage = {'scope': 'Subsystem boundaries; dependency edges are hints, not verified runtime calls.', 'analyzed_files': 0, 'eligible_files': 0, 'excluded_files': 0, 'api_calls': 0}
+            coverage = {'scope': 'The first source-analyzed architecture diagram from each subsystem map; dependency hints remain metadata.', 'analyzed_files': 0, 'eligible_files': 0, 'excluded_files': 0, 'api_calls': 0}
             base.write_artifacts(result, {}, {}, coverage, meta, directory, reuse_dir=None if rerender else backup)
         finally:
             if backup:
@@ -321,6 +324,7 @@ def write_index(state, specs, entries, revision, rerender=False):
         summary = entry['summary'].replace('|', '/').replace('\n', ' ')
         lines.append(f'| [{mid}](maps/{mid}/README.md) | {summary} | [PDF](maps/{mid}/repository-map.pdf) · [JSON](maps/{mid}/map.json) | `{entry["source_revision"][:12]}` |')
     lines += ['', 'JSON is the source of truth; Mermaid, PNGs, and PDFs are generated views.', '',
+              'Dependency hints are kept in manifest.json for incremental refresh planning; they are not runtime-call claims and are not used as the overview diagrams.', '',
               'Unchanged subsystem views are retained. Source existence checks do not prove model interpretation. See manifest.json and update.json for dependencies, coverage and updates.']
     (state / 'README.md').write_text('\n'.join(lines) + '\n')
 
@@ -359,12 +363,13 @@ def update(repo, state, config, force=False, plan_only=False, client=None, seed_
             else:
                 seed = None
                 budget = min(config['max_calls'], config['max_total_calls'] - client.calls - 2 * (len(affected) - index - 1))
-            context = {'subsystem': mid, 'changed_files': [p for p in current['changed_files'] if p in spec['files']],
-                       'dependencies': spec['depends_on'], 'previous_summary': entries.get(mid, {}).get('summary'),
-                       'neighbor_summaries': {d: entries[d]['summary'] for d in spec['depends_on'] if d in entries}}
+            context = {'subsystem': mid, 'changed_files': [p for p in current['changed_files'] if p in spec['files']]}
             previous = state / 'maps' / mid
-            if (previous / 'map.json').is_file():
-                context['previous_map'] = json.loads((previous / 'map.json').read_text())['map']
+            if not current['full_refresh']:
+                if mid in entries:
+                    context['previous_summary'] = entries[mid]['summary']
+                if (previous / 'map.json').is_file():
+                    context['previous_map'] = json.loads((previous / 'map.json').read_text())['map']
             entries[mid] = build_map(repo, staged / mid, previous, mid, spec, config | {'max_calls': budget}, client,
                                      current['revision'], current['changed_files'], seed, context, rerender=current['full_refresh'])
         # Stage index/overview as well, so PDF/layout failures cannot advance the manifest.
@@ -374,7 +379,8 @@ def update(repo, state, config, force=False, plan_only=False, client=None, seed_
             shutil.copytree(state / 'overview', staged_state / 'overview')
         for mid in current['removed']:
             entries.pop(mid, None)
-        write_index(staged_state, current['maps'], entries, current['revision'], rerender=current['full_refresh'])
+        map_dirs = {mid: (staged / mid if mid in affected else state / 'maps' / mid) for mid in entries}
+        write_index(staged_state, entries, map_dirs, current['revision'], rerender=current['full_refresh'])
         manifest = {'generator': GENERATOR, 'schema_version': SCHEMA, 'source_revision': current['revision'],
                     'fingerprint': current['fingerprint'], 'files': current['files'], 'maps': entries,
                     'updates_since_refresh': 0 if current['full_refresh'] else old['updates_since_refresh'] + bool(affected),
