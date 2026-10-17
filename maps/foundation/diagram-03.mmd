@@ -1,11 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["upload entry"]
+  n0["Upload"]
   n1["Collection lock"]
-  n2["Hash dedupe"]
-  n3["Document insert"]
-  n4["Filesystem save"]
+  n2["Filesystem<br/>storage"]
+  n3["Delete"]
+  n4["To DELETED"]
   n0 -->|"with_for_update"| n1
-  n1 -->|"checks hash"| n2
-  n2 -->|"new document"| n3
-  n3 -->|"to_thread save"| n4
+  n1 -->|"duplicate check"| n2
+  n0 -->|"to_thread save"| n2
+  n3 -->|"DELETING<br/>committed"| n2
+  n2 -->|"second<br/>transaction"| n4

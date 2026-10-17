@@ -1,14 +1,15 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Configured<br/>factory helpers"]
+  n0["Configured<br/>factories"]
   n1["Cohere live<br/>adapters"]
   n2["Fake adapters"]
-  n3["Provider<br/>contracts"]
+  n3["Provider<br/>protocols"]
   n4["ProviderError"]
-  n5["Cost estimation"]
-  n0 -->|"Constructs"| n1
+  n5["Usage and cost"]
+  n0 -->|"Constructs<br/>provider"| n1
   n1 -->|"Returns results"| n3
   n2 -->|"Returns results"| n3
-  n1 -->|"Raises"| n4
-  n2 -->|"Validates input"| n3
-  n3 -.->|"Inferred: Usage<br/>fields"| n5
+  n1 -->|"Raises mapped<br/>codes"| n4
+  n1 -->|"Billed usage"| n5
+  n3 -->|"Carries usage"| n5
+  n0 -.->|"Inferred:<br/>Adapter<br/>selection"| n2

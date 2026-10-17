@@ -4,10 +4,12 @@ flowchart TD
   n1["DenseRetrievalConfig"]
   n2["Dense retriever"]
   n3["Embedding<br/>provider"]
-  n4["OpenSearch"]
+  n4["OpenSearch alias"]
   n5["Retrieval<br/>results"]
-  n0 -->|"Maps fields"| n1
+  n0 -->|"Derives fields"| n1
+  n0 -->|"URL and alias"| n2
   n1 -->|"Configures"| n2
-  n2 -->|"Embeds query"| n3
-  n2 -->|"Searches alias"| n4
+  n3 -->|"Injected<br/>provider"| n2
+  n2 -->|"Query embedding"| n3
+  n2 -->|"k-NN search"| n4
   n4 -->|"Hit parsing"| n5

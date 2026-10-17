@@ -2,7 +2,7 @@
 
 Separate subsystem maps with an overview of their dependency hints.
 
-Commit: `05fb919153379762ce04a644ff9f6ef3e3413ff1` | Generated: 2026-10-17T22:43:02.770331+00:00
+Commit: `56291a0b9cc466341d5d7a4b71aed8b2c5f412bb` | Generated: 2026-10-17T22:59:54.019420+00:00
 
 [Open PDF](repository-map.pdf)
 

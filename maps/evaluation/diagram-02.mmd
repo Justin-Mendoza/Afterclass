@@ -1,11 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["manifest.json"]
-  n1["load_dataset"]
-  n2["Cross-validation"]
-  n3["EvaluationDataset"]
-  n4["JSONL records"]
-  n0 -->|"Parsed"| n1
-  n1 -->|"Reads files"| n4
-  n1 -->|"Judgment checks"| n2
-  n2 -->|"Hashes and ids"| n3
+  n0["EvaluationScope"]
+  n1["Eval index<br/>aliases"]
+  n2["prepare_corpus"]
+  n3["Durable<br/>ingestion"]
+  n4["compact_corpus"]
+  n5["verify_prepared"]
+  n0 -->|"Scope input"| n2
+  n1 -->|"Index settings"| n2
+  n2 -->|"Inline jobs"| n3
+  n2 -->|"Forcemerge"| n4
+  n3 -->|"Index receipts"| n5
+  n4 -->|"Ready docs"| n5

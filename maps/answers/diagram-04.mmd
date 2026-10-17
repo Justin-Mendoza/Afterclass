@@ -1,10 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["SDK chat call"]
-  n1["Error<br/>translation"]
-  n2["Finish reasons"]
-  n3["ProviderError"]
-  n0 -->|"Transport/HTTP<br/>errors"| n1
-  n0 -->|"Returns body"| n2
-  n1 -->|"Maps to code"| n3
-  n2 -->|"Retryable/invalid"| n3
+  n0["RerankRequest"]
+  n1["RerankingProvider"]
+  n2["Response<br/>invariants"]
+  n3["RerankItem"]
+  n4["ProviderError"]
+  n0 -->|"Validated<br/>candidates"| n1
+  n1 -->|"Results and<br/>scores"| n2
+  n2 -->|"Mapped candidate<br/>IDs"| n3
+  n2 -->|"Invalid response"| n4

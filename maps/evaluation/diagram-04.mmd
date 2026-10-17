@@ -1,12 +1,15 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["run_baseline"]
-  n1["evaluate"]
-  n2["score_ranking"]
-  n3["Report metadata"]
-  n4["save_report"]
-  n0 -->|"Per query"| n1
-  n1 -->|"Ranks scored"| n2
-  n2 -->|"Aggregates"| n0
-  n0 -->|"Repro info"| n3
-  n3 -->|"Writes report"| n4
+  n0["search()<br/>boundary"]
+  n1["benchmark_settings"]
+  n2["BM25 retriever"]
+  n3["Dense retriever"]
+  n4["Hybrid rerank"]
+  n5["Scope-filtered<br/>hits"]
+  n0 -->|"Fixed budget"| n1
+  n0 -->|"bm25 mode"| n2
+  n0 -->|"dense mode"| n3
+  n0 -->|"hybrid modes"| n4
+  n2 -->|"Scoped hits"| n5
+  n3 -->|"Scoped hits"| n5
+  n4 -->|"Scoped hits"| n5

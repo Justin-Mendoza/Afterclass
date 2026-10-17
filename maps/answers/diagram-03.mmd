@@ -1,12 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
   n0["GenerationRequest"]
-  n1["CohereGenerationProvider"]
+  n1["GenerationProvider"]
   n2["AsyncClientV2<br/>chat"]
   n3["Response<br/>validation"]
   n4["GenerationResult"]
-  n0 -->|"Embedded in<br/>request"| n1
-  n1 -->|"POSTs"| n2
-  n2 -->|"Raw response"| n3
-  n3 -->|"Built"| n4
-  n1 -.->|"Inferred:<br/>Validates inputs"| n4
+  n5["ProviderError"]
+  n0 -->|"Validated<br/>request"| n1
+  n1 -->|"Non-streaming<br/>chat"| n2
+  n2 -->|"Response body"| n3
+  n3 -->|"Usage and text"| n4
+  n1 -->|"Timeout/no<br/>retries"| n5
+  n3 -->|"Invalid response"| n5

@@ -1,9 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Content and<br/>headings"]
-  n1["Heading<br/>reconstruction"]
-  n2["Leading<br/>duplicate strip"]
-  n3["Embedding text"]
-  n0 -->|"Validates input"| n1
-  n1 -->|"Prepends<br/>headings"| n2
-  n2 -->|"Produces text"| n3
+  n0["Chunking config"]
+  n1["Config version<br/>digest"]
+  n2["Chunk identifier"]
+  n3["Document<br/>identifier"]
+  n0 -->|"Canonical digest"| n1
+  n1 -->|"Feeds chunk<br/>digest"| n2
+  n3 -->|"Feeds chunk<br/>digest"| n2

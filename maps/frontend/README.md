@@ -1,8 +1,8 @@
 # Repository map
 
-The supplied findings describe a single Next.js App Router frontend: a Docker/build/test setup, a root layout and static index page, and no observable runtime connection to the backend retrieval, answers, or foundation subsystems.
+This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose Dockerfile runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page, with no state, inputs, or async data loading. No fetch, API route, or env read is present, so runtime linkage to the answers, foundation, or retrieval subsystems is unevidenced.
 
-Commit: `05fb919153379762ce04a644ff9f6ef3e3413ff1` | Generated: 2026-10-17T22:42:21.565619+00:00
+Commit: `56291a0b9cc466341d5d7a4b71aed8b2c5f412bb` | Generated: 2026-10-17T22:59:10.016925+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -18,16 +18,16 @@ Tracked, eligible text only; bounded excerpts, not exhaustive.
 
 ## Architecture
 
-Frontend container builds the Next.js app whose App Router renders layout and index page; no backend wiring is evidenced.
+The container runs the Next.js app; the App Router renders layout then static Home. Toolchain config types, lints, and tests but is not a runtime entry point. Backend linkage is unevidenced.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
   n0["Frontend<br/>container"]
-  n1["Next.js app"]
+  n1["Next.js App<br/>Router"]
   n2["Root layout"]
-  n3["Index page"]
-  n4["TS and lint<br/>config"]
+  n3["Static index<br/>page"]
+  n4["Lint type test<br/>config"]
   n0 -->|"Runs dev server"| n1
   n1 -->|"Renders root"| n2
   n2 -->|"Renders children"| n3
@@ -43,32 +43,31 @@ flowchart TD
 
 ### Source evidence
 
-- **F0001**: The frontend Dockerfile builds a Next.js dev server: CMD runs `npm run dev -- --hostname 0.0.0.0`, listening on port 3000 (EXPOSE 3000) rather than a production `next start`. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0002**: Dockerfile installs dependencies reproducibly with `npm ci` from package.json and package-lock.json before copying the rest of the source (COPY . .). (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>)
-- **F0003**: package.json defines the frontend as the Next.js app `hybrid-rag-search-web` (v0.1.0), pinning Node engine &gt;=22 &lt;23 and Next ^16 with React/React-DOM ^19. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0004**: npm scripts expose dev (next dev), build (next build), start (next start), lint (eslint . --max-warnings=0), typecheck (tsc --noEmit), test (vitest run), and Prettier format/format:check commands. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0009**: next.config.ts sets reactStrictMode: true and agentRules: false as the NextConfig; no rewrites, redirects, or API proxying are declared in this excerpt. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/next.config.ts#L1-L7">frontend/next.config.ts:1-7</a>)
-- **F0005**: RootLayout in src/app/layout.tsx is the App Router root component: it imports ./styles.css, exports Metadata (title "Hybrid RAG Search") and renders children inside &lt;html lang="en"&gt;&lt;body&gt;. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>)
-- **F0006**: Home in src/app/page.tsx is the index route component, rendering a static placeholder with an eyebrow "Hybrid RAG Search", an h1 "Evidence-first answers, built for inspection.", and a paragraph about the search workspace awaiting its first collection. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
-- **F0014**: The index page renders only static text with no user input controls, state, event handlers, or async data loading, so no user actions beyond viewing are implemented in this batch. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
-- **F0010**: tsconfig.json enables strict TypeScript with jsx "react-jsx", moduleResolution "bundler", next plugin, and a `@/*` path alias to ./src/*, including generated .next/types and .next/dev/types. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/tsconfig.json#L1-L33">frontend/tsconfig.json:1-33</a>)
-- **F0011**: next-env.d.ts references next and next/image-types/global types and imports generated route/root-param types from ./.next/dev/types, indicating use of Next's dev-generated route typing. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/next-env.d.ts#L1-L7">frontend/next-env.d.ts:1-7</a>)
-- **F0012**: ESLint uses flat config via defineConfig, composing eslint-config-next core-web-vitals and typescript presets and ignoring .next/**, coverage/**, and next-env.d.ts. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/eslint.config.mjs#L1-L9">frontend/eslint.config.mjs:1-9</a>)
+- **F0001**: frontend/Dockerfile builds a Node 22.23.2-bookworm-slim image, installs dependencies with `npm ci` from the lockfile, copies the source, exposes port 3000, and runs the dev server via `npm run dev -- --hostname 0.0.0.0`; it does not run a production `next build`/`next start` by default. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
+- **F0002**: package.json declares `hybrid-rag-search-web` as a private Next.js 16 / React 19 App Router project with scripts dev, build, start, lint, typecheck, format, and `vitest run`; `engines` constrains Node to &gt;=22 &lt;23. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
+- **F0003**: The Next.js config sets `reactStrictMode: true` and `agentRules: false`; no rewrites, redirects, or API proxying are declared, so client-to-backend routing is not configured here. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/next.config.ts#L1-L7">frontend/next.config.ts:1-7</a>)
+- **F0005**: `frontend/src/app/layout.tsx` is the root layout: it imports `./styles.css`, exports `metadata` (title "Hybrid RAG Search", description "Evidence-first enterprise search"), and renders `children` inside an HTML/body shell. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>)
+- **F0010**: `next-env.d.ts` references Next type packages and imports generated `.next/dev` route and root-param type definitions, indicating Next.js App Router typings are generated at build/dev time. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/next-env.d.ts#L1-L7">frontend/next-env.d.ts:1-7</a>)
+- **F0006**: `frontend/src/app/page.tsx` defines the default-exported `Home` component rendering a static `&lt;main&gt;` with an eyebrow, an h1 ("Evidence-first answers, built for inspection."), and a paragraph; it contains no state, input controls, event handlers, or async data loading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0004**: ESLint is configured via flat `defineConfig` composing `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`, ignoring `.next/**`, `coverage/**`, and `next-env.d.ts`. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/eslint.config.mjs#L1-L9">frontend/eslint.config.mjs:1-9</a>)
+- **F0008**: Vitest is configured with the React plugin and `environment: "jsdom"`, so component tests run in a simulated DOM. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>)
+- **F0009**: TypeScript is configured with `strict`, `noEmit`, `jsx: react-jsx`, bundler module resolution, the Next plugin, and the path alias `@/*` mapping to `./src/*`. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/tsconfig.json#L1-L33">frontend/tsconfig.json:1-33</a>)
+- **F0013**: Testing, linting, and type-checking toolchains (vitest/jsdom, eslint-config-next, tsc) are devDependencies/scaffolding and are separate from the application's runtime entry points (layout/page components and the dev server). (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/package.json#L1-L39">frontend/package.json:1-39</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/eslint.config.mjs#L1-L9">frontend/eslint.config.mjs:1-9</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/tsconfig.json#L1-L33">frontend/tsconfig.json:1-33</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>)
 
 ## Page render flow
 
-A viewer receives the server-rendered index: root layout imports styles and metadata and wraps the static Home component.
+A viewer receives the layout shell, which imports styles, exports metadata, and wraps the static Home markup. This is the frontend's only observed user flow; no search interaction is wired.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
   n0["Viewer"]
   n1["Root layout"]
-  n2["Index page"]
+  n2["Static index<br/>page"]
   n3["Styles and<br/>metadata"]
-  n0 -->|"Views page"| n2
+  n1 -->|"Imports styles"| n3
   n1 -->|"Wraps content"| n2
-  n1 -->|"Imports"| n3
+  n0 -->|"Views page"| n2
 ```
 
 <details>
@@ -80,22 +79,24 @@ flowchart TD
 
 ### Source evidence
 
-- **F0014**: The index page renders only static text with no user input controls, state, event handlers, or async data loading, so no user actions beyond viewing are implemented in this batch. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
-- **F0005**: RootLayout in src/app/layout.tsx is the App Router root component: it imports ./styles.css, exports Metadata (title "Hybrid RAG Search") and renders children inside &lt;html lang="en"&gt;&lt;body&gt;. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>)
-- **F0006**: Home in src/app/page.tsx is the index route component, rendering a static placeholder with an eyebrow "Hybrid RAG Search", an h1 "Evidence-first answers, built for inspection.", and a paragraph about the search workspace awaiting its first collection. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0012**: Given the supplied sources, the frontend's only observed user flow is: the dev server renders the root layout which wraps the static Home page, and a viewer sees that page; no search or collection interaction is wired. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0005**: `frontend/src/app/layout.tsx` is the root layout: it imports `./styles.css`, exports `metadata` (title "Hybrid RAG Search", description "Evidence-first enterprise search"), and renders `children` inside an HTML/body shell. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>)
+- **F0006**: `frontend/src/app/page.tsx` defines the default-exported `Home` component rendering a static `&lt;main&gt;` with an eyebrow, an h1 ("Evidence-first answers, built for inspection."), and a paragraph; it contains no state, input controls, event handlers, or async data loading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
 
-## Test flow
+## Toolchain boundary
 
-Vitest with jsdom and React plugin renders the Home component, and the page test asserts the heading role and text.
+Vitest with jsdom renders Home for the page test; ESLint and tsc validate sources. These dev-time tools are separate from the runtime entry points, which matters because passing here does not evidence backend wiring.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
   n0["Vitest jsdom"]
   n1["Page test"]
-  n2["Index page"]
-  n0 -->|"Runs tests"| n1
+  n2["Static index<br/>page"]
+  n3["ESLint and tsc"]
+  n0 -->|"Runs assertions"| n1
   n1 -->|"Renders<br/>component"| n2
+  n3 -->|"Validates<br/>sources"| n2
 ```
 
 <details>
@@ -107,12 +108,16 @@ flowchart TD
 
 ### Source evidence
 
-- **F0008**: Vitest is configured to use the jsdom test environment with the @vitejs/plugin-react plugin, enabling React component tests such as page.test.tsx. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.test.tsx#L1-L14">frontend/src/app/page.test.tsx:1-14</a>)
-- **F0007**: page.test.tsx renders the Home component with @testing-library/react and asserts via screen.getByRole that the level-1 heading text equals "Evidence-first answers, built for inspection."—the only supplied runtime test of a UI entry point. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.test.tsx#L1-L14">frontend/src/app/page.test.tsx:1-14</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
-- **F0006**: Home in src/app/page.tsx is the index route component, rendering a static placeholder with an eyebrow "Hybrid RAG Search", an h1 "Evidence-first answers, built for inspection.", and a paragraph about the search workspace awaiting its first collection. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/05fb919153379762ce04a644ff9f6ef3e3413ff1/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0008**: Vitest is configured with the React plugin and `environment: "jsdom"`, so component tests run in a simulated DOM. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>)
+- **F0007**: The page test `frontend/src/app/page.test.tsx` renders `Home` and asserts a level-1 heading with text "Evidence-first answers, built for inspection." via Testing Library with jest-dom/vitest. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/page.test.tsx#L1-L14">frontend/src/app/page.test.tsx:1-14</a>)
+- **F0006**: `frontend/src/app/page.tsx` defines the default-exported `Home` component rendering a static `&lt;main&gt;` with an eyebrow, an h1 ("Evidence-first answers, built for inspection."), and a paragraph; it contains no state, input controls, event handlers, or async data loading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0004**: ESLint is configured via flat `defineConfig` composing `eslint-config-next/core-web-vitals` and `eslint-config-next/typescript`, ignoring `.next/**`, `coverage/**`, and `next-env.d.ts`. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/eslint.config.mjs#L1-L9">frontend/eslint.config.mjs:1-9</a>)
+- **F0009**: TypeScript is configured with `strict`, `noEmit`, `jsx: react-jsx`, bundler module resolution, the Next plugin, and the path alias `@/*` mapping to `./src/*`. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/56291a0b9cc466341d5d7a4b71aed8b2c5f412bb/frontend/tsconfig.json#L1-L33">frontend/tsconfig.json:1-33</a>)
 
 ## Uncertainties and untraced areas
 
-- No fetch, API route, database access, or environment-variable reading appears in the supplied frontend sources, so how (or whether) the frontend reaches the answers, foundation, or retrieval subsystems at runtime is untraced (F0013, F0015).
-- No user input controls, state, event handlers, or async data loading exist on the index page, so the intended search workspace behavior is not evidenced (F0014).
-- No rewrites, redirects, or API proxying are declared in next.config.ts, leaving client-to-backend routing paths unspecified (F0009).
+- No fetch call, API route, database access, or environment-variable read appears in the supplied frontend sources, so how or whether the frontend reaches the answers, foundation, or retrieval subsystems at runtime is untraced (F0011).
+- No user input controls, state, event handlers, or async data loading exist on the index page, so the intended search workspace behavior is not evidenced (F0006, F0012).
+- No rewrites, redirects, or API proxying are declared in the Next.js config, leaving any client-to-backend routing path unspecified (F0003).
+- The Dockerfile runs the dev server rather than a production next build/next start, so the production serving path is not shown (F0001).
+- No findings cover the answers, foundation, or retrieval subsystems' calls toward the frontend, so any inbound contract is unverified (F0011).

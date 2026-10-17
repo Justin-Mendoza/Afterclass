@@ -1,14 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["EvaluationScope"]
-  n1["prepare_corpus"]
-  n2["LocalFileStorage"]
-  n3["Ingestion jobs"]
-  n4["verify_prepared"]
-  n5["compact_corpus"]
-  n0 -->|"Scope input"| n1
-  n1 -->|"Saves content"| n2
-  n1 -->|"Enqueues inline"| n3
-  n3 -->|"Receipts"| n4
-  n1 -->|"Forcemerge"| n5
-  n5 -->|"Then verify"| n4
+  n0["run_baseline"]
+  n1["evaluate"]
+  n2["score_ranking"]
+  n3["Report metadata"]
+  n4["save_report"]
+  n0 -->|"Queries and<br/>modes"| n1
+  n1 -->|"Document<br/>rankings"| n2
+  n2 -->|"Mode metrics"| n0
+  n0 -->|"Repro metadata"| n3
+  n3 -->|"Report files"| n4

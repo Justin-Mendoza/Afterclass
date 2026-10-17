@@ -1,8 +1,8 @@
 {
   "generator": "repo-map-pipeline",
   "schema_version": 1,
-  "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-  "fingerprint": "9c4f5c894e9f575c5d5cd3be8f9f947f7e5649a7d322b738dedbec433e3537be",
+  "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+  "fingerprint": "537e557bb4d2daa359fe4ac03aad1a89532e4e5f2c139b3cd8b6520d6b6eff6f",
   "files": {
     ".github/workflows/ci.yml": "08fc7a39bb709f36dc91df51861252cc891f09cc1b46f59544ee6b500024cafe",
     ".github/workflows/repo-map.yml": "0f8744600011d511d4c22f130ed513eeab8bb0c0c602dcc98d9ce0f18e2fb445",
@@ -198,8 +198,8 @@
         "foundation",
         "retrieval"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "This subsystem defines provider contracts (embeddings, generation, reranking) with strict dataclass validation and hashing, plus two provider families: Cohere live adapters (opt-in) that sanitize SDK errors into ProviderError codes, and deterministic fake adapters used for non-live tests and loads. A chunking contract module derives stable, content-addressed identifiers from normalized config and span data.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "The answers subsystem defines application-owned async provider contracts for embeddings, generation, and reranking with strict validating dataclasses and content-addressed chunk identity. Cohere adapters (opt-in) and deterministic fake adapters both implement these contracts; live adapters sanitize SDK failures into ProviderError codes and derive Decimal cost/latency usage, while fakes report zero cost and stable synthetic outputs.",
       "api_calls_last_update": 5
     },
     "evaluation": {
@@ -230,8 +230,8 @@
         "ingestion",
         "retrieval"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "The evaluation subsystem loads and validates versioned datasets, prepares isolated evaluation corpora in OpenSearch, runs multi-mode retrieval (bm25/dense/hybrid/hybrid_rerank) through EvaluationSearch, scores rankings, and emits comparison reports, with a debug-only search API and a SciFact dataset builder CLI.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "The evaluation subsystem loads hash-verified, versioned datasets, prepares isolated per-scope evaluation corpora in OpenSearch through the durable ingestion pipeline, runs bm25/dense/hybrid/hybrid_rerank retrieval via a shared EvaluationSearch boundary, scores rankings with fixed metrics, and emits reproducible comparison reports. It exposes a debug-only search API and a SciFact builder CLI, and owns evaluation ORM tables.",
       "api_calls_last_update": 8
     },
     "foundation": {
@@ -281,8 +281,8 @@
         "ingestion",
         "retrieval"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "This batch maps the foundation layer of a hybrid RAG service: a FastAPI app entry point with health/readiness endpoints, typed settings, a SQLAlchemy async database base, document storage service, and a linear Alembic migration chain building identity, content, retrieval, evaluation/audit, and ingestion-job schema. Container, Makefile, and CI workflows build and verify the backend.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "The foundation subsystem is a FastAPI backend for a multi-tenant hybrid RAG service: a create_app entry point exposing health and evaluation routers, a cached typed Settings boundary, an async SQLAlchemy base, a tenant-scoped DocumentService with filesystem storage, and a linear Alembic chain defining identity, content, retrieval, evaluation/audit, and ingestion-job schema. Migrations push authorization, lifecycle, and immutability invariants into PostgreSQL, while containers, Makefile, and CI provide orchestration.",
       "api_calls_last_update": 5
     },
     "frontend": {
@@ -303,8 +303,8 @@
         "foundation",
         "retrieval"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "The supplied findings describe a single Next.js App Router frontend: a Docker/build/test setup, a root layout and static index page, and no observable runtime connection to the backend retrieval, answers, or foundation subsystems.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose Dockerfile runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page, with no state, inputs, or async data loading. No fetch, API route, or env read is present, so runtime linkage to the answers, foundation, or retrieval subsystems is unevidenced.",
       "api_calls_last_update": 2
     },
     "ingestion": {
@@ -399,8 +399,8 @@
       "depends_on": [
         "foundation"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "This batch maps the deterministic document-chunking core of the ingestion subsystem: parsed document blocks are grouped by heading path, greedily packed into token-limited chunks with overlap, enriched with reconstructed Markdown headings for embedding, and stamped with content-addressed identities from canonical digests.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks: it groups blocks by heading path, greedily packs them within a token budget with overlap, splits oversized blocks by prefix search, enriches text with reconstructed Markdown headings for embedding, and stamps identity digests derived from the config version and document id.",
       "api_calls_last_update": 2
     },
     "retrieval": {
@@ -439,8 +439,8 @@
         "foundation",
         "ingestion"
       ],
-      "source_revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
-      "summary": "This batch maps the dense-query retrieval path of a hybrid RAG backend: a dense retrieval config derived from settings feeds an OpenSearch dense retriever that validates filters, embeds the normalized query via a provider, issues a k-NN search, and returns shared RetrievalResult objects, with a CLI debug entry point.",
+      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
+      "summary": "This subsystem implements dense-query retrieval for a multi-tenant hybrid RAG backend: an injected embedding provider turns a normalized query into a vector used in a k-NN search against an OpenSearch read alias, and hits are renormalized into the shared RetrievalResult contract reused by lexical retrieval. Configuration derives from Settings, diagnostics are separated into a trace, and the only local entry point is a debug CLI, with orchestration living elsewhere.",
       "api_calls_last_update": 2
     }
   },

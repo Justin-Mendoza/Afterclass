@@ -5,5 +5,6 @@ flowchart TD
   n2["Cohere<br/>embeddings"]
   n3["Dense retriever"]
   n0 -->|"asyncio.run"| n1
-  n1 -->|"Opens context"| n2
-  n1 -->|"Builds retriever"| n3
+  n1 -->|"Opens provider"| n2
+  n1 -->|"Builds via<br/>settings"| n3
+  n3 -->|"Debug search"| n2

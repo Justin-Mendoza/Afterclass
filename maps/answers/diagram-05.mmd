@@ -1,9 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Request<br/>(embed/rerank/gen)"]
-  n1["FakeEmbeddingProvider"]
-  n2["FakeGenerationProvider"]
-  n3["FakeRerankingProvider"]
-  n0 -->|"Deterministic<br/>vectors"| n1
-  n0 -->|"Synthetic text"| n2
-  n0 -->|"Term overlap<br/>score"| n3
+  n0["Pinned assets"]
+  n1["provision_tokenizer"]
+  n2["load_local_tokenizer"]
+  n3["LocalTextTokenizer"]
+  n0 -->|"Pinned sha256"| n1
+  n1 -->|"Verified file"| n2
+  n2 -->|"Tokenizer asset"| n3

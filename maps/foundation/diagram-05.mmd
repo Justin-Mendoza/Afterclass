@@ -1,12 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Identity tables"]
-  n1["Content tables"]
-  n2["Retrieval tables"]
-  n3["Evaluation<br/>tables"]
-  n4["Ingestion job<br/>columns"]
-  n0 -->|"revises"| n1
-  n1 -->|"revises"| n2
-  n2 -->|"revises"| n3
-  n3 -->|"revises"| n4
-  n1 -.->|"Inferred: shared<br/>functions"| n3
+  n0["Makefile targets"]
+  n1["CI backend job"]
+  n2["PostgreSQL"]
+  n3["OpenSearch"]
+  n4["Redis"]
+  n5["Test suites"]
+  n0 -->|"seed then run"| n5
+  n1 -->|"ruff, pytest"| n5
+  n5 -->|"migrated DB"| n2
+  n5 -->|"retrieval tests"| n3
+  n0 -.->|"Inferred:<br/>Dramatiq broker"| n4

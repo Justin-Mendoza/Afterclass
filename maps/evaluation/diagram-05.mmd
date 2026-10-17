@@ -1,13 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["search() call"]
-  n1["BM25 retriever"]
-  n2["Dense retriever"]
-  n3["Hybrid<br/>retrievers"]
-  n4["Scope filter"]
-  n0 -->|"bm25"| n1
-  n0 -->|"dense"| n2
-  n0 -->|"hybrid modes"| n3
-  n1 -->|"Results"| n4
-  n2 -->|"Results"| n4
-  n3 -->|"Results"| n4
+  n0["scifact CLI"]
+  n1["download_archive"]
+  n2["convert_archive"]
+  n3["build_subset"]
+  n4["load_dataset<br/>check"]
+  n0 -->|"Download"| n1
+  n1 -->|"Verified archive"| n2
+  n2 -->|"Source dataset"| n3
+  n3 -->|"Re-validated"| n4

@@ -1,9 +1,10 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Readiness route"]
-  n1["Liveness route"]
-  n2["Dependency<br/>checks"]
-  n3["dependency_status"]
-  n0 -->|"awaits checks"| n3
-  n3 -->|"gathers"| n2
-  n2 -->|"bool results"| n3
+  n0["Liveness route"]
+  n1["Readiness route"]
+  n2["dependency_status"]
+  n3["Dependency<br/>probes"]
+  n1 -->|"awaits probes"| n2
+  n2 -->|"gathers"| n3
+  n3 -->|"boolean results"| n2
+  n2 -->|"503 if unready"| n1

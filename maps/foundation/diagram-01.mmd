@@ -1,14 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
   n0["FastAPI app"]
-  n1["Settings factory"]
-  n2["Declarative Base"]
-  n3["Alembic chain"]
-  n4["Backend image"]
+  n1["Settings"]
+  n2["SQLAlchemy Base"]
+  n3["DocumentService"]
+  n4["Alembic<br/>migrations"]
   n5["Makefile and CI"]
-  n4 -->|"uvicorn starts"| n0
   n0 -->|"reads settings"| n1
-  n3 -->|"reads db URL"| n1
-  n3 -->|"target_metadata"| n2
-  n5 -->|"runs alembic"| n3
-  n5 -->|"builds stack"| n4
+  n4 -->|"reads db URL"| n1
+  n4 -->|"target metadata"| n2
+  n3 -->|"async sessions"| n2
+  n5 -->|"runs alembic"| n4
+  n5 -->|"dev uvicorn"| n0
