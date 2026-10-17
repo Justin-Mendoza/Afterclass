@@ -29,6 +29,12 @@ python3 .repo-map/incremental.py --repo . --state /tmp/hybrid-rag-map-state --pl
 
 Use an empty state directory outside the repository. Expect all six maps on the first plan, no unassigned eligible source, and no API calls. The planner requires a clean tracked working tree; do not stash unrelated work merely to run it. During installation, validation can use a separate temporary Git snapshot instead. Plans report eligible files without reproducing source excerpts.
 
+## Architectural explanations
+
+Each subsystem map explains its purpose, responsibilities, and relationship to the wider application. Its summary describes the main architectural interaction. Views show components and boundaries at a consistent level, with labels for the contracts or data exchanged. They may cover persistence, external integrations, asynchronous work, or a representative runtime flow where code evidence supports it. The model avoids generic “Uses” or “Calls” edges, function traces, and file inventories. Rationale appears only where source evidence supports it.
+
+The overview continues to show configured dependency hints; inferred edges are explicitly labeled and should not be read as verified runtime calls. The new prompts do not change the saved JSON fields or finding-reference schema, so existing branch state remains readable. Since the generator contents are part of the state fingerprint, its next run requests a full refresh of existing maps and uses Kyma credits.
+
 ## Activate
 
 1. Under **Settings → Secrets and variables → Actions → New repository secret**, add `KYMA_API_KEY` with your Kyma key. Do not put the key in source code.
