@@ -28,9 +28,10 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
-      MAP_STATE: ${{ runner.temp }}/repo-map-state
       REPO_MAP_SOURCE_BRANCH: ${{ github.event.repository.default_branch }}
     steps:
+      - name: Set map state directory
+        run: echo "MAP_STATE=$RUNNER_TEMP/repo-map-state" >> "$GITHUB_ENV"
       - name: Check out source history
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
