@@ -222,11 +222,14 @@ def analyze(snippets, config, client, context=None):
             raise MapError('Analysis must return 1-16 findings')
         allowed = {s['id'] for s in group}
         for item in items:
-            if not isinstance(item, dict) or type(item.get('uncertain')) is not bool:
-                raise MapError('Analysis findings need explicit boolean uncertainty')
+            if not isinstance(item, dict):
+                raise MapError('Analysis finding must be a JSON object')
+            uncertain = item.get('uncertain', True)
+            if type(uncertain) is not bool:
+                raise MapError('Analysis uncertainty must be a boolean when provided')
             fid = f'F{len(findings) + 1:04}'
             findings[fid] = {'statement': short(item.get('statement'), 'finding', 600),
-                             'sources': refs(item.get('sources'), allowed), 'uncertain': item['uncertain']}
+                             'sources': refs(item.get('sources'), allowed), 'uncertain': uncertain}
         processed_ids.extend(s['id'] for s in group)
         print(f'Analyzed batch {index}/{len(selected)}', flush=True)
     return findings, processed_ids
@@ -263,11 +266,14 @@ def validate_result(result, findings, config):
             node['label'] = short(node.get('label'), 'node label', 36)
             node['finding_ids'] = refs(node.get('finding_ids'), findings)
         for edge in edges:
-            if edge.get('from') not in ids or edge.get('to') not in ids or type(edge.get('uncertain')) is not bool:
-                raise MapError('Unknown endpoint or missing uncertainty in edge')
+            if edge.get('from') not in ids or edge.get('to') not in ids:
+                raise MapError('Unknown endpoint in edge')
+            uncertain = edge.get('uncertain', True)
+            if type(uncertain) is not bool:
+                raise MapError('Edge uncertainty must be a boolean when provided')
             edge['label'] = short(edge.get('label'), 'edge label', 26)
             edge['finding_ids'] = refs(edge.get('finding_ids'), findings)
-            edge['uncertain'] = edge['uncertain'] or any(findings[f]['uncertain'] for f in edge['finding_ids'])
+            edge['uncertain'] = uncertain or any(findings[f]['uncertain'] for f in edge['finding_ids'])
     unknowns = result.get('unknowns', [])
     if not isinstance(unknowns, list) or len(unknowns) > 20:
         raise MapError('Invalid unknowns list')

@@ -102,6 +102,8 @@ Use focused top-down views: 2-6 nodes, at most 8 edges, short wrapped labels, an
 
 Default per-map analysis: 160 files, 18,000 source characters per file, 180,000 total source characters, 24,000-character batch target, 12 API calls (including synthesis), 6,000 output tokens per call, and six diagrams. A shared limit of 24 calls covers the entire update. Calls are allocated so remaining affected maps retain at least an analysis and synthesis call. Increase budgets deliberately or group scopes more broadly if needed. Runtime timeout is 60 minutes. Provider and Actions billing apply; request limits are not an exact dollar cap.
 
+Missing `uncertain` fields in model findings or diagram edges default to `true`, so underspecified claims are shown as inferred. Explicit non-boolean values remain errors. This lets analysis continue while keeping unsupported certainty out of the diagrams.
+
 Coverage and source IDs prove that evidence locations were supplied, not that the model's interpretation is true. Excerpt truncation and call-budget omissions are recorded. Credential-like lines are redacted and common credential/build/dependency files excluded. Raw source snippets and raw model responses are not persisted as artifacts, but generated summaries can reveal architecture. Review who can read the repo and the chosen API provider's handling of submitted source.
 
 No automatic API retry is made; a timed-out request can still incur a charge. HTTP/model/JSON/reference errors fail the run rather than publishing plausible partial output. Requested/reported models and any Kyma substitution are recorded. If a request fails, inspect the non-secret error and fix endpoint/model/access/configuration before rerunning.
