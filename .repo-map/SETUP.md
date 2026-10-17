@@ -19,7 +19,7 @@ See `config.json` for exact file ownership. Shared provider adapters and contrac
 
 The source allowlist covers backend application code, migrations, tests, frontend code, dataset schemas and operational configuration. Corpus/query/judgment records, evaluation output, parser record fixtures, personal notes, ticket history, environment files, lockfiles, generated content and styling are excluded. Only `datasets/schemas/*.schema.json` is exempted from the template's blanket dataset-directory block; other dataset paths remain blocked. Tracked files are subject to the same policy as other source; `.gitignore` alone does not protect them.
 
-Analysis remains bounded, not exhaustive. The existing limits are retained: 24 total API calls per update, at most six focused diagrams per subsystem, and a full refresh after 20 analysis updates. Actual charges depend on provider usage; the call limit is not a dollar cap. No application dependency or runtime service is added.
+Analysis remains bounded, not exhaustive. The existing limits are retained: 24 total API calls per update, six requested diagrams per subsystem (automatic splitting can produce more pages), and a full refresh after 20 analysis updates. Actual charges depend on provider usage; the call limit is not a dollar cap. No application dependency or runtime service is added.
 
 To inspect map ownership after committing the setup and other source changes:
 
@@ -92,7 +92,7 @@ The publisher writes only to `repo-map`; it does not update source branches, ope
 
 ## Readability and limits
 
-Use focused top-down views: 2-6 nodes, at most 8 edges, short wrapped labels, and 1-2 sentence explanations (40 words maximum). Large graphs should become multiple small views. Each PDF page shows one diagram. Rendering uses Graphviz at 144 dpi; Mermaid comes from the same graph. Node text is 22pt at layout time and must stay at least 12pt after fitting a PDF page; oversized layouts fail instead of silently shrinking. The fallback is not a general Mermaid ER/sequence renderer.
+Use focused top-down views: 2-6 nodes, at most 8 edges, short wrapped labels, and 1-2 sentence explanations (40 words maximum). Oversized model graphs are automatically split into small connected views after their source references are validated. Shared nodes repeat across views so no connection or evidence is discarded. The report records these splits; they need no extra API calls. The requested diagram count is a model target; splitting can create extra pages. Hard limits (64 raw nodes / 128 edges per graph and 64 views per map) still bound malformed or extreme output. Each PDF page shows one diagram. Rendering uses Graphviz at 144 dpi; Mermaid comes from the same graph. Node text is 22pt at layout time and must stay at least 12pt after fitting a PDF page; oversized layouts fail instead of silently shrinking. The fallback is not a general Mermaid ER/sequence renderer.
 
 Default per-map analysis: 160 files, 18,000 source characters per file, 180,000 total source characters, 24,000-character batch target, 12 API calls (including synthesis), 6,000 output tokens per call, and six diagrams. A shared limit of 24 calls covers the entire update. Calls are allocated so remaining affected maps retain at least an analysis and synthesis call. Increase budgets deliberately or group scopes more broadly if needed. Runtime timeout is 60 minutes. Provider and Actions billing apply; request limits are not an exact dollar cap.
 
@@ -114,10 +114,8 @@ For local full generation, use an existing Python 3.12+ environment with ReportL
 
 References: [Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [workflow artifacts](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts), [Kyma Chat Completions](https://docs.kymaapi.com/api-reference/chat-completions).
 
-## Installation verification
+## Update verification
 
-Offline installation checks passed against these installed scripts in an isolated copy of the skill's test workspace: 23 tests using mocked model responses and local Git remotes. They exercise incremental invalidation, unchanged-view reuse, failed-update staging, source-reference validation and map-branch publication. No authenticated Kyma calls or GitHub workflow run were performed.
+The graph-splitting update passed 28 offline tests against an isolated copy of the installed scripts, using mocked API responses and local Git remotes. Tests cover lossless splitting (including duplicate edges and isolated nodes), invalid evidence rejection, extra-page generation without extra model calls, allowed job-level contexts and runner-path export. `actionlint -shellcheck= .github/workflows/repo-map.yml` also passed.
 
-A clean temporary Git snapshot was used for the repository `--plan` check because the working repository contained unrelated tracked edits. All six maps were selected for initial generation, with no unassigned or skipped eligible source. Additional assertions checked schema inclusion and record/credential exclusions. Ruby's YAML parser checked workflow syntax; structural checks covered triggers, the default-branch guard, serialized updates, permissions, step-scoped credentials and 30-day artifact retention. Action references retain the template's full commit hashes; their remote existence was not independently tested.
-
-These checks verify offline mechanics and configuration, not the semantic accuracy or layout of future model-generated maps. After activation, inspect the first GitHub run and each subsystem's diagrams and coverage report. The configured endpoint/model, account access, Actions policy and map-branch push permissions remain live activation checks.
+A synthetic Hybrid RAG graph rendered into four PDF pages and was rasterized and visually inspected. Local preview used temporary Graphviz WASM plus SVG-to-PNG conversion at 144 dpi; GitHub continues to use native Graphviz. Labels and arrows were readable and unclipped, and the PDF's 12pt minimum-node-text guard passed. No application dependencies were installed. Source-ownership checks retained all six maps and the four dataset schemas with no unassigned eligible files. These offline checks do not validate live Kyma access or future model interpretations.

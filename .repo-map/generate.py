@@ -241,7 +241,7 @@ def synthesize(findings, config, client, context=None):
 def validate_result(result, findings, config):
     result['summary'] = short(result.get('summary'), 'summary', 600)
     diagrams = result.get('diagrams')
-    if not isinstance(diagrams, list) or not 1 <= len(diagrams) <= config['max_diagrams']:
+    if not isinstance(diagrams, list) or not 1 <= len(diagrams) <= 64:
         raise MapError('Invalid diagram count')
     for diagram in diagrams:
         diagram['title'] = short(diagram.get('title'), 'title', 100)
@@ -249,8 +249,10 @@ def validate_result(result, findings, config):
         if len(diagram['description'].split()) > 40:
             raise MapError('Diagram description exceeded 40 words')
         nodes, edges = diagram.get('nodes'), diagram.get('edges')
-        if not isinstance(nodes, list) or not 2 <= len(nodes) <= 6 or not isinstance(edges, list) or len(edges) > 8:
-            raise MapError('Diagram exceeds readability limits')
+        if not isinstance(nodes, list) or not isinstance(edges, list):
+            raise MapError('Diagram nodes and edges must be JSON arrays')
+        if not 1 <= len(nodes) <= 64 or len(edges) > 128:
+            raise MapError('Diagram exceeds safe input size (64 nodes / 128 edges); reduce analysis scope')
         ids = set()
         for node in nodes:
             nid = short(node.get('id'), 'node ID', 64)
@@ -270,12 +272,49 @@ def validate_result(result, findings, config):
     if not isinstance(unknowns, list) or len(unknowns) > 20:
         raise MapError('Invalid unknowns list')
     result['unknowns'] = [short(u, 'unknown', 400) for u in unknowns]
-    # Persist only the validated schema, never unsolicited model fields/source echoes.
-    return {'summary': result['summary'], 'unknowns': result['unknowns'], 'diagrams': [
-        {'title': d['title'], 'description': d['description'],
-         'nodes': [{k: n[k] for k in ('id', 'label', 'finding_ids')} for n in d['nodes']],
-         'edges': [{k: e[k] for k in ('from', 'to', 'label', 'finding_ids', 'uncertain')} for e in d['edges']]}
-        for d in diagrams]}
+    # Validate evidence and structure before doing any layout normalization.
+    clean = [{'title': d['title'], 'description': d['description'],
+              'nodes': [{k: n[k] for k in ('id', 'label', 'finding_ids')} for n in d['nodes']],
+              'edges': [{k: e[k] for k in ('from', 'to', 'label', 'finding_ids', 'uncertain')} for e in d['edges']]}
+             for d in diagrams]
+    views, notes = [], []
+    for diagram in clean:
+        parts = split_diagram(diagram)
+        views.extend(parts)
+        if len(parts) > 1:
+            notes.append(f'Split "{diagram["title"]}" into {len(parts)} readable views. Repeated node IDs connect the views; all nodes, arrows, and evidence are retained.')
+    if len(views) > 64:
+        raise MapError('Map needs more than 64 readable views; reduce subsystem scope')
+    return {'summary': result['summary'], 'unknowns': result['unknowns'], 'diagrams': views, 'layout_notes': notes}
+
+
+def split_diagram(diagram, max_nodes=6, max_edges=8):
+    """Partition a valid graph without deleting edges, node identities, or evidence."""
+    if len(diagram['nodes']) <= max_nodes and len(diagram['edges']) <= max_edges:
+        return [diagram]
+    pending = list(diagram['edges'])
+    groups, seen = [], set()
+    while pending:
+        edge = pending.pop(0)
+        edges, ids = [edge], {edge['from'], edge['to']}
+        while len(edges) < max_edges:
+            # Grow a connected neighborhood, keeping original edge order where possible.
+            next_index = next((i for i, e in enumerate(pending)
+                               if {e['from'], e['to']} & ids
+                               and len(ids | {e['from'], e['to']}) <= max_nodes), None)
+            if next_index is None:
+                break
+            edge = pending.pop(next_index)
+            edges.append(edge)
+            ids.update((edge['from'], edge['to']))
+        groups.append(([n for n in diagram['nodes'] if n['id'] in ids], edges))
+        seen.update(ids)
+    isolated = [n for n in diagram['nodes'] if n['id'] not in seen]
+    for start in range(0, len(isolated), min(3, max_nodes)):
+        groups.append((isolated[start:start + min(3, max_nodes)], []))
+    return [{'title': f'{diagram["title"][:85]} ({i}/{len(groups)})',
+             'description': diagram['description'], 'nodes': nodes, 'edges': edges}
+            for i, (nodes, edges) in enumerate(groups, 1)]
 
 
 def mermaid_text(diagram):
@@ -394,6 +433,8 @@ def write_artifacts(result, findings, sources, coverage, metadata, output, reuse
             statement = escape(finding['statement'])
             readme.append(f'- **{fid}**{" (inferred)" if finding["uncertain"] else ""}: {statement} ({links})')
         readme.append('')
+    if result.get('layout_notes'):
+        readme += ['## Layout notes', ''] + ['- ' + escape(note) for note in result['layout_notes']] + ['']
     readme += ['## Uncertainties and untraced areas', '']
     readme += [f'- {escape(u)}' for u in result['unknowns']] or ['- See scan omissions in coverage.json.']
     (output / 'README.md').write_text('\n'.join(readme) + '\n')
