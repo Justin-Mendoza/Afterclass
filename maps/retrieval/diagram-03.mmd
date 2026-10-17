@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["CLI main"]
+  n1["_debug_query"]
+  n2["Cohere<br/>embeddings"]
+  n3["Dense retriever"]
+  n0 -->|"asyncio.run"| n1
+  n1 -->|"Opens context"| n2
+  n1 -->|"Builds retriever"| n3

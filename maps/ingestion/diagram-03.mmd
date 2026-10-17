@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Candidate<br/>accumulator"]
+  n1["Token-limit<br/>check"]
+  n2["Largest-prefix<br/>split"]
+  n3["Overlap carry"]
+  n0 -->|"Fits?"| n1
+  n1 -->|"Overflow splits"| n2
+  n1 -->|"Emit then carry"| n3
+  n2 -->|"Remainder<br/>reseeds"| n0
+  n3 -->|"Overlap prepends"| n0

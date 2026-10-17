@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["manifest.json"]
+  n1["load_dataset"]
+  n2["Cross-validation"]
+  n3["EvaluationDataset"]
+  n4["JSONL records"]
+  n0 -->|"Parsed"| n1
+  n1 -->|"Reads files"| n4
+  n1 -->|"Judgment checks"| n2
+  n2 -->|"Hashes and ids"| n3

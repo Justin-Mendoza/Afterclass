@@ -1,0 +1,544 @@
+{
+  "map": {
+    "summary": "This batch maps the dense-query retrieval path of a hybrid RAG backend: a dense retrieval config derived from settings feeds an OpenSearch dense retriever that validates filters, embeds the normalized query via a provider, issues a k-NN search, and returns shared RetrievalResult objects, with a CLI debug entry point.",
+    "unknowns": [
+      "No supplied finding shows how hybrid_retrieval, reranked_retrieval, or lexical_retrieval combine with this dense retriever.",
+      "Supporting modules (models/retrieval.py, retrieval_filters.py, opensearch_index.py, providers/*) are listed as changed but their internal behavior beyond dense_retrieval imports is not described.",
+      "Tests are listed but their assertions and coverage of the dense path are not detailed."
+    ],
+    "diagrams": [
+      {
+        "title": "Architecture",
+        "description": "Settings flow into a dense retrieval config; the retriever uses an embedding provider and OpenSearch to serve queries, sharing result contracts with lexical retrieval.",
+        "nodes": [
+          {
+            "id": "settings",
+            "label": "Settings",
+            "finding_ids": [
+              "F0002"
+            ]
+          },
+          {
+            "id": "config",
+            "label": "DenseRetrievalConfig",
+            "finding_ids": [
+              "F0001",
+              "F0002",
+              "F0014"
+            ]
+          },
+          {
+            "id": "retriever",
+            "label": "Dense retriever",
+            "finding_ids": [
+              "F0004",
+              "F0005"
+            ]
+          },
+          {
+            "id": "embed",
+            "label": "Embedding provider",
+            "finding_ids": [
+              "F0007",
+              "F0008"
+            ]
+          },
+          {
+            "id": "opensearch",
+            "label": "OpenSearch",
+            "finding_ids": [
+              "F0011",
+              "F0013"
+            ]
+          },
+          {
+            "id": "results",
+            "label": "Retrieval results",
+            "finding_ids": [
+              "F0012"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "settings",
+            "to": "config",
+            "label": "Maps fields",
+            "finding_ids": [
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "retriever",
+            "label": "Configures",
+            "finding_ids": [
+              "F0001",
+              "F0004",
+              "F0014"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "retriever",
+            "to": "embed",
+            "label": "Embeds query",
+            "finding_ids": [
+              "F0005",
+              "F0007"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "retriever",
+            "to": "opensearch",
+            "label": "Searches alias",
+            "finding_ids": [
+              "F0010",
+              "F0011",
+              "F0013"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "opensearch",
+            "to": "results",
+            "label": "Hit parsing",
+            "finding_ids": [
+              "F0011",
+              "F0012"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Query Execution Flow",
+        "description": "A user query is normalized, validated, embedded, and issued as a k-NN search; empty queries short-circuit, and timings and traces are recorded.",
+        "nodes": [
+          {
+            "id": "query",
+            "label": "User query",
+            "finding_ids": [
+              "F0003",
+              "F0005"
+            ]
+          },
+          {
+            "id": "normalize",
+            "label": "Normalize query",
+            "finding_ids": [
+              "F0003"
+            ]
+          },
+          {
+            "id": "validate",
+            "label": "Validate filters",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "embedstep",
+            "label": "Embed query",
+            "finding_ids": [
+              "F0007",
+              "F0008",
+              "F0009"
+            ]
+          },
+          {
+            "id": "searchstep",
+            "label": "k-NN search",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ]
+          },
+          {
+            "id": "trace",
+            "label": "DenseRetrievalTrace",
+            "finding_ids": [
+              "F0015"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "query",
+            "to": "normalize",
+            "label": "Trims whitespace",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "normalize",
+            "to": "validate",
+            "label": "UUID checks",
+            "finding_ids": [
+              "F0005"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "normalize",
+            "to": "embedstep",
+            "label": "Empty short-circuit",
+            "finding_ids": [
+              "F0006"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "validate",
+            "to": "embedstep",
+            "label": "Proceeds",
+            "finding_ids": [
+              "F0005",
+              "F0007"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "embedstep",
+            "to": "searchstep",
+            "label": "Query vector",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "searchstep",
+            "to": "trace",
+            "label": "Records stages",
+            "finding_ids": [
+              "F0015"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Debug CLI Flow",
+        "description": "A command-line entry point parses arguments and runs the dense query with debug tracing, opening the configured embedding provider.",
+        "nodes": [
+          {
+            "id": "cli",
+            "label": "CLI main",
+            "finding_ids": [
+              "F0016"
+            ]
+          },
+          {
+            "id": "debug",
+            "label": "_debug_query",
+            "finding_ids": [
+              "F0016"
+            ]
+          },
+          {
+            "id": "provider",
+            "label": "Cohere embeddings",
+            "finding_ids": [
+              "F0016"
+            ]
+          },
+          {
+            "id": "denseret",
+            "label": "Dense retriever",
+            "finding_ids": [
+              "F0004",
+              "F0016"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "cli",
+            "to": "debug",
+            "label": "asyncio.run",
+            "finding_ids": [
+              "F0016"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "debug",
+            "to": "provider",
+            "label": "Opens context",
+            "finding_ids": [
+              "F0016"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "debug",
+            "to": "denseret",
+            "label": "Builds retriever",
+            "finding_ids": [
+              "F0016"
+            ],
+            "uncertain": false
+          }
+        ]
+      }
+    ],
+    "layout_notes": []
+  },
+  "findings": {
+    "F0001": {
+      "statement": "DenseRetrievalConfig.__post_init__ validates embedding_model, embedding_dimensions, and candidate_limit, then calls physical_index_name(index_schema_version, \"dense-query\") to enforce the schema-version naming contract without issuing a mapping request.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0002": {
+      "statement": "DenseRetrievalConfig.from_settings maps Settings fields cohere_embed_model, cohere_embed_dimensions, opensearch_index_schema_version, and opensearch_dense_candidate_limit into the config.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "normalize_dense_query trims and collapses internal whitespace via \" \".join(query_text.split()) and raises ValueError for non-string input.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "OpenSearchDenseRetriever.__init__ validates base_url and read_alias as nonblank strings and checks the embedding_provider has an embed attribute.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "OpenSearchDenseRetriever.search validates tenant_id is a UUID and collection_id is a UUID when present, builds RetrievalFilters, and normalizes the query.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "When the normalized query is empty, search returns an empty DenseRetrievalResponse with zero candidate_count and zero elapsed timings, short-circuiting embedding and OpenSearch calls.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "search calls embedding_provider.embed with an EmbeddingRequest of one normalized query and EmbeddingPurpose.QUERY, timing it with time.perf_counter.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "_query_vector rejects results with purpose other than QUERY, more than one vector, model mismatch, or dimensions mismatch, raising RetrievalError with codes embedding_invalid_response, embedding_model_mismatch, and query_vector_dimensions_mismatch.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "_query_vector also rejects vectors containing non-numeric, boolean, or non-finite values with RetrievalError embedding_invalid_response, then coerces values to float.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "_search_body builds a k-NN query with size and k set to candidate_limit, track_total_hits true, explain set to debug, an explicit _source list of chunk and document fields, and a bool filter using filters.clauses().",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "search issues POST /{read_alias}/_search with the constructed body via _request and parses payload['hits']['hits'], raising RetrievalError opensearch_invalid_response when the payload, hits, or hits.hits shapes are unexpected.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "search reuses OpenSearchBM25Retriever._result_from_hit and _candidate_count to convert hits into RetrievalResult objects and derive candidate_count, so dense and BM25 share the normalized result contract.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "_request creates a per-call httpx.AsyncClient with a 10s timeout, translating httpx.HTTPError into RetrievalError opensearch_unavailable retryable=True and mapping HTTP status >=500, 408, or 429 to retryable errors.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0014": {
+      "statement": "_candidate_limit defaults to config.candidate_limit when limit is None, validates limit is a positive non-bool int, and otherwise caps it at min(limit, config.candidate_limit).",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0015": {
+      "statement": "DenseRetrievalTrace records normalized_query, model/dimensions, adapter, schema version, read_alias, candidate counts, per-stage elapsed milliseconds, tenant_id, collection_id, and filter values, keeping diagnostics separate from evidence.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0016": {
+      "statement": "The module's CLI main parses query, --tenant (required UUID), --collection, and --limit, then runs _debug_query via asyncio.run; _debug_query opens configured_cohere_embeddings as a context manager, constructs a retriever from settings, and searches with debug=True.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    }
+  },
+  "sources": {
+    "S0001": {
+      "id": "S0001",
+      "path": "backend/src/hybrid_rag_search/dense_retrieval.py",
+      "start": 1,
+      "end": 364
+    }
+  },
+  "metadata": {
+    "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+    "generated_at": "2026-10-17T22:43:02.534457+00:00",
+    "model": "deepseek-v4.1-flash",
+    "model_responses": [
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      }
+    ],
+    "local_changes": false,
+    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+  }
+}

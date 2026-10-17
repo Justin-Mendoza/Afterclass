@@ -1,0 +1,14 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["EvaluationScope"]
+  n1["prepare_corpus"]
+  n2["LocalFileStorage"]
+  n3["Ingestion jobs"]
+  n4["verify_prepared"]
+  n5["compact_corpus"]
+  n0 -->|"Scope input"| n1
+  n1 -->|"Saves content"| n2
+  n1 -->|"Enqueues inline"| n3
+  n3 -->|"Receipts"| n4
+  n1 -->|"Forcemerge"| n5
+  n5 -->|"Then verify"| n4

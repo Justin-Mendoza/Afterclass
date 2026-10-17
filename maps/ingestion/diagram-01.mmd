@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Chunking package"]
+  n1["Chunker"]
+  n2["Embedding text<br/>builder"]
+  n3["Chunk and config<br/>contracts"]
+  n4["Identity digests"]
+  n0 -->|"Exposes<br/>implementation"| n1
+  n1 -->|"Builds embedding<br/>text"| n2
+  n1 -->|"Emits Chunks"| n3
+  n3 -->|"Computes digests"| n4

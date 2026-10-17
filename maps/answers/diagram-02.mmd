@@ -1,0 +1,12 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["ChunkingConfig"]
+  n1["Config version<br/>hash"]
+  n2["Chunk"]
+  n3["SourceSpan"]
+  n4["chunk_id digest"]
+  n0 -->|"Canonicalizes"| n1
+  n3 -->|"Provide spans"| n2
+  n2 -->|"Hashes"| n4
+  n1 -->|"Config version"| n4
+  n3 -->|"Canonical values"| n4

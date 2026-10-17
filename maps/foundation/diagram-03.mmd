@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["upload entry"]
+  n1["Collection lock"]
+  n2["Hash dedupe"]
+  n3["Document insert"]
+  n4["Filesystem save"]
+  n0 -->|"with_for_update"| n1
+  n1 -->|"checks hash"| n2
+  n2 -->|"new document"| n3
+  n3 -->|"to_thread save"| n4

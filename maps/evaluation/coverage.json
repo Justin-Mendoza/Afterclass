@@ -1,0 +1,298 @@
+{
+  "tracked_files": 223,
+  "eligible_files": 20,
+  "selected_files": 20,
+  "selected_chars": 94503,
+  "redacted_lines": 1,
+  "omissions": [],
+  "excluded_files": 203,
+  "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
+  "analyzed_files": 20,
+  "api_calls": 8,
+  "usage": [
+    {
+      "prompt_tokens": 4685,
+      "total_tokens": 5613,
+      "completion_tokens": 928,
+      "prompt_tokens_details": {
+        "cached_tokens": 4608,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00056685636,
+      "cache_discount": 0.00043462656,
+      "cached_tokens": 4608
+    },
+    {
+      "prompt_tokens": 3521,
+      "total_tokens": 4214,
+      "completion_tokens": 693,
+      "prompt_tokens_details": {
+        "cached_tokens": 3456,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00042481152,
+      "cache_discount": 0.00032596992,
+      "cached_tokens": 3456
+    },
+    {
+      "prompt_tokens": 4647,
+      "total_tokens": 5605,
+      "completion_tokens": 958,
+      "prompt_tokens_details": {
+        "cached_tokens": 4608,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00057668436,
+      "cache_discount": 0.00043462656,
+      "cached_tokens": 4608
+    },
+    {
+      "prompt_tokens": 5553,
+      "total_tokens": 6707,
+      "completion_tokens": 1154,
+      "prompt_tokens_details": {
+        "cached_tokens": 5504,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0006947866799999999,
+      "cache_discount": 0.00051913728,
+      "cached_tokens": 5504
+    },
+    {
+      "prompt_tokens": 8014,
+      "total_tokens": 9307,
+      "completion_tokens": 1293,
+      "prompt_tokens_details": {
+        "cached_tokens": 7936,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0007928701199999999,
+      "cache_discount": 0.0007485235199999999,
+      "cached_tokens": 7936
+    },
+    {
+      "prompt_tokens": 6866,
+      "total_tokens": 7828,
+      "completion_tokens": 962,
+      "prompt_tokens_details": {
+        "cached_tokens": 6784,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00059941728,
+      "cache_discount": 0.0006398668800000001,
+      "cached_tokens": 6784
+    },
+    {
+      "prompt_tokens": 3602,
+      "total_tokens": 4556,
+      "completion_tokens": 954,
+      "prompt_tokens_details": {
+        "cached_tokens": 3584,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0005646412799999999,
+      "cache_discount": 0.00033804288000000005,
+      "cached_tokens": 3584
+    },
+    {
+      "prompt_tokens": 8123,
+      "total_tokens": 10894,
+      "completion_tokens": 2771,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.003106404,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    }
+  ],
+  "limits": {
+    "include": [
+      "backend/src/*",
+      "backend/migrations/*",
+      "backend/tests/*",
+      "backend/pyproject.toml",
+      "backend/alembic.ini",
+      "backend/Dockerfile",
+      "frontend/*",
+      "datasets/schemas/*.schema.json",
+      "compose.yaml",
+      "Makefile",
+      ".github/workflows/*",
+      ".pre-commit-config.yaml",
+      "infra/*"
+    ],
+    "exclude": [
+      ".env*",
+      "*/.env*",
+      "datasets/*/v*/*",
+      "docs/*",
+      "notes*",
+      "*/notes*",
+      "*/fixtures/*",
+      "frontend/src/app/styles.css"
+    ],
+    "max_files": 160,
+    "max_file_chars": 18000,
+    "max_total_chars": 180000,
+    "batch_chars": 24000,
+    "max_calls": 11,
+    "max_output_tokens": 6000,
+    "max_diagrams": 6,
+    "request_timeout_seconds": 120,
+    "maps": {
+      "foundation": {
+        "include": [
+          "backend/src/hybrid_rag_search/__init__.py",
+          "backend/src/hybrid_rag_search/api.py",
+          "backend/src/hybrid_rag_search/api_errors.py",
+          "backend/src/hybrid_rag_search/authorization.py",
+          "backend/src/hybrid_rag_search/config.py",
+          "backend/src/hybrid_rag_search/database.py",
+          "backend/src/hybrid_rag_search/documents.py",
+          "backend/src/hybrid_rag_search/health.py",
+          "backend/src/hybrid_rag_search/main.py",
+          "backend/src/hybrid_rag_search/management*.py",
+          "backend/src/hybrid_rag_search/models/*",
+          "backend/src/hybrid_rag_search/seed.py",
+          "backend/src/hybrid_rag_search/storage.py",
+          "backend/migrations/*",
+          "backend/tests/test_author*.py",
+          "backend/tests/test_database.py",
+          "backend/tests/test_dependency_health.py",
+          "backend/tests/test_documents*.py",
+          "backend/tests/test_health.py",
+          "backend/tests/test_management*.py",
+          "backend/tests/test_schema*.py",
+          "backend/tests/test_seed.py",
+          "backend/tests/test_storage.py",
+          "backend/pyproject.toml",
+          "backend/Dockerfile",
+          "compose.yaml",
+          "Makefile",
+          ".github/workflows/*",
+          ".pre-commit-config.yaml",
+          "infra/*"
+        ],
+        "depends_on": [
+          "ingestion",
+          "retrieval",
+          "answers"
+        ]
+      },
+      "ingestion": {
+        "include": [
+          "backend/src/hybrid_rag_search/ingestion/*",
+          "backend/src/hybrid_rag_search/ingestion_recovery.py",
+          "backend/src/hybrid_rag_search/worker.py",
+          "backend/src/hybrid_rag_search/parsers/*",
+          "backend/src/hybrid_rag_search/chunking/*",
+          "backend/src/hybrid_rag_search/index_rebuild.py",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/tokenizer_setup.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/tests/test_ingestion*.py",
+          "backend/tests/test_worker*.py",
+          "backend/tests/test_*parser*.py",
+          "backend/tests/test_parsing_contract.py",
+          "backend/tests/test_chunk*.py",
+          "backend/tests/test_index_rebuild.py",
+          "backend/tests/test_opensearch_index.py",
+          "backend/tests/test_token*.py",
+          "backend/tests/test_*embedding*.py",
+          "backend/tests/test_cohere_live.py"
+        ],
+        "depends_on": [
+          "foundation"
+        ]
+      },
+      "retrieval": {
+        "include": [
+          "backend/src/hybrid_rag_search/*retrieval*.py",
+          "backend/src/hybrid_rag_search/search.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/tests/test_*retrieval*.py",
+          "backend/tests/test_authorized_search.py",
+          "backend/tests/test_reranking.py",
+          "backend/tests/test_cohere_reranking.py",
+          "backend/tests/test_embeddings.py",
+          "backend/tests/test_cohere_embeddings.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion"
+        ]
+      },
+      "answers": {
+        "include": [
+          "backend/src/hybrid_rag_search/answer*.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/models/answers.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/chunking/contracts.py",
+          "backend/tests/test_answer*.py",
+          "backend/tests/test_generation.py",
+          "backend/tests/test_cohere_generation.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval"
+        ]
+      },
+      "evaluation": {
+        "include": [
+          "backend/src/hybrid_rag_search/evaluation/*",
+          "backend/src/hybrid_rag_search/models/evaluation.py",
+          "backend/tests/test_evaluation*.py",
+          "backend/tests/test_scifact*.py",
+          "datasets/schemas/*.schema.json"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion",
+          "retrieval"
+        ]
+      },
+      "frontend": {
+        "include": [
+          "frontend/*"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval",
+          "answers"
+        ]
+      }
+    },
+    "max_total_calls": 24,
+    "full_refresh_after_updates": 20
+  },
+  "not_analyzed_due_to_call_budget": []
+}

@@ -1,0 +1,15 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Dataset loader"]
+  n1["Corpus<br/>preparation"]
+  n2["EvaluationSearch"]
+  n3["Runner and<br/>reports"]
+  n4["Debug search API"]
+  n5["OpenSearch index"]
+  n0 -->|"Corpus records"| n1
+  n1 -->|"Indexes corpus"| n5
+  n2 -->|"Queries scope"| n5
+  n3 -->|"Runs MODES"| n2
+  n3 -->|"Loads dataset"| n0
+  n4 -->|"Resolves dataset"| n1
+  n4 -->|"Debug search"| n2

@@ -1,0 +1,553 @@
+{
+  "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+  "affected": [
+    "answers",
+    "evaluation",
+    "foundation",
+    "frontend",
+    "ingestion",
+    "retrieval"
+  ],
+  "removed": [],
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/repo-map.yml",
+    ".pre-commit-config.yaml",
+    "Makefile",
+    "backend/Dockerfile",
+    "backend/migrations/README.md",
+    "backend/migrations/env.py",
+    "backend/migrations/versions/20260915_01_identity.py",
+    "backend/migrations/versions/20260915_02_content.py",
+    "backend/migrations/versions/20260915_03_retrieval.py",
+    "backend/migrations/versions/20260915_04_evaluation_audit.py",
+    "backend/migrations/versions/20260918_05_ingestion_stage.py",
+    "backend/migrations/versions/20260918_06_ingestion_identity.py",
+    "backend/migrations/versions/20260918_07_ingestion_lease.py",
+    "backend/migrations/versions/20260918_08_ingestion_retry_time.py",
+    "backend/pyproject.toml",
+    "backend/src/hybrid_rag_search/__init__.py",
+    "backend/src/hybrid_rag_search/chunking/__init__.py",
+    "backend/src/hybrid_rag_search/chunking/chunker.py",
+    "backend/src/hybrid_rag_search/chunking/contracts.py",
+    "backend/src/hybrid_rag_search/chunking/embedding_text.py",
+    "backend/src/hybrid_rag_search/chunking/identity.py",
+    "backend/src/hybrid_rag_search/config.py",
+    "backend/src/hybrid_rag_search/database.py",
+    "backend/src/hybrid_rag_search/dense_retrieval.py",
+    "backend/src/hybrid_rag_search/documents.py",
+    "backend/src/hybrid_rag_search/evaluation/__init__.py",
+    "backend/src/hybrid_rag_search/evaluation/api.py",
+    "backend/src/hybrid_rag_search/evaluation/corpus.py",
+    "backend/src/hybrid_rag_search/evaluation/datasets.py",
+    "backend/src/hybrid_rag_search/evaluation/metrics.py",
+    "backend/src/hybrid_rag_search/evaluation/runner.py",
+    "backend/src/hybrid_rag_search/evaluation/scifact.py",
+    "backend/src/hybrid_rag_search/evaluation/search.py",
+    "backend/src/hybrid_rag_search/health.py",
+    "backend/src/hybrid_rag_search/hybrid_retrieval.py",
+    "backend/src/hybrid_rag_search/index_rebuild.py",
+    "backend/src/hybrid_rag_search/ingestion/__init__.py",
+    "backend/src/hybrid_rag_search/ingestion/artifact_payloads.py",
+    "backend/src/hybrid_rag_search/ingestion/artifacts.py",
+    "backend/src/hybrid_rag_search/ingestion/checkpoints.py",
+    "backend/src/hybrid_rag_search/ingestion/chunk_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/claims.py",
+    "backend/src/hybrid_rag_search/ingestion/dispatch.py",
+    "backend/src/hybrid_rag_search/ingestion/embed_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/failures.py",
+    "backend/src/hybrid_rag_search/ingestion/identity.py",
+    "backend/src/hybrid_rag_search/ingestion/index_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/indexing.py",
+    "backend/src/hybrid_rag_search/ingestion/jobs.py",
+    "backend/src/hybrid_rag_search/ingestion/parse_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/pipeline.py",
+    "backend/src/hybrid_rag_search/ingestion/recovery.py",
+    "backend/src/hybrid_rag_search/ingestion/runtime.py",
+    "backend/src/hybrid_rag_search/ingestion_recovery.py",
+    "backend/src/hybrid_rag_search/lexical_retrieval.py",
+    "backend/src/hybrid_rag_search/main.py",
+    "backend/src/hybrid_rag_search/models/__init__.py",
+    "backend/src/hybrid_rag_search/models/content.py",
+    "backend/src/hybrid_rag_search/models/evaluation.py",
+    "backend/src/hybrid_rag_search/models/identity.py",
+    "backend/src/hybrid_rag_search/models/retrieval.py",
+    "backend/src/hybrid_rag_search/opensearch_index.py",
+    "backend/src/hybrid_rag_search/parsers/__init__.py",
+    "backend/src/hybrid_rag_search/parsers/contracts.py",
+    "backend/src/hybrid_rag_search/parsers/dispatcher.py",
+    "backend/src/hybrid_rag_search/parsers/errors.py",
+    "backend/src/hybrid_rag_search/parsers/html.py",
+    "backend/src/hybrid_rag_search/parsers/markdown.py",
+    "backend/src/hybrid_rag_search/parsers/normalization.py",
+    "backend/src/hybrid_rag_search/parsers/pdf.py",
+    "backend/src/hybrid_rag_search/parsers/plain_text.py",
+    "backend/src/hybrid_rag_search/providers/__init__.py",
+    "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+    "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+    "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+    "backend/src/hybrid_rag_search/providers/embeddings.py",
+    "backend/src/hybrid_rag_search/providers/errors.py",
+    "backend/src/hybrid_rag_search/providers/fake.py",
+    "backend/src/hybrid_rag_search/providers/generation.py",
+    "backend/src/hybrid_rag_search/providers/reranking.py",
+    "backend/src/hybrid_rag_search/providers/usage.py",
+    "backend/src/hybrid_rag_search/reranked_retrieval.py",
+    "backend/src/hybrid_rag_search/retrieval_filters.py",
+    "backend/src/hybrid_rag_search/seed.py",
+    "backend/src/hybrid_rag_search/storage.py",
+    "backend/src/hybrid_rag_search/tokenization.py",
+    "backend/src/hybrid_rag_search/tokenizer_setup.py",
+    "backend/src/hybrid_rag_search/worker.py",
+    "backend/tests/test_chunk_contracts.py",
+    "backend/tests/test_chunk_embedding_text.py",
+    "backend/tests/test_chunk_identity.py",
+    "backend/tests/test_chunker.py",
+    "backend/tests/test_cohere_embeddings.py",
+    "backend/tests/test_cohere_generation.py",
+    "backend/tests/test_cohere_live.py",
+    "backend/tests/test_cohere_reranking.py",
+    "backend/tests/test_database.py",
+    "backend/tests/test_dense_retrieval.py",
+    "backend/tests/test_dense_retrieval_integration.py",
+    "backend/tests/test_dependency_health.py",
+    "backend/tests/test_documents.py",
+    "backend/tests/test_documents_integration.py",
+    "backend/tests/test_embeddings.py",
+    "backend/tests/test_evaluation_corpus.py",
+    "backend/tests/test_evaluation_datasets.py",
+    "backend/tests/test_evaluation_metrics.py",
+    "backend/tests/test_evaluation_runner.py",
+    "backend/tests/test_evaluation_search.py",
+    "backend/tests/test_generation.py",
+    "backend/tests/test_health.py",
+    "backend/tests/test_html_parser.py",
+    "backend/tests/test_hybrid_retrieval.py",
+    "backend/tests/test_hybrid_retrieval_integration.py",
+    "backend/tests/test_index_rebuild.py",
+    "backend/tests/test_ingestion_artifact_payloads.py",
+    "backend/tests/test_ingestion_artifacts.py",
+    "backend/tests/test_ingestion_checkpoints.py",
+    "backend/tests/test_ingestion_checkpoints_integration.py",
+    "backend/tests/test_ingestion_chunk_stage.py",
+    "backend/tests/test_ingestion_claims.py",
+    "backend/tests/test_ingestion_claims_integration.py",
+    "backend/tests/test_ingestion_dispatch.py",
+    "backend/tests/test_ingestion_embed_stage.py",
+    "backend/tests/test_ingestion_failures.py",
+    "backend/tests/test_ingestion_identity.py",
+    "backend/tests/test_ingestion_index_stage.py",
+    "backend/tests/test_ingestion_indexing.py",
+    "backend/tests/test_ingestion_jobs.py",
+    "backend/tests/test_ingestion_parse_stage.py",
+    "backend/tests/test_ingestion_pipeline.py",
+    "backend/tests/test_ingestion_recovery.py",
+    "backend/tests/test_ingestion_recovery_cli.py",
+    "backend/tests/test_ingestion_runtime.py",
+    "backend/tests/test_ingestion_worker_integration.py",
+    "backend/tests/test_lexical_retrieval.py",
+    "backend/tests/test_lexical_retrieval_integration.py",
+    "backend/tests/test_markdown_parser.py",
+    "backend/tests/test_opensearch_index.py",
+    "backend/tests/test_parser_acceptance.py",
+    "backend/tests/test_parser_dispatcher.py",
+    "backend/tests/test_parsing_contract.py",
+    "backend/tests/test_pdf_parser.py",
+    "backend/tests/test_plain_text_parser.py",
+    "backend/tests/test_reranked_retrieval.py",
+    "backend/tests/test_reranking.py",
+    "backend/tests/test_retrieval_filters.py",
+    "backend/tests/test_schema_integration.py",
+    "backend/tests/test_scifact_dataset.py",
+    "backend/tests/test_scifact_subset.py",
+    "backend/tests/test_seed.py",
+    "backend/tests/test_storage.py",
+    "backend/tests/test_tokenization.py",
+    "backend/tests/test_tokenizer_setup.py",
+    "backend/tests/test_worker.py",
+    "compose.yaml",
+    "datasets/schemas/corpus.schema.json",
+    "datasets/schemas/judgment.schema.json",
+    "datasets/schemas/manifest.schema.json",
+    "datasets/schemas/query.schema.json",
+    "frontend/Dockerfile",
+    "frontend/eslint.config.mjs",
+    "frontend/next-env.d.ts",
+    "frontend/next.config.ts",
+    "frontend/package.json",
+    "frontend/src/app/layout.tsx",
+    "frontend/src/app/page.test.tsx",
+    "frontend/src/app/page.tsx",
+    "frontend/tsconfig.json",
+    "frontend/vitest.config.ts",
+    "infra/README.md"
+  ],
+  "full_refresh": true,
+  "unassigned_files": [],
+  "skipped_files": [],
+  "api_calls": 24,
+  "usage": [
+    {
+      "prompt_tokens": 5089,
+      "total_tokens": 6178,
+      "completion_tokens": 1089,
+      "prompt_tokens_details": {
+        "cached_tokens": 4992,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00066410064,
+      "cache_discount": 0.00047084544,
+      "cached_tokens": 4992
+    },
+    {
+      "prompt_tokens": 6420,
+      "total_tokens": 7421,
+      "completion_tokens": 1001,
+      "prompt_tokens_details": {
+        "cached_tokens": 6400,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0006076349999999999,
+      "cache_discount": 0.000603648,
+      "cached_tokens": 6400
+    },
+    {
+      "prompt_tokens": 6846,
+      "total_tokens": 7859,
+      "completion_tokens": 1013,
+      "prompt_tokens_details": {
+        "cached_tokens": 6784,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0006245542799999999,
+      "cache_discount": 0.0006398668800000001,
+      "cached_tokens": 6784
+    },
+    {
+      "prompt_tokens": 5796,
+      "total_tokens": 6779,
+      "completion_tokens": 983,
+      "prompt_tokens_details": {
+        "cached_tokens": 5760,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0005968242,
+      "cache_discount": 0.0005432831999999999,
+      "cached_tokens": 5760
+    },
+    {
+      "prompt_tokens": 5014,
+      "total_tokens": 7142,
+      "completion_tokens": 2128,
+      "prompt_tokens_details": {
+        "cached_tokens": 384,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00208382328,
+      "cache_discount": 3.621888e-05,
+      "cached_tokens": 384
+    },
+    {
+      "prompt_tokens": 4685,
+      "total_tokens": 5613,
+      "completion_tokens": 928,
+      "prompt_tokens_details": {
+        "cached_tokens": 4608,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00056685636,
+      "cache_discount": 0.00043462656,
+      "cached_tokens": 4608
+    },
+    {
+      "prompt_tokens": 3521,
+      "total_tokens": 4214,
+      "completion_tokens": 693,
+      "prompt_tokens_details": {
+        "cached_tokens": 3456,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00042481152,
+      "cache_discount": 0.00032596992,
+      "cached_tokens": 3456
+    },
+    {
+      "prompt_tokens": 4647,
+      "total_tokens": 5605,
+      "completion_tokens": 958,
+      "prompt_tokens_details": {
+        "cached_tokens": 4608,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00057668436,
+      "cache_discount": 0.00043462656,
+      "cached_tokens": 4608
+    },
+    {
+      "prompt_tokens": 5553,
+      "total_tokens": 6707,
+      "completion_tokens": 1154,
+      "prompt_tokens_details": {
+        "cached_tokens": 5504,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0006947866799999999,
+      "cache_discount": 0.00051913728,
+      "cached_tokens": 5504
+    },
+    {
+      "prompt_tokens": 8014,
+      "total_tokens": 9307,
+      "completion_tokens": 1293,
+      "prompt_tokens_details": {
+        "cached_tokens": 7936,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0007928701199999999,
+      "cache_discount": 0.0007485235199999999,
+      "cached_tokens": 7936
+    },
+    {
+      "prompt_tokens": 6866,
+      "total_tokens": 7828,
+      "completion_tokens": 962,
+      "prompt_tokens_details": {
+        "cached_tokens": 6784,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00059941728,
+      "cache_discount": 0.0006398668800000001,
+      "cached_tokens": 6784
+    },
+    {
+      "prompt_tokens": 3602,
+      "total_tokens": 4556,
+      "completion_tokens": 954,
+      "prompt_tokens_details": {
+        "cached_tokens": 3584,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0005646412799999999,
+      "cache_discount": 0.00033804288000000005,
+      "cached_tokens": 3584
+    },
+    {
+      "prompt_tokens": 8123,
+      "total_tokens": 10894,
+      "completion_tokens": 2771,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.003106404,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 7797,
+      "total_tokens": 9039,
+      "completion_tokens": 1242,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0021778470000000005,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 7084,
+      "total_tokens": 8230,
+      "completion_tokens": 1146,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.001988658,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 8061,
+      "total_tokens": 9460,
+      "completion_tokens": 1399,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.002316762,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 6974,
+      "total_tokens": 8049,
+      "completion_tokens": 1075,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.001927611,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 6133,
+      "total_tokens": 8047,
+      "completion_tokens": 1914,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00219744252,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 2685,
+      "total_tokens": 3661,
+      "completion_tokens": 976,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0010608570000000001,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 1721,
+      "total_tokens": 2703,
+      "completion_tokens": 982,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0008351305200000001,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 8107,
+      "total_tokens": 9196,
+      "completion_tokens": 1089,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.002149686,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 2916,
+      "total_tokens": 4661,
+      "completion_tokens": 1745,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00149360652,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 5116,
+      "total_tokens": 6123,
+      "completion_tokens": 1007,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0015378929999999998,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 2099,
+      "total_tokens": 3423,
+      "completion_tokens": 1324,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00110048652,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    }
+  ],
+  "seeded_locally": false,
+  "dependency_policy": "Changed maps and all transitive known dependents are rechecked. Unchanged presentations reuse PNG/PDF files."
+}

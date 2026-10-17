@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Parsed document"]
+  n1["Heading-path<br/>grouping"]
+  n2["Chunk section"]
+  n3["Section chunks"]
+  n0 -->|"Blocks grouped"| n1
+  n1 -->|"Per section"| n2
+  n2 -->|"Emits chunks"| n3

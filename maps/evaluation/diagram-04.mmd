@@ -1,0 +1,12 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["run_baseline"]
+  n1["evaluate"]
+  n2["score_ranking"]
+  n3["Report metadata"]
+  n4["save_report"]
+  n0 -->|"Per query"| n1
+  n1 -->|"Ranks scored"| n2
+  n2 -->|"Aggregates"| n0
+  n0 -->|"Repro info"| n3
+  n3 -->|"Writes report"| n4

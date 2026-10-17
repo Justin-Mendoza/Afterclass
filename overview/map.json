@@ -1,0 +1,262 @@
+{
+  "map": {
+    "summary": "Separate subsystem maps with an overview of their dependency hints.",
+    "diagrams": [
+      {
+        "title": "answers: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "answers",
+            "label": "answers",
+            "finding_ids": []
+          },
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          },
+          {
+            "id": "retrieval",
+            "label": "retrieval",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "answers",
+            "to": "foundation",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "answers",
+            "to": "retrieval",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      },
+      {
+        "title": "evaluation: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "evaluation",
+            "label": "evaluation",
+            "finding_ids": []
+          },
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          },
+          {
+            "id": "ingestion",
+            "label": "ingestion",
+            "finding_ids": []
+          },
+          {
+            "id": "retrieval",
+            "label": "retrieval",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "evaluation",
+            "to": "foundation",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "evaluation",
+            "to": "ingestion",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "evaluation",
+            "to": "retrieval",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      },
+      {
+        "title": "foundation: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          },
+          {
+            "id": "answers",
+            "label": "answers",
+            "finding_ids": []
+          },
+          {
+            "id": "ingestion",
+            "label": "ingestion",
+            "finding_ids": []
+          },
+          {
+            "id": "retrieval",
+            "label": "retrieval",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "foundation",
+            "to": "answers",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "foundation",
+            "to": "ingestion",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "foundation",
+            "to": "retrieval",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      },
+      {
+        "title": "frontend: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "frontend",
+            "label": "frontend",
+            "finding_ids": []
+          },
+          {
+            "id": "answers",
+            "label": "answers",
+            "finding_ids": []
+          },
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          },
+          {
+            "id": "retrieval",
+            "label": "retrieval",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "frontend",
+            "to": "answers",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "frontend",
+            "to": "foundation",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "frontend",
+            "to": "retrieval",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      },
+      {
+        "title": "ingestion: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "ingestion",
+            "label": "ingestion",
+            "finding_ids": []
+          },
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "ingestion",
+            "to": "foundation",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      },
+      {
+        "title": "retrieval: connections",
+        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "nodes": [
+          {
+            "id": "retrieval",
+            "label": "retrieval",
+            "finding_ids": []
+          },
+          {
+            "id": "foundation",
+            "label": "foundation",
+            "finding_ids": []
+          },
+          {
+            "id": "ingestion",
+            "label": "ingestion",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "retrieval",
+            "to": "foundation",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          },
+          {
+            "from": "retrieval",
+            "to": "ingestion",
+            "label": "Uses",
+            "uncertain": true,
+            "finding_ids": []
+          }
+        ]
+      }
+    ],
+    "unknowns": [
+      "Import inference is incomplete; configure aliases and cross-service dependencies explicitly."
+    ]
+  },
+  "findings": {},
+  "sources": {},
+  "metadata": {
+    "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+    "generated_at": "2026-10-17T22:43:02.770331+00:00"
+  }
+}

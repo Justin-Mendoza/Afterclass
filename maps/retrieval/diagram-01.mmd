@@ -1,0 +1,13 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Settings"]
+  n1["DenseRetrievalConfig"]
+  n2["Dense retriever"]
+  n3["Embedding<br/>provider"]
+  n4["OpenSearch"]
+  n5["Retrieval<br/>results"]
+  n0 -->|"Maps fields"| n1
+  n1 -->|"Configures"| n2
+  n2 -->|"Embeds query"| n3
+  n2 -->|"Searches alias"| n4
+  n4 -->|"Hit parsing"| n5

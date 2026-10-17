@@ -1,0 +1,14 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["User query"]
+  n1["Normalize query"]
+  n2["Validate filters"]
+  n3["Embed query"]
+  n4["k-NN search"]
+  n5["DenseRetrievalTrace"]
+  n0 -->|"Trims whitespace"| n1
+  n1 -->|"UUID checks"| n2
+  n1 -->|"Empty short-<br/>circuit"| n3
+  n2 -->|"Proceeds"| n3
+  n3 -->|"Query vector"| n4
+  n4 -->|"Records stages"| n5

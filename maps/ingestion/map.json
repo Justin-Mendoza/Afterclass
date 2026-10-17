@@ -1,0 +1,655 @@
+{
+  "map": {
+    "summary": "This batch maps the deterministic document-chunking core of the ingestion subsystem: parsed document blocks are grouped by heading path, greedily packed into token-limited chunks with overlap, enriched with reconstructed Markdown headings for embedding, and stamped with content-addressed identities from canonical digests.",
+    "unknowns": [
+      "No top-level runtime call site invoking chunk_document is shown; wiring into the ingestion pipeline is inferred from the changed-files list only (F0016).",
+      "How ParsedDocument and ParsedBlock are produced upstream of chunking is not covered by these findings.",
+      "How emitted Chunks are consumed downstream (embedding, indexing stages) is outside the supplied evidence."
+    ],
+    "diagrams": [
+      {
+        "title": "Architecture",
+        "description": "The chunking package surface delegates to a chunker that consumes parsed blocks and a tokenizer, assembling content-addressed Chunk contracts via embedding-text and identity helpers.",
+        "nodes": [
+          {
+            "id": "chunking_pkg",
+            "label": "Chunking package",
+            "finding_ids": [
+              "F0015"
+            ]
+          },
+          {
+            "id": "chunker",
+            "label": "Chunker",
+            "finding_ids": [
+              "F0001",
+              "F0002",
+              "F0016"
+            ]
+          },
+          {
+            "id": "embed_text",
+            "label": "Embedding text builder",
+            "finding_ids": [
+              "F0007",
+              "F0008"
+            ]
+          },
+          {
+            "id": "contracts",
+            "label": "Chunk and config contracts",
+            "finding_ids": [
+              "F0010",
+              "F0011",
+              "F0012",
+              "F0013"
+            ]
+          },
+          {
+            "id": "identity",
+            "label": "Identity digests",
+            "finding_ids": [
+              "F0014"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "chunking_pkg",
+            "to": "chunker",
+            "label": "Exposes implementation",
+            "finding_ids": [
+              "F0015"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "chunker",
+            "to": "embed_text",
+            "label": "Builds embedding text",
+            "finding_ids": [
+              "F0007"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "chunker",
+            "to": "contracts",
+            "label": "Emits Chunks",
+            "finding_ids": [
+              "F0002",
+              "F0013"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "contracts",
+            "to": "identity",
+            "label": "Computes digests",
+            "finding_ids": [
+              "F0012",
+              "F0014"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Section chunking flow",
+        "description": "chunk_document groups blocks by heading path, chunking each section independently so no chunk crosses a heading boundary.",
+        "nodes": [
+          {
+            "id": "parsed_doc",
+            "label": "Parsed document",
+            "finding_ids": [
+              "F0001"
+            ]
+          },
+          {
+            "id": "groupby",
+            "label": "Heading-path grouping",
+            "finding_ids": [
+              "F0001",
+              "F0004"
+            ]
+          },
+          {
+            "id": "chunk_section",
+            "label": "Chunk section",
+            "finding_ids": [
+              "F0001",
+              "F0002"
+            ]
+          },
+          {
+            "id": "chunks_out",
+            "label": "Section chunks",
+            "finding_ids": [
+              "F0001"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "parsed_doc",
+            "to": "groupby",
+            "label": "Blocks grouped",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "groupby",
+            "to": "chunk_section",
+            "label": "Per section",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "chunk_section",
+            "to": "chunks_out",
+            "label": "Emits chunks",
+            "finding_ids": [
+              "F0001",
+              "F0002"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Greedy packing and splitting",
+        "description": "Blocks accumulate while token counts stay within the limit; oversized blocks are split by binary search and overlap carry feeds the next chunk.",
+        "nodes": [
+          {
+            "id": "candidate",
+            "label": "Candidate accumulator",
+            "finding_ids": [
+              "F0002",
+              "F0004",
+              "F0009"
+            ]
+          },
+          {
+            "id": "fit_check",
+            "label": "Token-limit check",
+            "finding_ids": [
+              "F0002",
+              "F0009"
+            ]
+          },
+          {
+            "id": "prefix_split",
+            "label": "Largest-prefix split",
+            "finding_ids": [
+              "F0003"
+            ]
+          },
+          {
+            "id": "overlap_carry",
+            "label": "Overlap carry",
+            "finding_ids": [
+              "F0005",
+              "F0006"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "candidate",
+            "to": "fit_check",
+            "label": "Fits?",
+            "finding_ids": [
+              "F0002",
+              "F0009"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fit_check",
+            "to": "prefix_split",
+            "label": "Overflow splits",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fit_check",
+            "to": "overlap_carry",
+            "label": "Emit then carry",
+            "finding_ids": [
+              "F0005"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "prefix_split",
+            "to": "candidate",
+            "label": "Remainder reseeds",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "overlap_carry",
+            "to": "candidate",
+            "label": "Overlap prepends",
+            "finding_ids": [
+              "F0005",
+              "F0006"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Embedding text enrichment",
+        "description": "build_embedding_text reconstructs Markdown headings and strips a duplicated leading heading block before embedding.",
+        "nodes": [
+          {
+            "id": "content",
+            "label": "Content and headings",
+            "finding_ids": [
+              "F0007",
+              "F0008"
+            ]
+          },
+          {
+            "id": "heading_reconstruct",
+            "label": "Heading reconstruction",
+            "finding_ids": [
+              "F0007"
+            ]
+          },
+          {
+            "id": "dedup_strip",
+            "label": "Leading duplicate strip",
+            "finding_ids": [
+              "F0007"
+            ]
+          },
+          {
+            "id": "embedding",
+            "label": "Embedding text",
+            "finding_ids": [
+              "F0008",
+              "F0009"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "content",
+            "to": "heading_reconstruct",
+            "label": "Validates input",
+            "finding_ids": [
+              "F0008"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "heading_reconstruct",
+            "to": "dedup_strip",
+            "label": "Prepends headings",
+            "finding_ids": [
+              "F0007"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "dedup_strip",
+            "to": "embedding",
+            "label": "Produces text",
+            "finding_ids": [
+              "F0007",
+              "F0008"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Config and identity derivation",
+        "description": "ChunkingConfig validates limits and derives a version digest; Chunk ids and document ids derive from stable_digest over canonical fields.",
+        "nodes": [
+          {
+            "id": "config",
+            "label": "Chunking config",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ]
+          },
+          {
+            "id": "config_version",
+            "label": "Config version digest",
+            "finding_ids": [
+              "F0010"
+            ]
+          },
+          {
+            "id": "chunk_id",
+            "label": "Chunk identifier",
+            "finding_ids": [
+              "F0012",
+              "F0013"
+            ]
+          },
+          {
+            "id": "doc_id",
+            "label": "Document identifier",
+            "finding_ids": [
+              "F0014"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "config",
+            "to": "config_version",
+            "label": "Validated then hashed",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "config_version",
+            "to": "chunk_id",
+            "label": "Feeds chunk digest",
+            "finding_ids": [
+              "F0012"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "doc_id",
+            "to": "chunk_id",
+            "label": "Feeds chunk digest",
+            "finding_ids": [
+              "F0012",
+              "F0014"
+            ],
+            "uncertain": false
+          }
+        ]
+      }
+    ],
+    "layout_notes": []
+  },
+  "findings": {
+    "F0001": {
+      "statement": "chunk_document groups ParsedDocument.blocks by locator.heading_path via itertools.groupby and chunks each section separately, so a chunk never spans a heading change; chunk order resumes at len(chunks)+1 for each section.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0002": {
+      "statement": "_chunk_section greedily accumulates whole ParsedBlocks while the candidate embedding token count stays within config.max_tokens, then appends the resulting Chunk.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "When a whole block does not fit, _largest_fitting_prefix performs a binary search over token spans to find the largest prefix whose embedding token count fits, then splits the remaining block text (skipping leading whitespace) into the next pending fragment.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "_candidate raises ChunkingError if fragments have differing heading_paths or if fragments is empty, enforcing the no-cross-heading-boundary invariant at candidate construction.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "After emitting a chunk, _chunk_section computes carry via _trailing_overlap using config.overlap_tokens, re-attaching trailing content fragments for the next chunk's overlap.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "_trailing_overlap tokenizes the joined content_text (fragments separated by '\\n\\n') and maps the token start offset back into per-fragment local character ranges to build overlap fragments.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "build_embedding_text prepends Markdown-style headings ('#' * level) reconstructed from heading_path before the body, and strips a leading heading block that duplicates heading_path[-1] to avoid embedding it twice.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "build_embedding_text raises ValueError if content_text is blank, if heading_path is not a tuple of nonblank strings, or if leading_heading_block does not match the leaf heading or is not first in content_text.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "The _Candidate.token_count is computed with tokenizer.tokenize applied to the embedding_text (including heading context), not the raw content_text, so the token limit accounts for enrichment.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "ChunkingConfig.version is a stable_digest of a canonical JSON serialization of algorithm, embedding_limit_tokens, max_tokens, overlap_tokens, tokenizer model/revision/sha256, prefixed with 'chunkcfg_'.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "ChunkingConfig.__post_init__ validates positive max_tokens, nonnegative overlap_tokens strictly less than max_tokens, max_tokens not exceeding embedding_limit_tokens, nonblank string labels, and a lowercase 64-hex tokenizer_sha256.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "Chunk.chunk_id is determined by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, prefixed with 'chk_'.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "Chunk.__post_init__ enforces document_id matching 'doc_[0-9a-f]{64}', config_version matching 'chunkcfg_[0-9a-f]{64}', nonblank content/embedding text, positive order and embedding_token_count, and nonempty source_spans ordered by (block_number, start_char, end_char).",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0014": {
+      "statement": "stable_digest hashes a versioned namespace header plus length-prefixed UTF-8 fields with SHA-256; DocumentContentIdentity.document_id derives from tenant_id, collection_id, and content_sha256 via stable_digest('document', ...) producing 'doc_<digest>'.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0015": {
+      "statement": "A chunking module docstring 'Deterministic structure-aware document chunking' is the __init__ surface for the chunking package; the actual implementation symbols live in chunker/contracts/embedding_text/identity modules.",
+      "sources": [
+        "S0001",
+        "S0002",
+        "S0003",
+        "S0004",
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0016": {
+      "statement": "chunker.py imports build_embedding_text, ParsedBlock/ParsedDocument, TextTokenizer, and chunking contracts, but the excerpts do not show a top-level call site invoking chunk_document at runtime; wiring into ingestion pipeline is inferred from the changed-files list only.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": true
+    }
+  },
+  "sources": {
+    "S0001": {
+      "id": "S0001",
+      "path": "backend/src/hybrid_rag_search/chunking/__init__.py",
+      "start": 1,
+      "end": 1
+    },
+    "S0002": {
+      "id": "S0002",
+      "path": "backend/src/hybrid_rag_search/chunking/chunker.py",
+      "start": 1,
+      "end": 291
+    },
+    "S0003": {
+      "id": "S0003",
+      "path": "backend/src/hybrid_rag_search/chunking/contracts.py",
+      "start": 1,
+      "end": 162
+    },
+    "S0004": {
+      "id": "S0004",
+      "path": "backend/src/hybrid_rag_search/chunking/embedding_text.py",
+      "start": 1,
+      "end": 33
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "backend/src/hybrid_rag_search/chunking/identity.py",
+      "start": 1,
+      "end": 49
+    }
+  },
+  "metadata": {
+    "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+    "generated_at": "2026-10-17T22:42:45.308776+00:00",
+    "model": "deepseek-v4.1-flash",
+    "model_responses": [
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      }
+    ],
+    "local_changes": false,
+    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+  }
+}

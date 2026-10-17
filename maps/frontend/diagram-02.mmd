@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Viewer"]
+  n1["Root layout"]
+  n2["Index page"]
+  n3["Styles and<br/>metadata"]
+  n0 -->|"Views page"| n2
+  n1 -->|"Wraps content"| n2
+  n1 -->|"Imports"| n3

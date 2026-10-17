@@ -1,0 +1,254 @@
+{
+  "tracked_files": 223,
+  "eligible_files": 29,
+  "selected_files": 25,
+  "selected_chars": 179995,
+  "redacted_lines": 17,
+  "omissions": [
+    {
+      "path": "backend/tests/test_lexical_retrieval.py",
+      "reason": "only first 254 lines selected"
+    },
+    {
+      "path": "backend/tests/test_lexical_retrieval_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_reranked_retrieval.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_reranking.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_retrieval_filters.py",
+      "reason": "empty or first line over limit"
+    }
+  ],
+  "excluded_files": 194,
+  "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
+  "analyzed_files": 1,
+  "api_calls": 2,
+  "usage": [
+    {
+      "prompt_tokens": 5116,
+      "total_tokens": 6123,
+      "completion_tokens": 1007,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0015378929999999998,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 2099,
+      "total_tokens": 3423,
+      "completion_tokens": 1324,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00110048652,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    }
+  ],
+  "limits": {
+    "include": [
+      "backend/src/*",
+      "backend/migrations/*",
+      "backend/tests/*",
+      "backend/pyproject.toml",
+      "backend/alembic.ini",
+      "backend/Dockerfile",
+      "frontend/*",
+      "datasets/schemas/*.schema.json",
+      "compose.yaml",
+      "Makefile",
+      ".github/workflows/*",
+      ".pre-commit-config.yaml",
+      "infra/*"
+    ],
+    "exclude": [
+      ".env*",
+      "*/.env*",
+      "datasets/*/v*/*",
+      "docs/*",
+      "notes*",
+      "*/notes*",
+      "*/fixtures/*",
+      "frontend/src/app/styles.css"
+    ],
+    "max_files": 160,
+    "max_file_chars": 18000,
+    "max_total_chars": 180000,
+    "batch_chars": 24000,
+    "max_calls": 2,
+    "max_output_tokens": 6000,
+    "max_diagrams": 6,
+    "request_timeout_seconds": 120,
+    "maps": {
+      "foundation": {
+        "include": [
+          "backend/src/hybrid_rag_search/__init__.py",
+          "backend/src/hybrid_rag_search/api.py",
+          "backend/src/hybrid_rag_search/api_errors.py",
+          "backend/src/hybrid_rag_search/authorization.py",
+          "backend/src/hybrid_rag_search/config.py",
+          "backend/src/hybrid_rag_search/database.py",
+          "backend/src/hybrid_rag_search/documents.py",
+          "backend/src/hybrid_rag_search/health.py",
+          "backend/src/hybrid_rag_search/main.py",
+          "backend/src/hybrid_rag_search/management*.py",
+          "backend/src/hybrid_rag_search/models/*",
+          "backend/src/hybrid_rag_search/seed.py",
+          "backend/src/hybrid_rag_search/storage.py",
+          "backend/migrations/*",
+          "backend/tests/test_author*.py",
+          "backend/tests/test_database.py",
+          "backend/tests/test_dependency_health.py",
+          "backend/tests/test_documents*.py",
+          "backend/tests/test_health.py",
+          "backend/tests/test_management*.py",
+          "backend/tests/test_schema*.py",
+          "backend/tests/test_seed.py",
+          "backend/tests/test_storage.py",
+          "backend/pyproject.toml",
+          "backend/Dockerfile",
+          "compose.yaml",
+          "Makefile",
+          ".github/workflows/*",
+          ".pre-commit-config.yaml",
+          "infra/*"
+        ],
+        "depends_on": [
+          "ingestion",
+          "retrieval",
+          "answers"
+        ]
+      },
+      "ingestion": {
+        "include": [
+          "backend/src/hybrid_rag_search/ingestion/*",
+          "backend/src/hybrid_rag_search/ingestion_recovery.py",
+          "backend/src/hybrid_rag_search/worker.py",
+          "backend/src/hybrid_rag_search/parsers/*",
+          "backend/src/hybrid_rag_search/chunking/*",
+          "backend/src/hybrid_rag_search/index_rebuild.py",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/tokenizer_setup.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/tests/test_ingestion*.py",
+          "backend/tests/test_worker*.py",
+          "backend/tests/test_*parser*.py",
+          "backend/tests/test_parsing_contract.py",
+          "backend/tests/test_chunk*.py",
+          "backend/tests/test_index_rebuild.py",
+          "backend/tests/test_opensearch_index.py",
+          "backend/tests/test_token*.py",
+          "backend/tests/test_*embedding*.py",
+          "backend/tests/test_cohere_live.py"
+        ],
+        "depends_on": [
+          "foundation"
+        ]
+      },
+      "retrieval": {
+        "include": [
+          "backend/src/hybrid_rag_search/*retrieval*.py",
+          "backend/src/hybrid_rag_search/search.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/tests/test_*retrieval*.py",
+          "backend/tests/test_authorized_search.py",
+          "backend/tests/test_reranking.py",
+          "backend/tests/test_cohere_reranking.py",
+          "backend/tests/test_embeddings.py",
+          "backend/tests/test_cohere_embeddings.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion"
+        ]
+      },
+      "answers": {
+        "include": [
+          "backend/src/hybrid_rag_search/answer*.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/models/answers.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/chunking/contracts.py",
+          "backend/tests/test_answer*.py",
+          "backend/tests/test_generation.py",
+          "backend/tests/test_cohere_generation.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval"
+        ]
+      },
+      "evaluation": {
+        "include": [
+          "backend/src/hybrid_rag_search/evaluation/*",
+          "backend/src/hybrid_rag_search/models/evaluation.py",
+          "backend/tests/test_evaluation*.py",
+          "backend/tests/test_scifact*.py",
+          "datasets/schemas/*.schema.json"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion",
+          "retrieval"
+        ]
+      },
+      "frontend": {
+        "include": [
+          "frontend/*"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval",
+          "answers"
+        ]
+      }
+    },
+    "max_total_calls": 24,
+    "full_refresh_after_updates": 20
+  },
+  "not_analyzed_due_to_call_budget": [
+    "backend/src/hybrid_rag_search/hybrid_retrieval.py",
+    "backend/src/hybrid_rag_search/lexical_retrieval.py",
+    "backend/src/hybrid_rag_search/models/retrieval.py",
+    "backend/src/hybrid_rag_search/opensearch_index.py",
+    "backend/src/hybrid_rag_search/providers/__init__.py",
+    "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+    "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+    "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+    "backend/src/hybrid_rag_search/providers/embeddings.py",
+    "backend/src/hybrid_rag_search/providers/errors.py",
+    "backend/src/hybrid_rag_search/providers/fake.py",
+    "backend/src/hybrid_rag_search/providers/generation.py",
+    "backend/src/hybrid_rag_search/providers/reranking.py",
+    "backend/src/hybrid_rag_search/providers/usage.py",
+    "backend/src/hybrid_rag_search/reranked_retrieval.py",
+    "backend/src/hybrid_rag_search/retrieval_filters.py",
+    "backend/tests/test_cohere_embeddings.py",
+    "backend/tests/test_cohere_reranking.py",
+    "backend/tests/test_dense_retrieval.py",
+    "backend/tests/test_dense_retrieval_integration.py",
+    "backend/tests/test_embeddings.py",
+    "backend/tests/test_hybrid_retrieval.py",
+    "backend/tests/test_hybrid_retrieval_integration.py",
+    "backend/tests/test_lexical_retrieval.py"
+  ]
+}

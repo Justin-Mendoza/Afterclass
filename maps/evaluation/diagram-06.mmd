@@ -1,0 +1,11 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["scifact CLI"]
+  n1["download_archive"]
+  n2["convert_archive"]
+  n3["build_subset"]
+  n4["load_dataset<br/>check"]
+  n0 -->|"Download"| n1
+  n1 -->|"Archive"| n2
+  n2 -->|"Source dataset"| n3
+  n3 -->|"Re-validated"| n4

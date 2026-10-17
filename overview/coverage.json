@@ -1,0 +1,7 @@
+{
+  "scope": "Subsystem boundaries; dependency edges are hints, not verified runtime calls.",
+  "analyzed_files": 0,
+  "eligible_files": 0,
+  "excluded_files": 0,
+  "api_calls": 0
+}

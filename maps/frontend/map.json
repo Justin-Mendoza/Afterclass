@@ -1,0 +1,495 @@
+{
+  "map": {
+    "summary": "The supplied findings describe a single Next.js App Router frontend: a Docker/build/test setup, a root layout and static index page, and no observable runtime connection to the backend retrieval, answers, or foundation subsystems.",
+    "unknowns": [
+      "No fetch, API route, database access, or environment-variable reading appears in the supplied frontend sources, so how (or whether) the frontend reaches the answers, foundation, or retrieval subsystems at runtime is untraced (F0013, F0015).",
+      "No user input controls, state, event handlers, or async data loading exist on the index page, so the intended search workspace behavior is not evidenced (F0014).",
+      "No rewrites, redirects, or API proxying are declared in next.config.ts, leaving client-to-backend routing paths unspecified (F0009)."
+    ],
+    "diagrams": [
+      {
+        "title": "Architecture",
+        "description": "Frontend container builds the Next.js app whose App Router renders layout and index page; no backend wiring is evidenced.",
+        "nodes": [
+          {
+            "id": "container",
+            "label": "Frontend container",
+            "finding_ids": [
+              "F0001",
+              "F0002"
+            ]
+          },
+          {
+            "id": "nextapp",
+            "label": "Next.js app",
+            "finding_ids": [
+              "F0003",
+              "F0004",
+              "F0009"
+            ]
+          },
+          {
+            "id": "layout",
+            "label": "Root layout",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "home",
+            "label": "Index page",
+            "finding_ids": [
+              "F0006",
+              "F0014"
+            ]
+          },
+          {
+            "id": "config",
+            "label": "TS and lint config",
+            "finding_ids": [
+              "F0010",
+              "F0011",
+              "F0012"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "container",
+            "to": "nextapp",
+            "label": "Runs dev server",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "nextapp",
+            "to": "layout",
+            "label": "Renders root",
+            "finding_ids": [
+              "F0005"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "layout",
+            "to": "home",
+            "label": "Renders children",
+            "finding_ids": [
+              "F0005",
+              "F0006"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "nextapp",
+            "label": "Types and lints",
+            "finding_ids": [
+              "F0010",
+              "F0012"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Page render flow",
+        "description": "A viewer receives the server-rendered index: root layout imports styles and metadata and wraps the static Home component.",
+        "nodes": [
+          {
+            "id": "viewer",
+            "label": "Viewer",
+            "finding_ids": [
+              "F0014"
+            ]
+          },
+          {
+            "id": "layout",
+            "label": "Root layout",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "home",
+            "label": "Index page",
+            "finding_ids": [
+              "F0006"
+            ]
+          },
+          {
+            "id": "styles",
+            "label": "Styles and metadata",
+            "finding_ids": [
+              "F0005"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "viewer",
+            "to": "home",
+            "label": "Views page",
+            "finding_ids": [
+              "F0014"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "layout",
+            "to": "home",
+            "label": "Wraps content",
+            "finding_ids": [
+              "F0005",
+              "F0006"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "layout",
+            "to": "styles",
+            "label": "Imports",
+            "finding_ids": [
+              "F0005"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Test flow",
+        "description": "Vitest with jsdom and React plugin renders the Home component, and the page test asserts the heading role and text.",
+        "nodes": [
+          {
+            "id": "vitest",
+            "label": "Vitest jsdom",
+            "finding_ids": [
+              "F0008"
+            ]
+          },
+          {
+            "id": "hometest",
+            "label": "Page test",
+            "finding_ids": [
+              "F0007"
+            ]
+          },
+          {
+            "id": "home",
+            "label": "Index page",
+            "finding_ids": [
+              "F0006",
+              "F0008"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "vitest",
+            "to": "hometest",
+            "label": "Runs tests",
+            "finding_ids": [
+              "F0008"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "hometest",
+            "to": "home",
+            "label": "Renders component",
+            "finding_ids": [
+              "F0007"
+            ],
+            "uncertain": false
+          }
+        ]
+      }
+    ],
+    "layout_notes": []
+  },
+  "findings": {
+    "F0001": {
+      "statement": "The frontend Dockerfile builds a Next.js dev server: CMD runs `npm run dev -- --hostname 0.0.0.0`, listening on port 3000 (EXPOSE 3000) rather than a production `next start`.",
+      "sources": [
+        "S0001",
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0002": {
+      "statement": "Dockerfile installs dependencies reproducibly with `npm ci` from package.json and package-lock.json before copying the rest of the source (COPY . .).",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "package.json defines the frontend as the Next.js app `hybrid-rag-search-web` (v0.1.0), pinning Node engine >=22 <23 and Next ^16 with React/React-DOM ^19.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "npm scripts expose dev (next dev), build (next build), start (next start), lint (eslint . --max-warnings=0), typecheck (tsc --noEmit), test (vitest run), and Prettier format/format:check commands.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "RootLayout in src/app/layout.tsx is the App Router root component: it imports ./styles.css, exports Metadata (title \"Hybrid RAG Search\") and renders children inside <html lang=\"en\"><body>.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "Home in src/app/page.tsx is the index route component, rendering a static placeholder with an eyebrow \"Hybrid RAG Search\", an h1 \"Evidence-first answers, built for inspection.\", and a paragraph about the search workspace awaiting its first collection.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "page.test.tsx renders the Home component with @testing-library/react and asserts via screen.getByRole that the level-1 heading text equals \"Evidence-first answers, built for inspection.\"\u2014the only supplied runtime test of a UI entry point.",
+      "sources": [
+        "S0007",
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "Vitest is configured to use the jsdom test environment with the @vitejs/plugin-react plugin, enabling React component tests such as page.test.tsx.",
+      "sources": [
+        "S0010",
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "next.config.ts sets reactStrictMode: true and agentRules: false as the NextConfig; no rewrites, redirects, or API proxying are declared in this excerpt.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "tsconfig.json enables strict TypeScript with jsx \"react-jsx\", moduleResolution \"bundler\", next plugin, and a `@/*` path alias to ./src/*, including generated .next/types and .next/dev/types.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "next-env.d.ts references next and next/image-types/global types and imports generated route/root-param types from ./.next/dev/types, indicating use of Next's dev-generated route typing.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "ESLint uses flat config via defineConfig, composing eslint-config-next core-web-vitals and typescript presets and ignoring .next/**, coverage/**, and next-env.d.ts.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "The supplied frontend sources contain no fetch, HTTP client, API route handler, database access, or environment-variable reading; no runtime connection between this frontend and the backend/retrieval/answers subsystems is observable here.",
+      "sources": [
+        "S0008",
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0014": {
+      "statement": "The index page renders only static text with no user input controls, state, event handlers, or async data loading, so no user actions beyond viewing are implemented in this batch.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0015": {
+      "statement": "The context lists dependencies [answers, foundation, retrieval], but no import or call to those subsystems appears in the supplied frontend excerpts, so that relationship is not demonstrated by this source batch.",
+      "sources": [
+        "S0002",
+        "S0008"
+      ],
+      "uncertain": true
+    }
+  },
+  "sources": {
+    "S0001": {
+      "id": "S0001",
+      "path": "frontend/Dockerfile",
+      "start": 1,
+      "end": 12
+    },
+    "S0002": {
+      "id": "S0002",
+      "path": "frontend/package.json",
+      "start": 1,
+      "end": 39
+    },
+    "S0003": {
+      "id": "S0003",
+      "path": "frontend/eslint.config.mjs",
+      "start": 1,
+      "end": 9
+    },
+    "S0004": {
+      "id": "S0004",
+      "path": "frontend/next-env.d.ts",
+      "start": 1,
+      "end": 7
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "frontend/next.config.ts",
+      "start": 1,
+      "end": 7
+    },
+    "S0006": {
+      "id": "S0006",
+      "path": "frontend/src/app/layout.tsx",
+      "start": 1,
+      "end": 19
+    },
+    "S0007": {
+      "id": "S0007",
+      "path": "frontend/src/app/page.test.tsx",
+      "start": 1,
+      "end": 14
+    },
+    "S0008": {
+      "id": "S0008",
+      "path": "frontend/src/app/page.tsx",
+      "start": 1,
+      "end": 9
+    },
+    "S0009": {
+      "id": "S0009",
+      "path": "frontend/tsconfig.json",
+      "start": 1,
+      "end": 33
+    },
+    "S0010": {
+      "id": "S0010",
+      "path": "frontend/vitest.config.ts",
+      "start": 1,
+      "end": 7
+    }
+  },
+  "metadata": {
+    "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+    "generated_at": "2026-10-17T22:42:21.565619+00:00",
+    "model": "deepseek-v4.1-flash",
+    "model_responses": [
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      }
+    ],
+    "local_changes": false,
+    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+  }
+}

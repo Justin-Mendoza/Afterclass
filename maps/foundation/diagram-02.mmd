@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Readiness route"]
+  n1["Liveness route"]
+  n2["Dependency<br/>checks"]
+  n3["dependency_status"]
+  n0 -->|"awaits checks"| n3
+  n3 -->|"gathers"| n2
+  n2 -->|"bool results"| n3

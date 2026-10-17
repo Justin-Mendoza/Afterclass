@@ -1,0 +1,12 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["GenerationRequest"]
+  n1["CohereGenerationProvider"]
+  n2["AsyncClientV2<br/>chat"]
+  n3["Response<br/>validation"]
+  n4["GenerationResult"]
+  n0 -->|"Embedded in<br/>request"| n1
+  n1 -->|"POSTs"| n2
+  n2 -->|"Raw response"| n3
+  n3 -->|"Built"| n4
+  n1 -.->|"Inferred:<br/>Validates inputs"| n4

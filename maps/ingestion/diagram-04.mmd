@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Content and<br/>headings"]
+  n1["Heading<br/>reconstruction"]
+  n2["Leading<br/>duplicate strip"]
+  n3["Embedding text"]
+  n0 -->|"Validates input"| n1
+  n1 -->|"Prepends<br/>headings"| n2
+  n2 -->|"Produces text"| n3

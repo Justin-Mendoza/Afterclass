@@ -1,0 +1,431 @@
+{
+  "tracked_files": 223,
+  "eligible_files": 86,
+  "selected_files": 42,
+  "selected_chars": 179999,
+  "redacted_lines": 6,
+  "omissions": [
+    {
+      "path": "backend/src/hybrid_rag_search/providers/fake.py",
+      "reason": "only first 37 lines selected"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/providers/generation.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/providers/reranking.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/providers/usage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/tokenization.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/tokenizer_setup.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/worker.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_chunk_contracts.py",
+      "reason": "only first 1 lines selected"
+    },
+    {
+      "path": "backend/tests/test_chunk_embedding_text.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_chunk_identity.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_chunker.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_cohere_embeddings.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_cohere_live.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_embeddings.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_html_parser.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_index_rebuild.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_artifact_payloads.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_artifacts.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_checkpoints.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_checkpoints_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_chunk_stage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_claims.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_claims_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_dispatch.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_embed_stage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_failures.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_identity.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_index_stage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_indexing.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_jobs.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_parse_stage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_pipeline.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_recovery.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_recovery_cli.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_runtime.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_ingestion_worker_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_markdown_parser.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_opensearch_index.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_parser_acceptance.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_parser_dispatcher.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_parsing_contract.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_pdf_parser.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_plain_text_parser.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_tokenization.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_tokenizer_setup.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_worker.py",
+      "reason": "empty or first line over limit"
+    }
+  ],
+  "excluded_files": 137,
+  "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
+  "analyzed_files": 5,
+  "api_calls": 2,
+  "usage": [
+    {
+      "prompt_tokens": 8107,
+      "total_tokens": 9196,
+      "completion_tokens": 1089,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.002149686,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 2916,
+      "total_tokens": 4661,
+      "completion_tokens": 1745,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00149360652,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    }
+  ],
+  "limits": {
+    "include": [
+      "backend/src/*",
+      "backend/migrations/*",
+      "backend/tests/*",
+      "backend/pyproject.toml",
+      "backend/alembic.ini",
+      "backend/Dockerfile",
+      "frontend/*",
+      "datasets/schemas/*.schema.json",
+      "compose.yaml",
+      "Makefile",
+      ".github/workflows/*",
+      ".pre-commit-config.yaml",
+      "infra/*"
+    ],
+    "exclude": [
+      ".env*",
+      "*/.env*",
+      "datasets/*/v*/*",
+      "docs/*",
+      "notes*",
+      "*/notes*",
+      "*/fixtures/*",
+      "frontend/src/app/styles.css"
+    ],
+    "max_files": 160,
+    "max_file_chars": 18000,
+    "max_total_chars": 180000,
+    "batch_chars": 24000,
+    "max_calls": 2,
+    "max_output_tokens": 6000,
+    "max_diagrams": 6,
+    "request_timeout_seconds": 120,
+    "maps": {
+      "foundation": {
+        "include": [
+          "backend/src/hybrid_rag_search/__init__.py",
+          "backend/src/hybrid_rag_search/api.py",
+          "backend/src/hybrid_rag_search/api_errors.py",
+          "backend/src/hybrid_rag_search/authorization.py",
+          "backend/src/hybrid_rag_search/config.py",
+          "backend/src/hybrid_rag_search/database.py",
+          "backend/src/hybrid_rag_search/documents.py",
+          "backend/src/hybrid_rag_search/health.py",
+          "backend/src/hybrid_rag_search/main.py",
+          "backend/src/hybrid_rag_search/management*.py",
+          "backend/src/hybrid_rag_search/models/*",
+          "backend/src/hybrid_rag_search/seed.py",
+          "backend/src/hybrid_rag_search/storage.py",
+          "backend/migrations/*",
+          "backend/tests/test_author*.py",
+          "backend/tests/test_database.py",
+          "backend/tests/test_dependency_health.py",
+          "backend/tests/test_documents*.py",
+          "backend/tests/test_health.py",
+          "backend/tests/test_management*.py",
+          "backend/tests/test_schema*.py",
+          "backend/tests/test_seed.py",
+          "backend/tests/test_storage.py",
+          "backend/pyproject.toml",
+          "backend/Dockerfile",
+          "compose.yaml",
+          "Makefile",
+          ".github/workflows/*",
+          ".pre-commit-config.yaml",
+          "infra/*"
+        ],
+        "depends_on": [
+          "ingestion",
+          "retrieval",
+          "answers"
+        ]
+      },
+      "ingestion": {
+        "include": [
+          "backend/src/hybrid_rag_search/ingestion/*",
+          "backend/src/hybrid_rag_search/ingestion_recovery.py",
+          "backend/src/hybrid_rag_search/worker.py",
+          "backend/src/hybrid_rag_search/parsers/*",
+          "backend/src/hybrid_rag_search/chunking/*",
+          "backend/src/hybrid_rag_search/index_rebuild.py",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/tokenizer_setup.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/tests/test_ingestion*.py",
+          "backend/tests/test_worker*.py",
+          "backend/tests/test_*parser*.py",
+          "backend/tests/test_parsing_contract.py",
+          "backend/tests/test_chunk*.py",
+          "backend/tests/test_index_rebuild.py",
+          "backend/tests/test_opensearch_index.py",
+          "backend/tests/test_token*.py",
+          "backend/tests/test_*embedding*.py",
+          "backend/tests/test_cohere_live.py"
+        ],
+        "depends_on": [
+          "foundation"
+        ]
+      },
+      "retrieval": {
+        "include": [
+          "backend/src/hybrid_rag_search/*retrieval*.py",
+          "backend/src/hybrid_rag_search/search.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/opensearch_index.py",
+          "backend/tests/test_*retrieval*.py",
+          "backend/tests/test_authorized_search.py",
+          "backend/tests/test_reranking.py",
+          "backend/tests/test_cohere_reranking.py",
+          "backend/tests/test_embeddings.py",
+          "backend/tests/test_cohere_embeddings.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion"
+        ]
+      },
+      "answers": {
+        "include": [
+          "backend/src/hybrid_rag_search/answer*.py",
+          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/models/answers.py",
+          "backend/src/hybrid_rag_search/tokenization.py",
+          "backend/src/hybrid_rag_search/chunking/contracts.py",
+          "backend/tests/test_answer*.py",
+          "backend/tests/test_generation.py",
+          "backend/tests/test_cohere_generation.py"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval"
+        ]
+      },
+      "evaluation": {
+        "include": [
+          "backend/src/hybrid_rag_search/evaluation/*",
+          "backend/src/hybrid_rag_search/models/evaluation.py",
+          "backend/tests/test_evaluation*.py",
+          "backend/tests/test_scifact*.py",
+          "datasets/schemas/*.schema.json"
+        ],
+        "depends_on": [
+          "foundation",
+          "ingestion",
+          "retrieval"
+        ]
+      },
+      "frontend": {
+        "include": [
+          "frontend/*"
+        ],
+        "depends_on": [
+          "foundation",
+          "retrieval",
+          "answers"
+        ]
+      }
+    },
+    "max_total_calls": 24,
+    "full_refresh_after_updates": 20
+  },
+  "not_analyzed_due_to_call_budget": [
+    "backend/src/hybrid_rag_search/index_rebuild.py",
+    "backend/src/hybrid_rag_search/ingestion/__init__.py",
+    "backend/src/hybrid_rag_search/ingestion/artifact_payloads.py",
+    "backend/src/hybrid_rag_search/ingestion/artifacts.py",
+    "backend/src/hybrid_rag_search/ingestion/checkpoints.py",
+    "backend/src/hybrid_rag_search/ingestion/chunk_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/claims.py",
+    "backend/src/hybrid_rag_search/ingestion/dispatch.py",
+    "backend/src/hybrid_rag_search/ingestion/embed_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/failures.py",
+    "backend/src/hybrid_rag_search/ingestion/identity.py",
+    "backend/src/hybrid_rag_search/ingestion/index_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/indexing.py",
+    "backend/src/hybrid_rag_search/ingestion/jobs.py",
+    "backend/src/hybrid_rag_search/ingestion/parse_stage.py",
+    "backend/src/hybrid_rag_search/ingestion/pipeline.py",
+    "backend/src/hybrid_rag_search/ingestion/recovery.py",
+    "backend/src/hybrid_rag_search/ingestion/runtime.py",
+    "backend/src/hybrid_rag_search/ingestion_recovery.py",
+    "backend/src/hybrid_rag_search/opensearch_index.py",
+    "backend/src/hybrid_rag_search/parsers/__init__.py",
+    "backend/src/hybrid_rag_search/parsers/contracts.py",
+    "backend/src/hybrid_rag_search/parsers/dispatcher.py",
+    "backend/src/hybrid_rag_search/parsers/errors.py",
+    "backend/src/hybrid_rag_search/parsers/html.py",
+    "backend/src/hybrid_rag_search/parsers/markdown.py",
+    "backend/src/hybrid_rag_search/parsers/normalization.py",
+    "backend/src/hybrid_rag_search/parsers/pdf.py",
+    "backend/src/hybrid_rag_search/parsers/plain_text.py",
+    "backend/src/hybrid_rag_search/providers/__init__.py",
+    "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+    "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+    "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+    "backend/src/hybrid_rag_search/providers/embeddings.py",
+    "backend/src/hybrid_rag_search/providers/errors.py",
+    "backend/src/hybrid_rag_search/providers/fake.py",
+    "backend/tests/test_chunk_contracts.py"
+  ]
+}

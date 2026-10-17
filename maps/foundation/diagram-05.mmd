@@ -1,0 +1,12 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Identity tables"]
+  n1["Content tables"]
+  n2["Retrieval tables"]
+  n3["Evaluation<br/>tables"]
+  n4["Ingestion job<br/>columns"]
+  n0 -->|"revises"| n1
+  n1 -->|"revises"| n2
+  n2 -->|"revises"| n3
+  n3 -->|"revises"| n4
+  n1 -.->|"Inferred: shared<br/>functions"| n3

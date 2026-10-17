@@ -1,0 +1,1044 @@
+{
+  "map": {
+    "summary": "This subsystem defines provider contracts (embeddings, generation, reranking) with strict dataclass validation and hashing, plus two provider families: Cohere live adapters (opt-in) that sanitize SDK errors into ProviderError codes, and deterministic fake adapters used for non-live tests and loads. A chunking contract module derives stable, content-addressed identifiers from normalized config and span data.",
+    "unknowns": [
+      "How callers select between fake and Cohere adapters in application code (F0031 is inferred, not directly observed).",
+      "Where ChunkingConfig and Chunk are consumed by indexing or other pipeline stages outside this subsystem.",
+      "Whether tokenization and tokenizer asset provisioning (F0044-F0048) are wired at runtime or only tested, since wiring is not shown in the findings.",
+      "User-facing flow: no CLI, HTTP endpoint, or UI is evidenced by these findings."
+    ],
+    "diagrams": [
+      {
+        "title": "Architecture",
+        "description": "Fake and Cohere adapters implement shared request/result contracts behind a protocol, with errors and usage/cost helpers as cross-cutting modules.",
+        "nodes": [
+          {
+            "id": "facade",
+            "label": "Configured factory helpers",
+            "finding_ids": [
+              "F0013",
+              "F0023",
+              "F0027",
+              "F0047",
+              "F0048"
+            ]
+          },
+          {
+            "id": "cohere",
+            "label": "Cohere live adapters",
+            "finding_ids": [
+              "F0007",
+              "F0008",
+              "F0017",
+              "F0024"
+            ]
+          },
+          {
+            "id": "fake",
+            "label": "Fake adapters",
+            "finding_ids": [
+              "F0033",
+              "F0035",
+              "F0037"
+            ]
+          },
+          {
+            "id": "contracts",
+            "label": "Provider contracts",
+            "finding_ids": [
+              "F0028",
+              "F0029",
+              "F0038",
+              "F0041"
+            ]
+          },
+          {
+            "id": "errors",
+            "label": "ProviderError",
+            "finding_ids": [
+              "F0030"
+            ]
+          },
+          {
+            "id": "usage",
+            "label": "Cost estimation",
+            "finding_ids": [
+              "F0032",
+              "F0043"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "facade",
+            "to": "cohere",
+            "label": "Constructs",
+            "finding_ids": [
+              "F0013",
+              "F0023",
+              "F0027"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "cohere",
+            "to": "contracts",
+            "label": "Returns results",
+            "finding_ids": [
+              "F0012",
+              "F0021",
+              "F0026"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fake",
+            "to": "contracts",
+            "label": "Returns results",
+            "finding_ids": [
+              "F0033",
+              "F0035",
+              "F0037"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "cohere",
+            "to": "errors",
+            "label": "Raises",
+            "finding_ids": [
+              "F0010",
+              "F0019",
+              "F0030"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fake",
+            "to": "contracts",
+            "label": "Validates input",
+            "finding_ids": [
+              "F0034",
+              "F0036"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "contracts",
+            "to": "usage",
+            "label": "Usage fields",
+            "finding_ids": [
+              "F0012",
+              "F0043"
+            ],
+            "uncertain": true
+          }
+        ]
+      },
+      {
+        "title": "Chunk identity flow",
+        "description": "ChunkingConfig validation feeds a canonical JSON version string, and chunk content plus sorted source spans feed a stable chunk_id digest.",
+        "nodes": [
+          {
+            "id": "config",
+            "label": "ChunkingConfig",
+            "finding_ids": [
+              "F0001",
+              "F0006"
+            ]
+          },
+          {
+            "id": "version",
+            "label": "Config version hash",
+            "finding_ids": [
+              "F0002"
+            ]
+          },
+          {
+            "id": "chunk",
+            "label": "Chunk",
+            "finding_ids": [
+              "F0004"
+            ]
+          },
+          {
+            "id": "spans",
+            "label": "SourceSpan",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "chunkid",
+            "label": "chunk_id digest",
+            "finding_ids": [
+              "F0003"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "config",
+            "to": "version",
+            "label": "Canonicalizes",
+            "finding_ids": [
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "spans",
+            "to": "chunk",
+            "label": "Provide spans",
+            "finding_ids": [
+              "F0004"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "chunk",
+            "to": "chunkid",
+            "label": "Hashes",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "version",
+            "to": "chunkid",
+            "label": "Config version",
+            "finding_ids": [
+              "F0003",
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "spans",
+            "to": "chunkid",
+            "label": "Canonical values",
+            "finding_ids": [
+              "F0003",
+              "F0005"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Generation request path",
+        "description": "A GenerationRequest is validated, sent via Cohere's non-streaming chat with a hard timeout and no retries, then parsed into a GenerationResult or returned as a code-mapped ProviderError.",
+        "nodes": [
+          {
+            "id": "req",
+            "label": "GenerationRequest",
+            "finding_ids": [
+              "F0038"
+            ]
+          },
+          {
+            "id": "provider",
+            "label": "CohereGenerationProvider",
+            "finding_ids": [
+              "F0022",
+              "F0017"
+            ]
+          },
+          {
+            "id": "client",
+            "label": "AsyncClientV2 chat",
+            "finding_ids": [
+              "F0017",
+              "F0049"
+            ]
+          },
+          {
+            "id": "parse",
+            "label": "Response validation",
+            "finding_ids": [
+              "F0020",
+              "F0050"
+            ]
+          },
+          {
+            "id": "result",
+            "label": "GenerationResult",
+            "finding_ids": [
+              "F0021",
+              "F0039"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "req",
+            "to": "provider",
+            "label": "Embedded in request",
+            "finding_ids": [
+              "F0038",
+              "F0017"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "provider",
+            "to": "client",
+            "label": "POSTs",
+            "finding_ids": [
+              "F0017",
+              "F0049"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "client",
+            "to": "parse",
+            "label": "Raw response",
+            "finding_ids": [
+              "F0020"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "parse",
+            "to": "result",
+            "label": "Built",
+            "finding_ids": [
+              "F0021",
+              "F0039"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "provider",
+            "to": "result",
+            "label": "Validates inputs",
+            "finding_ids": [
+              "F0022",
+              "F0057"
+            ],
+            "uncertain": true
+          }
+        ]
+      },
+      {
+        "title": "Generation error mapping",
+        "description": "SDK and transport failures, HTTP statuses, and malformed responses are translated into sanitized retryable or non-retryable ProviderError codes.",
+        "nodes": [
+          {
+            "id": "sdkcall",
+            "label": "SDK chat call",
+            "finding_ids": [
+              "F0017",
+              "F0049"
+            ]
+          },
+          {
+            "id": "translate",
+            "label": "Error translation",
+            "finding_ids": [
+              "F0019",
+              "F0055"
+            ]
+          },
+          {
+            "id": "finish",
+            "label": "Finish reasons",
+            "finding_ids": [
+              "F0020",
+              "F0051",
+              "F0052"
+            ]
+          },
+          {
+            "id": "err",
+            "label": "ProviderError",
+            "finding_ids": [
+              "F0030",
+              "F0053"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "sdkcall",
+            "to": "translate",
+            "label": "Transport/HTTP errors",
+            "finding_ids": [
+              "F0019",
+              "F0053"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "sdkcall",
+            "to": "finish",
+            "label": "Returns body",
+            "finding_ids": [
+              "F0020"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "translate",
+            "to": "err",
+            "label": "Maps to code",
+            "finding_ids": [
+              "F0019",
+              "F0030"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "finish",
+            "to": "err",
+            "label": "Retryable/invalid",
+            "finding_ids": [
+              "F0020",
+              "F0052"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Fake adapter behavior",
+        "description": "The fake implementations deterministically derive outputs from request contents with zero billing, serving as the default non-live path.",
+        "nodes": [
+          {
+            "id": "freq",
+            "label": "Request (embed/rerank/gen)",
+            "finding_ids": [
+              "F0028",
+              "F0038",
+              "F0041"
+            ]
+          },
+          {
+            "id": "fembed",
+            "label": "FakeEmbeddingProvider",
+            "finding_ids": [
+              "F0033",
+              "F0034"
+            ]
+          },
+          {
+            "id": "fgen",
+            "label": "FakeGenerationProvider",
+            "finding_ids": [
+              "F0037"
+            ]
+          },
+          {
+            "id": "frank",
+            "label": "FakeRerankingProvider",
+            "finding_ids": [
+              "F0035"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "freq",
+            "to": "fembed",
+            "label": "Deterministic vectors",
+            "finding_ids": [
+              "F0028",
+              "F0033"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "freq",
+            "to": "fgen",
+            "label": "Synthetic text",
+            "finding_ids": [
+              "F0038",
+              "F0037"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "freq",
+            "to": "frank",
+            "label": "Term overlap score",
+            "finding_ids": [
+              "F0041",
+              "F0035"
+            ],
+            "uncertain": false
+          }
+        ]
+      }
+    ],
+    "layout_notes": []
+  },
+  "findings": {
+    "F0001": {
+      "statement": "ChunkingConfig is a frozen dataclass that validates max_tokens as a positive int, overlap_tokens as a nonnegative int strictly less than max_tokens, and max_tokens not exceeding embedding_limit_tokens, raising ValueError otherwise in __post_init__.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0002": {
+      "statement": "ChunkingConfig.version builds a sorted-key JSON canonicalization of algorithm, embedding_limit_tokens, max_tokens, overlap_tokens, tokenizer_model, tokenizer_revision and tokenizer_sha256, then returns f\"chunkcfg_{stable_digest('chunk-config', canonical)}\".",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "Chunk.chunk_id computes a stable digest over document_id, config_version, order, content_text, embedding_text and each span's canonical_value(), returning a chk_-prefixed identifier.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "Chunk validates that source_spans is a nonempty tuple of SourceSpan values whose (block_number, start_char, end_char) positions are already in sorted source order.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "SourceSpan enforces end_char greater than start_char and requires its locator to be a SourceLocator instance; canonical_value serializes block_number, end_char, heading_path, page_number and start_char as sorted-key JSON.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "DEFAULT_CHUNKING_CONFIG is created at module import time as a ChunkingConfig() with defaults max_tokens=400, overlap_tokens=50, embedding_limit_tokens=512.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "CohereEmbeddingProvider.embed rejects requests whose texts length exceeds 96 with ProviderError('invalid_request').",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "CohereEmbeddingProvider.embed maps EmbeddingPurpose.DOCUMENT to Cohere input_type 'search_document' and all other purposes to 'search_query', and sends truncate='NONE' with embedding_types ['float'].",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "CohereEmbeddingProvider.embed wraps the SDK call in both an asyncio.timeout and RequestOptions with max_retries 0, without automatic retries.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "CohereEmbeddingProvider.embed translates TimeoutError/httpx.TimeoutException to ProviderError('timeout', retryable=True), httpx.TransportError to 'unavailable' (retryable), HTTP 401/403 to 'authentication', 429 to 'rate_limited' (retryable), status>=500 to 'unavailable' (retryable), and other ApiError to 'invalid_request'.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "CohereEmbeddingProvider.embed re-validates the SDK response through _EmbedResponse.model_validate (strict, allow_inf_nan=False) and raises ProviderError('invalid_response') on ValidationError or on vector count/dimension mismatch.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "CohereEmbeddingProvider.embed returns an EmbeddingResult with adapter 'cohere' and an EmbeddingUsage carrying input_tokens, billed_input_tokens, latency_ms and estimated_cost_usd via estimate_embedding_cost.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "configured_cohere_embeddings requires settings.cohere_api_key and enforces that embed-english-light-v3.0 uses 384 dimensions, then delegates to open_cohere_embeddings inside an async context manager.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0014": {
+      "statement": "open_cohere_embeddings is an async context manager that requires a nonblank api_key and yields a CohereEmbeddingProvider; per its docstring it constructs a live client and closes SDK resources on success or failure (the client-construction line is redacted).",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": true
+    },
+    "F0015": {
+      "statement": "The providers package __init__ contains only a module docstring, so no provider symbols are re-exported from hybrid_rag_search.providers.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0016": {
+      "statement": "chunking/contracts.py imports stable_digest, SourceLocator and COHERE_EMBED_ENGLISH_LIGHT_V3; stable_digest is called by version and chunk_id, but the imports from parsers.contracts and tokenization are used only for type/constant references and defaults, not runtime service calls.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
+    },
+    "F0017": {
+      "statement": "CohereGenerationProvider.generate sends a non-streaming chat request via the injected cohere.AsyncClientV2, wrapping it in asyncio.timeout(self.timeout_seconds) with RequestOptions setting max_retries=0.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0018": {
+      "statement": "CohereGenerationProvider._messages converts internal MessageRole SYSTEM/USER to SystemChatMessageV2/UserChatMessageV2 and all other roles to AssistantChatMessageV2.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0019": {
+      "statement": "generate raises ProviderError with codes timeout/unavailable/authentication/rate_limited/invalid_request by translating TimeoutError, httpx.TimeoutException, httpx.TransportError, and ApiError status codes (401/403/498, 429, >=500).",
+      "sources": [
+        "S0004",
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0020": {
+      "statement": "generate validates the raw SDK response through _ChatResponse.model_validate and treats finish_reason TIMEOUT/ERROR as retryable provider errors and TOOL_CALL as invalid_response.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0021": {
+      "statement": "generate concatenates text content parts, rejects blank text as invalid_response, and returns a GenerationResult with model, adapter='cohere', latency_ms, and estimated_cost_usd computed from billed tokens and configured per-million rates.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0022": {
+      "statement": "CohereGenerationProvider.__init__ validates model nonblank, finite positive timeout, temperature in [0,1], and nonnegative finite prices, raising ValueError otherwise.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0023": {
+      "statement": "configured_cohere_generation requires settings.cohere_api_key (raises ValueError if None) and mounts open_cohere_generation as an async context manager yielding a CohereGenerationProvider built from Cohere settings.",
+      "sources": [
+        "S0004"
+      ],
+      "uncertain": false
+    },
+    "F0024": {
+      "statement": "CohereRerankingProvider.rerank caps candidate sets at 10_000 (invalid_request), computes effective_timeout as the minimum of the instance timeout and the per-call timeout, and issues one client.rerank call with max_retries=0.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0025": {
+      "statement": "rerank validates parsed results: result count must equal top_n, indexes unique and within candidate bounds, and relevance scores sorted descending; otherwise it raises ProviderError('invalid_response').",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0026": {
+      "statement": "rerank maps each returned index back to request.candidates[item.index].id and returns a RerankResult with rank starting at 1, billed_search_units, latency_ms, and estimated_cost_usd from usd_per_search_unit.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0027": {
+      "statement": "configured_cohere_reranking requires settings.cohere_api_key (raises ValueError if None) and wraps open_cohere_reranking using Cohere rerank settings.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0028": {
+      "statement": "EmbeddingRequest.__post_init__ enforces a nonempty tuple of nonblank texts and a valid EmbeddingPurpose; EmbeddingResult declares adapter Literal['fake','cohere'] and defaults usage to EmbeddingUsage().",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0029": {
+      "statement": "EmbeddingProvider is a Protocol requiring async embed(request) -> EmbeddingResult, documented to preserve batch order and not drop inputs.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0030": {
+      "statement": "ProviderError stores a code from the Literal set and a retryable flag, and formats its message as 'Model provider error: {code}' without exposing provider bodies or headers.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0031": {
+      "statement": "configured_cohere_generation and configured_cohere_reranking are described as opt-in live providers while ordinary tests and load runs use the fake adapter, indicating the fake is a default path for non-live usage.",
+      "sources": [
+        "S0004",
+        "S0005"
+      ],
+      "uncertain": true
+    },
+    "F0032": {
+      "statement": "Both Cohere adapters estimate cost as Decimal(token/unit count) times a Decimal rate (generation divides combined token cost by one million; rerank multiplies search units directly), returning None when billing metrics or rates are missing.",
+      "sources": [
+        "S0004",
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0033": {
+      "statement": "FakeEmbeddingProvider.embed deterministically derives vectors from a SHAKE-256 hash of [MODEL, dimensions, request.purpose.value, text], producing one normalized vector per request text with zero billed usage and cost.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0034": {
+      "statement": "FakeEmbeddingProvider.__init__ validates that dimensions is a positive int via 'type(dimensions) is not int or dimensions <= 0', raising ValueError otherwise.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0035": {
+      "statement": "FakeRerankingProvider.rerank scores each candidate as the fraction of distinct casefolded query terms present in candidate text, sorts descending by score with ties broken by original index, and truncates to request.top_n.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0036": {
+      "statement": "FakeRerankingProvider.rerank raises ValueError when timeout_seconds is provided but is not finite or not positive.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0037": {
+      "statement": "FakeGenerationProvider.generate produces text 'Synthetic response {fingerprint}.' where fingerprint is the first 16 hex chars of a SHA-256 of [MODEL, max_output_tokens, message roles and contents], always reporting GenerationFinishReason.COMPLETE and zero usage.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0038": {
+      "statement": "GenerationRequest.__post_init__ requires a nonempty tuple of GenerationMessage, at least one USER-role message, and a positive int max_output_tokens.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0039": {
+      "statement": "GenerationResult.__post_init__ rejects blank text or model, non-GenerationFinishReason finish_reason, and any negative or non-finite numeric usage value (input/output/billed tokens, latency_ms).",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0040": {
+      "statement": "GenerationResult and RerankResult model the 'adapter' field as Literal['fake','cohere'], tying results to one of those two providers.",
+      "sources": [
+        "S0009",
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0041": {
+      "statement": "RerankRequest.__post_init__ enforces nonblank query, nonempty candidates tuple, unique candidate IDs, and top_n between 1 and the candidate count.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0042": {
+      "statement": "RerankItem.__post_init__ requires nonnegative original_index, positive rank (>=1), and a finite relevance_score.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0043": {
+      "statement": "estimate_embedding_cost returns None when either billed_input_tokens or usd_per_million_tokens is None, otherwise multiplies billed_input_tokens by usd_per_million_tokens divided by 1,000,000 using Decimal.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": false
+    },
+    "F0044": {
+      "statement": "LocalTextTokenizer.tokenize calls the underlying tokenizers.Tokenizer.encode with add_special_tokens=False and zips encoding.ids with encoding.offsets using strict=True to build TokenSpan values, raising TokenizerLoadError if any span has non-positive character width.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0045": {
+      "statement": "load_local_tokenizer verifies the file exists and that file_sha256 matches asset.sha256 before loading via Tokenizer.from_file, raising TokenizerLoadError on missing file, checksum mismatch, or load failure.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0046": {
+      "statement": "provision_tokenizer fetches via a TokenizerFetcher, serializes with to_str(pretty=True), verifies the SHA-256 against the pinned asset, writes to a temp file with fsync, and publishes via os.link to avoid overwriting an existing asset; a FileExistsError race is resolved by re-verifying the existing file.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0047": {
+      "statement": "provision_configured_tokenizer constructs a Cohere SDK client (only when settings.cohere_api_key is set) and calls provision_tokenizer; exceptions other than TokenizerSetupError are re-raised as TokenizerSetupError('Cohere SDK could not fetch the tokenizer').",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0048": {
+      "statement": "configured_tokenizer_asset maps settings.cohere_embed_model to a pinned TokenizerAsset in SUPPORTED_ASSETS, raising TokenizerSetupError when no pinned asset exists for the configured model.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0049": {
+      "statement": "test_cohere_generation.py drives CohereGenerationProvider.generate through an httpx.AsyncClient with MockTransport, asserting the request is posted to path /v2/chat with bearer authorization and a JSON body containing model, messages, max_tokens, temperature, and stream:false.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0050": {
+      "statement": "CohereGenerationProvider.generate aggregates multiple text content parts from the Cohere response (joining 'Grounded ' and 'answer.' into 'Grounded answer.').",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0051": {
+      "statement": "CohereGenerationProvider.generate maps provider finish_reason values COMPLETE and STOP_SEQUENCE to GenerationFinishReason.COMPLETE and MAX_TOKENS to GenerationFinishReason.MAX_TOKENS.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0052": {
+      "statement": "CohereGenerationProvider.generate raises ProviderError with code timeout (retryable) for TIMEOUT, unavailable (retryable) for ERROR, and invalid_response (non-retryable) for TOOL_CALL finish reasons.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0053": {
+      "statement": "HTTP error statuses are mapped to sanitized ProviderError codes and retryability: 400 invalid_request, 401/403/498 authentication, 429 rate_limited, 500/503 unavailable, with no retries (calls == 1) and suppressed exception context.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0054": {
+      "statement": "Malformed Cohere responses (empty body, empty content list, whitespace-only text, non-text 'thinking' content, unknown finish reason, negative token counts, non-numeric billed units) cause ProviderError matching 'invalid_response'.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0055": {
+      "statement": "httpx.ReadTimeout maps to ProviderError code timeout; httpx.ConnectError maps to unavailable; a ValueError raised by the SDK chat call maps to invalid_response.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0056": {
+      "statement": "CohereGenerationProvider.generate enforces a total timeout (timeout_seconds) that raises ProviderError 'timeout' and cancels the in-flight chat coroutine, while caller cancellation propagates asyncio.CancelledError.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0057": {
+      "statement": "CohereGenerationProvider constructor validates model (non-blank), timeout_seconds (>0), temperature (finite, within [0,1]), and non-negative finite input/output USD rates, raising ValueError otherwise.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0058": {
+      "statement": "open_cohere_generation and configured_cohere_generation factories are async context managers that close the SDK client on exit (client.__aexit__ awaited once); blank API key raises ValueError 'API key' and missing COHERE_API_KEY raises ValueError.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0059": {
+      "statement": "configured_cohere_generation derives model and cost rates from Settings environment variables COHERE_GENERATION_MODEL, using defaults input Decimal('0.0375') and output Decimal('0.15').",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0060": {
+      "statement": "Generation usage/cost fields are computed from response usage: 120 input / 30 output tokens, 100/20 billed tokens, latency ~200ms, and estimated_cost_usd Decimal('0.00000675'); when usage is absent these fields are None.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0061": {
+      "statement": "test_generation.py validates GenerationMessage accepts each MessageRole but rejects the string 'tool' and empty/whitespace content, and GenerationRequest rejects empty/non-tuple messages, non-GenerationMessage entries, system-only messages, and non-positive-integer max_tokens.",
+      "sources": [
+        "S0014"
+      ],
+      "uncertain": false
+    },
+    "F0062": {
+      "statement": "GenerationResult validation rejects empty text, empty model, unknown finish_reason, negative input_tokens, and infinite latency_ms.",
+      "sources": [
+        "S0014"
+      ],
+      "uncertain": false
+    },
+    "F0063": {
+      "statement": "FakeGenerationProvider produces repeatable, prompt-independent synthetic results (text prefixed 'Synthetic response '), reports model 'fake-generation-v1' and adapter 'fake' with zero cost and null token/latency fields, while differing per request content or max_tokens.",
+      "sources": [
+        "S0014"
+      ],
+      "uncertain": false
+    }
+  },
+  "sources": {
+    "S0001": {
+      "id": "S0001",
+      "path": "backend/src/hybrid_rag_search/chunking/contracts.py",
+      "start": 1,
+      "end": 162
+    },
+    "S0002": {
+      "id": "S0002",
+      "path": "backend/src/hybrid_rag_search/providers/__init__.py",
+      "start": 1,
+      "end": 1
+    },
+    "S0003": {
+      "id": "S0003",
+      "path": "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+      "start": 1,
+      "end": 191
+    },
+    "S0004": {
+      "id": "S0004",
+      "path": "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+      "start": 1,
+      "end": 231
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+      "start": 1,
+      "end": 189
+    },
+    "S0006": {
+      "id": "S0006",
+      "path": "backend/src/hybrid_rag_search/providers/embeddings.py",
+      "start": 1,
+      "end": 50
+    },
+    "S0007": {
+      "id": "S0007",
+      "path": "backend/src/hybrid_rag_search/providers/errors.py",
+      "start": 1,
+      "end": 19
+    },
+    "S0008": {
+      "id": "S0008",
+      "path": "backend/src/hybrid_rag_search/providers/fake.py",
+      "start": 1,
+      "end": 137
+    },
+    "S0009": {
+      "id": "S0009",
+      "path": "backend/src/hybrid_rag_search/providers/generation.py",
+      "start": 1,
+      "end": 90
+    },
+    "S0010": {
+      "id": "S0010",
+      "path": "backend/src/hybrid_rag_search/providers/reranking.py",
+      "start": 1,
+      "end": 77
+    },
+    "S0011": {
+      "id": "S0011",
+      "path": "backend/src/hybrid_rag_search/providers/usage.py",
+      "start": 1,
+      "end": 22
+    },
+    "S0012": {
+      "id": "S0012",
+      "path": "backend/src/hybrid_rag_search/tokenization.py",
+      "start": 1,
+      "end": 195
+    },
+    "S0013": {
+      "id": "S0013",
+      "path": "backend/tests/test_cohere_generation.py",
+      "start": 1,
+      "end": 314
+    },
+    "S0014": {
+      "id": "S0014",
+      "path": "backend/tests/test_generation.py",
+      "start": 1,
+      "end": 102
+    }
+  },
+  "metadata": {
+    "revision": "05fb919153379762ce04a644ff9f6ef3e3413ff1",
+    "generated_at": "2026-10-17T22:39:49.347800+00:00",
+    "model": "deepseek-v4.1-flash",
+    "model_responses": [
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      }
+    ],
+    "local_changes": false,
+    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+  }
+}
