@@ -4,11 +4,11 @@ flowchart TD
   n1["Settings"]
   n2["SQLAlchemy Base"]
   n3["DocumentService"]
-  n4["Alembic<br/>migrations"]
-  n5["Makefile and CI"]
+  n4["Makefile and CI"]
+  n5["Alembic<br/>migrations"]
   n0 -->|"reads settings"| n1
-  n4 -->|"reads db URL"| n1
-  n4 -->|"target metadata"| n2
+  n5 -->|"same db URL"| n1
+  n5 -->|"target metadata"| n2
   n3 -->|"async sessions"| n2
-  n5 -->|"runs alembic"| n4
-  n5 -->|"dev uvicorn"| n0
+  n4 -->|"upgrade and seed"| n5
+  n4 -.->|"Inferred:<br/>uvicorn dev run"| n0

@@ -2,14 +2,14 @@
 flowchart TD
   n0["search()<br/>boundary"]
   n1["benchmark_settings"]
-  n2["BM25 retriever"]
-  n3["Dense retriever"]
-  n4["Hybrid rerank"]
-  n5["Scope-filtered<br/>hits"]
+  n2["Lazy providers"]
+  n3["Mode retrievers"]
+  n4["Scope validation"]
+  n5["Ranked documents"]
   n0 -->|"Fixed budget"| n1
-  n0 -->|"bm25 mode"| n2
-  n0 -->|"dense mode"| n3
-  n0 -->|"hybrid modes"| n4
-  n2 -->|"Scoped hits"| n5
-  n3 -->|"Scoped hits"| n5
-  n4 -->|"Scoped hits"| n5
+  n0 -->|"Lazy resources"| n2
+  n0 -->|"Mode dispatch"| n3
+  n2 -.->|"Inferred:<br/>Embed/rerank"| n3
+  n3 -->|"Raw hits"| n4
+  n4 -.->|"Inferred: Scoped<br/>hits"| n5
+  n1 -.->|"Inferred: Ranked<br/>output"| n5

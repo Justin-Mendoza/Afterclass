@@ -4,6 +4,10 @@ flowchart TD
   n1["Config version<br/>digest"]
   n2["Chunk identifier"]
   n3["Document<br/>identifier"]
+  n4["Stable digest"]
   n0 -->|"Canonical digest"| n1
-  n1 -->|"Feeds chunk<br/>digest"| n2
-  n3 -->|"Feeds chunk<br/>digest"| n2
+  n4 -->|"Namespace digest"| n1
+  n1 -->|"Feeds chunk id"| n2
+  n3 -->|"Feeds chunk id"| n2
+  n4 -->|"Hashtext fields"| n2
+  n4 -->|"Content sha256"| n3

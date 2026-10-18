@@ -1,22 +1,23 @@
 {
   "map": {
-    "summary": "The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks: it groups blocks by heading path, greedily packs them within a token budget with overlap, splits oversized blocks by prefix search, enriches text with reconstructed Markdown headings for embedding, and stamps identity digests derived from the config version and document id.",
+    "summary": "The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks. It groups parsed blocks by heading path so no chunk crosses a section boundary, greedily packs whole blocks within a token budget with trailing overlap, splits oversized blocks by binary prefix search, and enriches text with reconstructed Markdown headings for embedding while stamping config-version and document-derived identity digests.",
     "unknowns": [
-      "No runtime call site invoking chunk_document is shown; wiring to upstream parsing and downstream embedding/indexing is inferred from imports alone (F0015).",
-      "How ParsedDocument/ParsedBlock are produced upstream of chunking is not covered by these findings (F0015).",
+      "No runtime call site invoking chunk_document is shown; wiring to upstream parsing and downstream embedding or indexing is inferred from the public entry point alone (F0001, F0016).",
+      "How ParsedDocument and ParsedBlock are produced upstream of chunking is not covered by these findings.",
       "How emitted Chunks are consumed downstream (embedding, indexing, storage) is outside the supplied evidence.",
-      "Which symbols the chunking package __init__ re-exports is not shown (F0014)."
+      "Which symbols the chunking package __init__ re-exports is not shown (F0016).",
+      "The relationship between ChunkingConfig.embedding_limit_tokens and any downstream embedding model is not evidenced beyond validation (F0007)."
     ],
     "diagrams": [
       {
         "title": "Architecture",
-        "description": "The chunking package surface exposes the chunker, which reads parsed blocks and a tokenizer, produces enriched embedding text, and emits content-addressed Chunk contracts backed by identity and config digests.",
+        "description": "The chunking package groups parsed blocks per heading section, packs them under the token budget, enriches embedding text, and emits Chunk contracts whose identities are derived from config and document digests.",
         "nodes": [
           {
             "id": "chunking_pkg",
             "label": "Chunking package",
             "finding_ids": [
-              "F0014"
+              "F0016"
             ]
           },
           {
@@ -26,35 +27,39 @@
               "F0001",
               "F0002",
               "F0003",
-              "F0016"
+              "F0004"
             ]
           },
           {
             "id": "embed_builder",
             "label": "Embedding text builder",
             "finding_ids": [
-              "F0004",
-              "F0006"
+              "F0013",
+              "F0014"
             ]
           },
           {
             "id": "contracts",
-            "label": "Chunk and config",
+            "label": "Chunk contract",
             "finding_ids": [
-              "F0005",
+              "F0011",
+              "F0012"
+            ]
+          },
+          {
+            "id": "config",
+            "label": "Chunking config",
+            "finding_ids": [
               "F0007",
-              "F0010",
-              "F0012",
-              "F0013"
+              "F0008"
             ]
           },
           {
             "id": "identity",
             "label": "Identity digests",
             "finding_ids": [
-              "F0008",
               "F0009",
-              "F0011"
+              "F0010"
             ]
           }
         ],
@@ -62,19 +67,40 @@
           {
             "from": "chunking_pkg",
             "to": "chunker",
-            "label": "Exposes surface",
+            "label": "Public entry point",
             "finding_ids": [
-              "F0014"
+              "F0001",
+              "F0016"
             ],
             "uncertain": true
           },
           {
             "from": "chunker",
             "to": "embed_builder",
-            "label": "Enriched embedding text",
+            "label": "Heading path + body",
+            "finding_ids": [
+              "F0013",
+              "F0014"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "embed_builder",
+            "to": "chunker",
+            "label": "Embedding text",
+            "finding_ids": [
+              "F0013",
+              "F0014"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "chunker",
+            "label": "Token limits",
             "finding_ids": [
               "F0004",
-              "F0006"
+              "F0007"
             ],
             "uncertain": false
           },
@@ -83,28 +109,37 @@
             "to": "contracts",
             "label": "Emits Chunks",
             "finding_ids": [
-              "F0005",
+              "F0001",
+              "F0012",
+              "F0015"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "identity",
+            "to": "contracts",
+            "label": "Chunk identity",
+            "finding_ids": [
+              "F0011",
               "F0012"
             ],
             "uncertain": false
           },
           {
-            "from": "contracts",
+            "from": "config",
             "to": "identity",
-            "label": "Pinned identities",
+            "label": "Config version",
             "finding_ids": [
               "F0008",
-              "F0009",
-              "F0011",
-              "F0012"
+              "F0009"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Section chunking boundary",
-        "description": "Blocks are grouped by heading path so chunking operates per section, ensuring no chunk spans a heading boundary. The section boundary is the key isolation guarantee.",
+        "title": "Section boundary",
+        "description": "Blocks are grouped by heading path so chunking operates per section; the heading boundary is enforced so no chunk spans sections.",
         "nodes": [
           {
             "id": "parsed_doc",
@@ -117,16 +152,15 @@
             "id": "groupby",
             "label": "Heading-path grouping",
             "finding_ids": [
-              "F0001",
-              "F0004"
+              "F0002"
             ]
           },
           {
             "id": "chunk_section",
             "label": "Chunk section",
             "finding_ids": [
-              "F0001",
-              "F0002"
+              "F0002",
+              "F0004"
             ]
           },
           {
@@ -134,7 +168,7 @@
             "label": "Section chunks",
             "finding_ids": [
               "F0001",
-              "F0005"
+              "F0011"
             ]
           }
         ],
@@ -144,7 +178,7 @@
             "to": "groupby",
             "label": "Blocks by heading",
             "finding_ids": [
-              "F0001"
+              "F0002"
             ],
             "uncertain": false
           },
@@ -153,8 +187,7 @@
             "to": "chunk_section",
             "label": "One section",
             "finding_ids": [
-              "F0001",
-              "F0004"
+              "F0002"
             ],
             "uncertain": false
           },
@@ -163,46 +196,53 @@
             "to": "chunks_out",
             "label": "Emits chunks",
             "finding_ids": [
-              "F0001",
-              "F0002",
-              "F0005"
+              "F0004",
+              "F0011"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Greedy packing and splitting",
-        "description": "Blocks accumulate while the candidate token count stays within the limit; oversized blocks are split by binary prefix search, and trailing overlap seeds the next candidate.",
+        "title": "Packing and splitting",
+        "description": "Blocks accumulate while the candidate stays within the token budget; oversized blocks are split by binary prefix search, and trailing overlap seeds the next candidate when pending blocks remain.",
         "nodes": [
           {
             "id": "candidate",
             "label": "Candidate accumulator",
             "finding_ids": [
-              "F0002",
-              "F0004"
+              "F0003",
+              "F0004",
+              "F0014"
             ]
           },
           {
             "id": "fit_check",
             "label": "Token-limit check",
             "finding_ids": [
-              "F0002"
+              "F0004"
             ]
           },
           {
             "id": "prefix_split",
             "label": "Largest-prefix split",
             "finding_ids": [
-              "F0003"
+              "F0005"
             ]
           },
           {
             "id": "overlap_carry",
             "label": "Overlap carry",
             "finding_ids": [
-              "F0002",
-              "F0016"
+              "F0006"
+            ]
+          },
+          {
+            "id": "make_chunk",
+            "label": "Chunk emission",
+            "finding_ids": [
+              "F0004",
+              "F0015"
             ]
           }
         ],
@@ -212,25 +252,17 @@
             "to": "fit_check",
             "label": "Token count",
             "finding_ids": [
-              "F0002"
+              "F0004",
+              "F0014"
             ],
             "uncertain": false
           },
           {
             "from": "fit_check",
             "to": "prefix_split",
-            "label": "Does not fit",
+            "label": "Block does not fit",
             "finding_ids": [
-              "F0003"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "fit_check",
-            "to": "overlap_carry",
-            "label": "Emit then carry",
-            "finding_ids": [
-              "F0002"
+              "F0005"
             ],
             "uncertain": false
           },
@@ -239,32 +271,50 @@
             "to": "candidate",
             "label": "Remainder reseeds",
             "finding_ids": [
-              "F0003"
+              "F0005"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fit_check",
+            "to": "make_chunk",
+            "label": "Fits within limit",
+            "finding_ids": [
+              "F0004",
+              "F0015"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "make_chunk",
+            "to": "overlap_carry",
+            "label": "Pending remains",
+            "finding_ids": [
+              "F0004",
+              "F0006"
             ],
             "uncertain": false
           },
           {
             "from": "overlap_carry",
             "to": "candidate",
-            "label": "Overlap prepends",
+            "label": "Overlap seeds",
             "finding_ids": [
-              "F0002",
-              "F0016"
+              "F0006"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Config and identity derivation",
-        "description": "ChunkingConfig validates limits and derives a deterministic version digest pinning the tokenizer; Chunk ids combine document id, config version, order, and canonical content.",
+        "title": "Identity derivation",
+        "description": "ChunkingConfig validates limits and derives a version digest pinning the tokenizer; chunk ids combine document id, config version, order, and canonical content via a shared digest primitive.",
         "nodes": [
           {
             "id": "config",
             "label": "Chunking config",
             "finding_ids": [
-              "F0007",
-              "F0013"
+              "F0007"
             ]
           },
           {
@@ -278,7 +328,7 @@
             "id": "chunk_id",
             "label": "Chunk identifier",
             "finding_ids": [
-              "F0009",
+              "F0011",
               "F0012"
             ]
           },
@@ -286,8 +336,14 @@
             "id": "doc_id",
             "label": "Document identifier",
             "finding_ids": [
-              "F0011",
-              "F0012"
+              "F0010"
+            ]
+          },
+          {
+            "id": "digest",
+            "label": "Stable digest",
+            "finding_ids": [
+              "F0009"
             ]
           }
         ],
@@ -302,22 +358,51 @@
             "uncertain": false
           },
           {
+            "from": "digest",
+            "to": "config_version",
+            "label": "Namespace digest",
+            "finding_ids": [
+              "F0008",
+              "F0009"
+            ],
+            "uncertain": false
+          },
+          {
             "from": "config_version",
             "to": "chunk_id",
-            "label": "Feeds chunk digest",
+            "label": "Feeds chunk id",
             "finding_ids": [
-              "F0009",
-              "F0012"
+              "F0011"
             ],
             "uncertain": false
           },
           {
             "from": "doc_id",
             "to": "chunk_id",
-            "label": "Feeds chunk digest",
+            "label": "Feeds chunk id",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "digest",
+            "to": "chunk_id",
+            "label": "Hashtext fields",
             "finding_ids": [
               "F0009",
-              "F0012"
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "digest",
+            "to": "doc_id",
+            "label": "Content sha256",
+            "finding_ids": [
+              "F0009",
+              "F0010"
             ],
             "uncertain": false
           }
@@ -328,119 +413,121 @@
   },
   "findings": {
     "F0001": {
-      "statement": "chunk_document is the public entry point that groups ParsedDocument.blocks by block.locator.heading_path via itertools.groupby and delegates each section to _chunk_section, guaranteeing no chunk crosses a heading boundary.",
+      "statement": "chunk_document is the package's public entry point: it takes a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig (defaulting to DEFAULT_CHUNKING_CONFIG) and returns a tuple of Chunk records.",
       "sources": [
-        "S0002"
+        "S0002",
+        "S0003"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "_chunk_section greedily packs whole ParsedBlocks into a candidate while _candidate's token_count (computed over embedding_text) stays within ChunkingConfig.max_tokens, emitting a Chunk and then seeding the next iteration with _trailing_overlap of config.overlap_tokens.",
+      "statement": "chunk_document groups parsed blocks with itertools.groupby keyed on block.locator.heading_path, then delegates each section to _chunk_section, so chunking is performed section-by-section and a chunk never crosses a heading boundary.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "When a block does not fit, _largest_fitting_prefix performs a binary search over tokenizer token spans to find the largest text prefix whose candidate fits, splitting the block without losing character offsets; failure to fit even one source token raises ChunkingError.",
+      "statement": "_candidate enforces the heading-boundary invariant by raising ChunkingError when fragments in one candidate carry differing heading_path values.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "_candidate enforces the invariant that all fragments share one heading_path and raises ChunkingError otherwise, and builds embedding_text via build_embedding_text so token_count is measured on enriched text rather than raw content_text.",
+      "statement": "_chunk_section greedily appends whole blocks to the current candidate while _candidate's token count stays within config.max_tokens, then emits a Chunk via _make_chunk with order = first_order + len(chunks).",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "Each Chunk carries content_text, embedding_text, embedding_token_count, ordered source_spans, document_id, config_version, and order derived from a config version digest.",
+      "statement": "When a block does not fit, _largest_fitting_prefix performs a binary search over the block's token spans (using TextTokenizer.tokenize) to find the largest prefix that keeps the candidate within max_tokens, and the split remainder is reseeded as the next pending fragment.",
       "sources": [
-        "S0002",
-        "S0003"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "build_embedding_text reconstructs Markdown headings by enumerating heading_path with increasing # levels, and strips a leading heading block that duplicates the leaf heading so the heading is not embedded twice.",
+      "statement": "After emitting a chunk with remaining pending blocks, _trailing_overlap computes carry fragments from the last config.overlap_tokens tokens of the candidate's content text, seeding the next candidate; overlap is suppressed when no pending blocks remain.",
       "sources": [
-        "S0004"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "ChunkingConfig is an immutable, validated contract (frozen dataclass) enforcing positive max_tokens, nonnegative overlap_tokens smaller than max_tokens, and max_tokens not exceeding embedding_limit_tokens.",
+      "statement": "ChunkingConfig in contracts.py validates max_tokens (positive), overlap_tokens (nonnegative and less than max_tokens), embedding_limit_tokens (positive, and max_tokens must not exceed it), nonblank tokenizer/algorithm strings, and a 64-hex tokenizer_sha256.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0008": {
-      "statement": "ChunkingConfig.version is a deterministic chunkcfg_ identity computed from a canonical JSON digest over algorithm, tokenizer model/revision/sha256, and token limits, pinning the chunking interpretation.",
-      "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0009": {
-      "statement": "Chunk.chunk_id is a content-addressed chk_ digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, so identity changes whenever chunk content or config changes.",
-      "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0010": {
-      "statement": "SourceSpan validation requires a SourceLocator, nonnegative start_char, positive end_char greater than start, and Chunk validation requires source_spans to be a nonempty tuple preserving source order by (block_number, start_char, end_char).",
-      "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0011": {
-      "statement": "stable_digest hashes length-prefixed UTF-8 fields within a versioned namespace prefix 'hybrid-rag-search/{namespace}/v{IDENTITY_VERSION}', and DocumentContentIdentity.document_id derives 'doc_'+digest from tenant_id, collection_id, and content_sha256.",
-      "sources": [
-        "S0005"
-      ],
-      "uncertain": false
-    },
-    "F0012": {
-      "statement": "Chunk validation requires document_id to match doc_[0-9a-f]{64} and config_version to match chunkcfg_[0-9a-f]{64}, coupling chunk output to identities produced by identity.py and ChunkingConfig.version.",
+      "statement": "ChunkingConfig.version canonicalizes the algorithm, embedding_limit_tokens, max_tokens, overlap_tokens, tokenizer model/revision/sha256 via sorted-key JSON and returns a chunkcfg_-prefixed stable_digest, so any of these values changing produces a new config version.",
       "sources": [
         "S0003",
         "S0005"
       ],
       "uncertain": false
     },
-    "F0013": {
-      "statement": "ChunkingConfig defaults pin the tokenizer to COHERE_EMBED_ENGLISH_LIGHT_V3 (model, revision, sha256), and embedding_limit_tokens defaults to EMBEDDING_LIMIT_TOKENS = 512.",
+    "F0009": {
+      "statement": "stable_digest builds a SHA-256 over a versioned namespace header plus length-prefixed UTF-8 fields, which is the shared identity primitive used for config versions, document IDs, and chunk IDs.",
+      "sources": [
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "DocumentContentIdentity.document_id derives a doc_-prefixed identity from tenant_id, collection_id, and content_sha256, and Chunk validates document_id against the doc_[0-9a-f]{64} pattern.",
+      "sources": [
+        "S0005",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "Chunk.chunk_id is a chk_-prefixed stable_digest over document_id, config_version, order, content_text, embedding_text, and each source span's canonical_value, making chunk identity content-addressed and rebuildable.",
       "sources": [
         "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "Chunk.__post_init__ requires nonempty source_spans, rejects spans whose (block_number, start_char, end_char) positions are not in source order, and validates document_id, config_version, order, and nonblank content/embedding text.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "build_embedding_text reconstructs Markdown headings ('#' * level + heading) from heading_path and joins them to the body, dropping a duplicated leading heading block by recognizing it as the content prefix; this produces the enriched embedding_text stored separately from content_text.",
+      "sources": [
+        "S0004",
+        "S0002"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "The chunking package's __init__ declares itself as 'Deterministic structure-aware document chunking', serving as the package surface, but the excerpts do not show which symbols it re-exports.",
-      "sources": [
-        "S0001"
-      ],
-      "uncertain": true
-    },
-    "F0015": {
-      "statement": "chunk_document consumes ParsedDocument/ParsedBlock from hybrid_rag_search.parsers and a TextTokenizer from hybrid_rag_search.tokenization; the actual runtime call sites invoking chunk_document are not present in the supplied excerpts, so upstream/downstream wiring is inferred from imports alone.",
+      "statement": "_candidate computes embedding_text via build_embedding_text and sets token_count from len(tokenizer.tokenize(embedding_text)), so token budgeting is measured against the enriched embedding text rather than raw content.",
       "sources": [
         "S0002",
-        "S0003"
+        "S0004"
       ],
-      "uncertain": true
+      "uncertain": false
     },
-    "F0016": {
-      "statement": "In _chunk_section, when a heading-only fragment cannot be extended, the carry is progressively shrunk via _trailing_overlap down to a single token to make room for the pending block's prefix, which is an explicit failure-avoidance strategy inside the packing loop.",
+    "F0015": {
+      "statement": "_make_chunk raises ChunkingError when the candidate's embedding_token_count is not positive, and _chunk_section raises ChunkingError when heading context plus a single source token cannot fit in the token limit.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
+    },
+    "F0016": {
+      "statement": "The chunking package __init__ docstring describes the subsystem as 'Deterministic structure-aware document chunking', but the specific symbols it re-exports are not shown in the supplied source.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": true
     }
   },
   "sources": {
@@ -476,8 +563,8 @@
     }
   },
   "metadata": {
-    "revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-    "generated_at": "2026-10-17T22:59:32.948438+00:00",
+    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+    "generated_at": "2026-10-18T18:36:01.162392+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {

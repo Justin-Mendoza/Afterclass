@@ -1,10 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["CLI main"]
-  n1["_debug_query"]
-  n2["Cohere<br/>embeddings"]
-  n3["Dense retriever"]
-  n0 -->|"asyncio.run"| n1
-  n1 -->|"Opens provider"| n2
-  n1 -->|"Builds via<br/>settings"| n3
-  n3 -->|"Debug search"| n2
+  n0["RetrievalFilters"]
+  n1["k-NN search body"]
+  n2["Selected _source"]
+  n3["RetrievalResult"]
+  n0 -->|"Filter clauses"| n1
+  n1 -->|"Requested fields"| n2
+  n2 -->|"Mapped hits"| n3

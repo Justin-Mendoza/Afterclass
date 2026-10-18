@@ -1,8 +1,8 @@
 {
   "generator": "repo-map-pipeline",
   "schema_version": 1,
-  "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-  "fingerprint": "537e557bb4d2daa359fe4ac03aad1a89532e4e5f2c139b3cd8b6520d6b6eff6f",
+  "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+  "fingerprint": "35d041331c51205e74523f6b6506d36aea2f426c89c14fe5ef497bf6c4646e3e",
   "files": {
     ".github/workflows/ci.yml": "08fc7a39bb709f36dc91df51861252cc891f09cc1b46f59544ee6b500024cafe",
     ".github/workflows/repo-map.yml": "0f8744600011d511d4c22f130ed513eeab8bb0c0c602dcc98d9ce0f18e2fb445",
@@ -76,13 +76,11 @@
     "backend/src/hybrid_rag_search/parsers/normalization.py": "5f7ca9037f83c453a93d516a7979b88c4908da8c8f8cca4421215534693e1f92",
     "backend/src/hybrid_rag_search/parsers/pdf.py": "a02bdb4bc9ee2b0939ad6c255cc4ac05f76202adac8483020bd56dabf0b6d33f",
     "backend/src/hybrid_rag_search/parsers/plain_text.py": "eef9a56ed8dcc503fcbb5ca0e718f7f32cec8adbc1c24cfe0f3406bae1a23bfa",
-    "backend/src/hybrid_rag_search/providers/__init__.py": "e859eae18a38e57465520d334c32243e462a188b200bc1345c653331a3522be8",
     "backend/src/hybrid_rag_search/providers/cohere_embeddings.py": "61a9f63ab27da96babaaf46d13622cbff92fe3fbfcc3632cc5abfcde0ae90ea2",
     "backend/src/hybrid_rag_search/providers/cohere_generation.py": "1f4167110a3e6de46d8db00c0c69a85c9fd94c707e88bb5d3a2ed846cae41232",
     "backend/src/hybrid_rag_search/providers/cohere_reranking.py": "c003ddc42ae089daf3e5a4ece052f670b41c371d19b2fee3e71f4cdfc067ca2b",
     "backend/src/hybrid_rag_search/providers/embeddings.py": "b6deb181001b61d3e9ad97c36713703cfc23bad4089992cb005acaa6f7a41b83",
     "backend/src/hybrid_rag_search/providers/errors.py": "abb84be70b299961659587d17f62c71fbca7fa949185f0cd1d397036856c4a69",
-    "backend/src/hybrid_rag_search/providers/fake.py": "0045b53c7960a6d68a9a3b5bd1922046207e028c821a8bdc14471670ebf6ab87",
     "backend/src/hybrid_rag_search/providers/generation.py": "2d3f1a51279b946623a9a1424cd11bd28ada94ec5a790e379b7fd7117a7f1a2a",
     "backend/src/hybrid_rag_search/providers/reranking.py": "1549ad5658d1569e129b0879e3ea6583d90f96da5e4e63aac025ba520fe78555",
     "backend/src/hybrid_rag_search/providers/usage.py": "2c7b84da240cc731bef83a42607a23fbd5480ea5c343ce2c10cdd3e29abc5601",
@@ -179,18 +177,10 @@
   "maps": {
     "answers": {
       "files": [
-        "backend/src/hybrid_rag_search/chunking/contracts.py",
-        "backend/src/hybrid_rag_search/providers/__init__.py",
-        "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
         "backend/src/hybrid_rag_search/providers/cohere_generation.py",
-        "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
-        "backend/src/hybrid_rag_search/providers/embeddings.py",
         "backend/src/hybrid_rag_search/providers/errors.py",
-        "backend/src/hybrid_rag_search/providers/fake.py",
         "backend/src/hybrid_rag_search/providers/generation.py",
-        "backend/src/hybrid_rag_search/providers/reranking.py",
         "backend/src/hybrid_rag_search/providers/usage.py",
-        "backend/src/hybrid_rag_search/tokenization.py",
         "backend/tests/test_cohere_generation.py",
         "backend/tests/test_generation.py"
       ],
@@ -198,9 +188,9 @@
         "foundation",
         "retrieval"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "The answers subsystem defines application-owned async provider contracts for embeddings, generation, and reranking with strict validating dataclasses and content-addressed chunk identity. Cohere adapters (opt-in) and deterministic fake adapters both implement these contracts; live adapters sanitize SDK failures into ProviderError codes and derive Decimal cost/latency usage, while fakes report zero cost and stable synthetic outputs.",
-      "api_calls_last_update": 5
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "The answers subsystem defines application-owned async provider contracts for generation, embeddings, and reranking, with validating dataclasses and a code-carrying ProviderError that sanitizes SDK failures. A Cohere generation adapter and a deterministic fake provider both implement the shared GenerationProvider protocol, returning GenerationResult with distinct reported and billed usage plus locally measured latency. No orchestration or caller wiring selecting between adapters is evidenced.",
+      "api_calls_last_update": 3
     },
     "evaluation": {
       "files": [
@@ -230,8 +220,8 @@
         "ingestion",
         "retrieval"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "The evaluation subsystem loads hash-verified, versioned datasets, prepares isolated per-scope evaluation corpora in OpenSearch through the durable ingestion pipeline, runs bm25/dense/hybrid/hybrid_rerank retrieval via a shared EvaluationSearch boundary, scores rankings with fixed metrics, and emits reproducible comparison reports. It exposes a debug-only search API and a SciFact builder CLI, and owns evaluation ORM tables.",
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "The evaluation subsystem loads hash-verified versioned datasets, prepares isolated per-scope corpora in OpenSearch through the durable ingestion pipeline, runs four retrieval modes via a shared EvaluationSearch boundary, scores rankings with fixed metrics, and emits reproducible reports. It exposes a production-disabled debug search API and a SciFact builder CLI, and owns evaluation ORM tables.",
       "api_calls_last_update": 8
     },
     "foundation": {
@@ -281,9 +271,9 @@
         "ingestion",
         "retrieval"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "The foundation subsystem is a FastAPI backend for a multi-tenant hybrid RAG service: a create_app entry point exposing health and evaluation routers, a cached typed Settings boundary, an async SQLAlchemy base, a tenant-scoped DocumentService with filesystem storage, and a linear Alembic chain defining identity, content, retrieval, evaluation/audit, and ingestion-job schema. Migrations push authorization, lifecycle, and immutability invariants into PostgreSQL, while containers, Makefile, and CI provide orchestration.",
-      "api_calls_last_update": 5
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "The foundation subsystem is the shared base layer of a multi-tenant hybrid RAG service: a create_app FastAPI entry point exposing health/readiness and an evaluation router, a cached typed Settings boundary, an async SQLAlchemy Base, a tenant-scoped DocumentService over replaceable file storage, and a linear Alembic chain defining identity, content, retrieval, evaluation/audit, and ingestion-job schema. Migrations push authorization, lifecycle, lease, and immutability invariants into PostgreSQL, while a Dockerfile, Makefile, Compose, and CI provide orchestration and verification.",
+      "api_calls_last_update": 7
     },
     "frontend": {
       "files": [
@@ -303,8 +293,8 @@
         "foundation",
         "retrieval"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose Dockerfile runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page, with no state, inputs, or async data loading. No fetch, API route, or env read is present, so runtime linkage to the answers, foundation, or retrieval subsystems is unevidenced.",
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose container runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page with no state, inputs, or async data loading. No fetch, API route, or environment read is evidenced, so runtime linkage to the answers, foundation, or retrieval subsystems is untraced.",
       "api_calls_last_update": 2
     },
     "ingestion": {
@@ -343,15 +333,9 @@
         "backend/src/hybrid_rag_search/parsers/normalization.py",
         "backend/src/hybrid_rag_search/parsers/pdf.py",
         "backend/src/hybrid_rag_search/parsers/plain_text.py",
-        "backend/src/hybrid_rag_search/providers/__init__.py",
         "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
-        "backend/src/hybrid_rag_search/providers/cohere_generation.py",
-        "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
         "backend/src/hybrid_rag_search/providers/embeddings.py",
         "backend/src/hybrid_rag_search/providers/errors.py",
-        "backend/src/hybrid_rag_search/providers/fake.py",
-        "backend/src/hybrid_rag_search/providers/generation.py",
-        "backend/src/hybrid_rag_search/providers/reranking.py",
         "backend/src/hybrid_rag_search/providers/usage.py",
         "backend/src/hybrid_rag_search/tokenization.py",
         "backend/src/hybrid_rag_search/tokenizer_setup.py",
@@ -399,8 +383,8 @@
       "depends_on": [
         "foundation"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks: it groups blocks by heading path, greedily packs them within a token budget with overlap, splits oversized blocks by prefix search, enriches text with reconstructed Markdown headings for embedding, and stamps identity digests derived from the config version and document id.",
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks. It groups parsed blocks by heading path so no chunk crosses a section boundary, greedily packs whole blocks within a token budget with trailing overlap, splits oversized blocks by binary prefix search, and enriches text with reconstructed Markdown headings for embedding while stamping config-version and document-derived identity digests.",
       "api_calls_last_update": 2
     },
     "retrieval": {
@@ -410,14 +394,10 @@
         "backend/src/hybrid_rag_search/lexical_retrieval.py",
         "backend/src/hybrid_rag_search/models/retrieval.py",
         "backend/src/hybrid_rag_search/opensearch_index.py",
-        "backend/src/hybrid_rag_search/providers/__init__.py",
         "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
-        "backend/src/hybrid_rag_search/providers/cohere_generation.py",
         "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
         "backend/src/hybrid_rag_search/providers/embeddings.py",
         "backend/src/hybrid_rag_search/providers/errors.py",
-        "backend/src/hybrid_rag_search/providers/fake.py",
-        "backend/src/hybrid_rag_search/providers/generation.py",
         "backend/src/hybrid_rag_search/providers/reranking.py",
         "backend/src/hybrid_rag_search/providers/usage.py",
         "backend/src/hybrid_rag_search/reranked_retrieval.py",
@@ -439,8 +419,8 @@
         "foundation",
         "ingestion"
       ],
-      "source_revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-      "summary": "This subsystem implements dense-query retrieval for a multi-tenant hybrid RAG backend: an injected embedding provider turns a normalized query into a vector used in a k-NN search against an OpenSearch read alias, and hits are renormalized into the shared RetrievalResult contract reused by lexical retrieval. Configuration derives from Settings, diagnostics are separated into a trace, and the only local entry point is a debug CLI, with orchestration living elsewhere.",
+      "source_revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+      "summary": "Dense-query retrieval for a multi-tenant hybrid RAG backend: a normalized query is embedded via an injected provider into a vector, then issued as an OpenSearch k-NN search against a read alias with tenant scoping applied at query level. Hits are renormalized into the shared RetrievalResult contract reused by lexical retrieval, with diagnostics kept in a separate trace. Configuration derives from Settings; the only local entry point is a debug CLI, with orchestration living elsewhere.",
       "api_calls_last_update": 2
     }
   },

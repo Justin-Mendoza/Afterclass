@@ -1,12 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Upload"]
-  n1["Collection lock"]
-  n2["Filesystem<br/>storage"]
-  n3["Delete"]
-  n4["To DELETED"]
-  n0 -->|"with_for_update"| n1
-  n1 -->|"duplicate check"| n2
-  n0 -->|"to_thread save"| n2
-  n3 -->|"DELETING<br/>committed"| n2
-  n2 -->|"second<br/>transaction"| n4
+  n0["Liveness route"]
+  n1["Readiness route"]
+  n2["dependency_status"]
+  n3["Dependency<br/>probes"]
+  n4["Postgres, Redis,<br/>OpenSearch"]
+  n1 -->|"requests<br/>booleans"| n2
+  n2 -->|"gathers probes"| n3
+  n3 -->|"SELECT 1, PING,<br/>health"| n4
+  n3 -->|"false on error"| n2
+  n2 -->|"503 if any false"| n1

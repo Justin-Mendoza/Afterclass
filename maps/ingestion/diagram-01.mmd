@@ -3,9 +3,13 @@ flowchart TD
   n0["Chunking package"]
   n1["Chunker"]
   n2["Embedding text<br/>builder"]
-  n3["Chunk and config"]
-  n4["Identity digests"]
-  n0 -.->|"Inferred:<br/>Exposes surface"| n1
-  n1 -->|"Enriched<br/>embedding text"| n2
+  n3["Chunk contract"]
+  n4["Chunking config"]
+  n5["Identity digests"]
+  n0 -.->|"Inferred: Public<br/>entry point"| n1
+  n1 -->|"Heading path +<br/>body"| n2
+  n2 -->|"Embedding text"| n1
+  n4 -->|"Token limits"| n1
   n1 -->|"Emits Chunks"| n3
-  n3 -->|"Pinned<br/>identities"| n4
+  n5 -->|"Chunk identity"| n3
+  n4 -->|"Config version"| n5

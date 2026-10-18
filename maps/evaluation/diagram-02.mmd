@@ -6,9 +6,9 @@ flowchart TD
   n3["Durable<br/>ingestion"]
   n4["compact_corpus"]
   n5["verify_prepared"]
-  n0 -->|"Scope input"| n2
+  n0 -.->|"Inferred: Scope<br/>input"| n2
   n1 -->|"Index settings"| n2
   n2 -->|"Inline jobs"| n3
   n2 -->|"Forcemerge"| n4
-  n3 -->|"Index receipts"| n5
+  n3 -.->|"Inferred: Index<br/>receipts"| n5
   n4 -->|"Ready docs"| n5

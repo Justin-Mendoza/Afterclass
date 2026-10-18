@@ -11,8 +11,8 @@
   "api_calls": 2,
   "usage": [
     {
-      "prompt_tokens": 3789,
-      "total_tokens": 4754,
+      "prompt_tokens": 4143,
+      "total_tokens": 5108,
       "completion_tokens": 965,
       "prompt_tokens_details": {
         "cached_tokens": 256,
@@ -21,14 +21,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00121634352,
+      "cost": 0.00128324952,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 2915,
-      "total_tokens": 4145,
-      "completion_tokens": 1230,
+      "prompt_tokens": 3302,
+      "total_tokens": 4522,
+      "completion_tokens": 1220,
       "prompt_tokens_details": {
         "cached_tokens": 512,
         "cache_write_tokens": null
@@ -36,7 +36,7 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00115448004,
+      "cost": 0.0012219530400000003,
       "cache_discount": 4.829184e-05,
       "cached_tokens": 512
     }
@@ -65,6 +65,8 @@
       "notes*",
       "*/notes*",
       "*/fixtures/*",
+      "backend/src/hybrid_rag_search/providers/__init__.py",
+      "backend/src/hybrid_rag_search/providers/fake.py",
       "frontend/src/app/styles.css"
     ],
     "max_files": 160,
@@ -126,7 +128,10 @@
           "backend/src/hybrid_rag_search/opensearch_index.py",
           "backend/src/hybrid_rag_search/tokenization.py",
           "backend/src/hybrid_rag_search/tokenizer_setup.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/embeddings.py",
+          "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/tests/test_ingestion*.py",
           "backend/tests/test_worker*.py",
           "backend/tests/test_*parser*.py",
@@ -146,7 +151,12 @@
         "include": [
           "backend/src/hybrid_rag_search/*retrieval*.py",
           "backend/src/hybrid_rag_search/search.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/embeddings.py",
+          "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+          "backend/src/hybrid_rag_search/providers/reranking.py",
+          "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/src/hybrid_rag_search/opensearch_index.py",
           "backend/tests/test_*retrieval*.py",
           "backend/tests/test_authorized_search.py",
@@ -163,10 +173,11 @@
       "answers": {
         "include": [
           "backend/src/hybrid_rag_search/answer*.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/generation.py",
+          "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/src/hybrid_rag_search/models/answers.py",
-          "backend/src/hybrid_rag_search/tokenization.py",
-          "backend/src/hybrid_rag_search/chunking/contracts.py",
           "backend/tests/test_answer*.py",
           "backend/tests/test_generation.py",
           "backend/tests/test_cohere_generation.py"

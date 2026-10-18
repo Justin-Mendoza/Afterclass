@@ -1,9 +1,16 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["evaluation"]
-  n1["foundation"]
-  n2["ingestion"]
-  n3["retrieval"]
-  n0 -.->|"Inferred: Uses"| n1
-  n0 -.->|"Inferred: Uses"| n2
-  n0 -.->|"Inferred: Uses"| n3
+  n0["Dataset loader"]
+  n1["Corpus<br/>preparation"]
+  n2["EvaluationSearch"]
+  n3["Runner and<br/>reports"]
+  n4["Debug search API"]
+  n5["Evaluation ORM"]
+  n0 -->|"Validated<br/>records"| n1
+  n1 -->|"Prepared scope"| n2
+  n3 -->|"Per query/mode"| n2
+  n3 -->|"Loads dataset"| n0
+  n4 -->|"Verify prepared"| n1
+  n4 -->|"Debug search"| n2
+  n1 -->|"Ingestion job<br/>rows"| n5
+  n1 -->|"Corpus hash<br/>scope"| n0

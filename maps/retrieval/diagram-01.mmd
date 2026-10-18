@@ -8,8 +8,9 @@ flowchart TD
   n5["Retrieval<br/>results"]
   n0 -->|"Derives fields"| n1
   n0 -->|"URL and alias"| n2
-  n1 -->|"Configures"| n2
+  n1 -->|"Limits and model"| n2
   n3 -->|"Injected<br/>provider"| n2
   n2 -->|"Query embedding"| n3
   n2 -->|"k-NN search"| n4
-  n4 -->|"Hit parsing"| n5
+  n4 -->|"Hit mapping"| n5
+  n2 -->|"Response plus<br/>trace"| n5

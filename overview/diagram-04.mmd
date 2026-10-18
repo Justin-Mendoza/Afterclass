@@ -1,9 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["frontend"]
-  n1["answers"]
-  n2["foundation"]
-  n3["retrieval"]
-  n0 -.->|"Inferred: Uses"| n1
-  n0 -.->|"Inferred: Uses"| n2
-  n0 -.->|"Inferred: Uses"| n3
+  n0["Frontend<br/>container"]
+  n1["Next.js App<br/>Router"]
+  n2["Root layout"]
+  n3["Static index<br/>page"]
+  n4["Lint type test<br/>config"]
+  n0 -->|"Runs dev server"| n1
+  n1 -->|"Renders root"| n2
+  n2 -->|"Renders children"| n3
+  n4 -->|"Types and lints"| n1

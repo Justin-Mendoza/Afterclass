@@ -1,5 +1,5 @@
 {
-  "scope": "Subsystem boundaries; dependency edges are hints, not verified runtime calls.",
+  "scope": "Source-backed architecture views composed from each subsystem map. See linked subsystem pages for evidence.",
   "analyzed_files": 0,
   "eligible_files": 0,
   "excluded_files": 0,

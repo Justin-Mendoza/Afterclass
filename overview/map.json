@@ -1,262 +1,519 @@
 {
   "map": {
-    "summary": "Separate subsystem maps with an overview of their dependency hints.",
+    "summary": "The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.",
     "diagrams": [
       {
-        "title": "answers: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "answers: Architecture",
+        "description": "Application-owned protocols define the boundary; the opt-in Cohere adapter and the deterministic fake both implement GenerationProvider. The configured factory gates live generation on credentials, but caller wiring is not evidenced. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "answers",
-            "label": "answers",
+            "id": "factory",
+            "label": "Configured factory",
             "finding_ids": []
           },
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "cohere",
+            "label": "Cohere adapter",
             "finding_ids": []
           },
           {
-            "id": "retrieval",
-            "label": "retrieval",
+            "id": "fake",
+            "label": "Fake provider",
+            "finding_ids": []
+          },
+          {
+            "id": "contracts",
+            "label": "Generation contract",
+            "finding_ids": []
+          },
+          {
+            "id": "errors",
+            "label": "ProviderError",
+            "finding_ids": []
+          },
+          {
+            "id": "usage",
+            "label": "Usage and cost",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "answers",
-            "to": "foundation",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "factory",
+            "to": "cohere",
+            "label": "Constructs live provider",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "answers",
-            "to": "retrieval",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "cohere",
+            "to": "contracts",
+            "label": "Returns result",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "fake",
+            "to": "contracts",
+            "label": "Returns result",
+            "finding_ids": [],
+            "uncertain": true
+          },
+          {
+            "from": "cohere",
+            "to": "errors",
+            "label": "Raises mapped codes",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "cohere",
+            "to": "usage",
+            "label": "Billed usage",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "contracts",
+            "to": "usage",
+            "label": "Carries usage",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "factory",
+            "to": "fake",
+            "label": "Adapter selection",
+            "finding_ids": [],
+            "uncertain": true
           }
         ]
       },
       {
-        "title": "evaluation: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "evaluation: Architecture",
+        "description": "Dataset loading, corpus preparation, search dispatch, scoring/reporting, and the HTTP surface are separate boundaries; the API and runner share one search boundary, while corpus state faults map to distinct errors. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "evaluation",
-            "label": "evaluation",
+            "id": "datasets",
+            "label": "Dataset loader",
             "finding_ids": []
           },
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "corpus",
+            "label": "Corpus preparation",
             "finding_ids": []
           },
           {
-            "id": "ingestion",
-            "label": "ingestion",
+            "id": "search",
+            "label": "EvaluationSearch",
             "finding_ids": []
           },
           {
-            "id": "retrieval",
-            "label": "retrieval",
+            "id": "runner",
+            "label": "Runner and reports",
+            "finding_ids": []
+          },
+          {
+            "id": "api",
+            "label": "Debug search API",
+            "finding_ids": []
+          },
+          {
+            "id": "models",
+            "label": "Evaluation ORM",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "evaluation",
-            "to": "foundation",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "datasets",
+            "to": "corpus",
+            "label": "Validated records",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "evaluation",
-            "to": "ingestion",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "corpus",
+            "to": "search",
+            "label": "Prepared scope",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "evaluation",
-            "to": "retrieval",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "runner",
+            "to": "search",
+            "label": "Per query/mode",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "runner",
+            "to": "datasets",
+            "label": "Loads dataset",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "api",
+            "to": "corpus",
+            "label": "Verify prepared",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "api",
+            "to": "search",
+            "label": "Debug search",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "corpus",
+            "to": "models",
+            "label": "Ingestion job rows",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "corpus",
+            "to": "datasets",
+            "label": "Corpus hash scope",
+            "finding_ids": [],
+            "uncertain": false
           }
         ]
       },
       {
-        "title": "foundation: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "foundation: Architecture",
+        "description": "The FastAPI app reads shared Settings and mounts health and evaluation routes; the same Settings feeds schema management and dependency probes. Makefile, Compose, and CI form the orchestration boundary around app, schema, and tests. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "app",
+            "label": "FastAPI app",
             "finding_ids": []
           },
           {
-            "id": "answers",
-            "label": "answers",
+            "id": "config",
+            "label": "Settings",
             "finding_ids": []
           },
           {
-            "id": "ingestion",
-            "label": "ingestion",
+            "id": "db",
+            "label": "SQLAlchemy Base",
             "finding_ids": []
           },
           {
-            "id": "retrieval",
-            "label": "retrieval",
+            "id": "docs",
+            "label": "DocumentService",
+            "finding_ids": []
+          },
+          {
+            "id": "orch",
+            "label": "Makefile and CI",
+            "finding_ids": []
+          },
+          {
+            "id": "mig",
+            "label": "Alembic migrations",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "foundation",
-            "to": "answers",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "app",
+            "to": "config",
+            "label": "reads settings",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "foundation",
-            "to": "ingestion",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "mig",
+            "to": "config",
+            "label": "same db URL",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "foundation",
-            "to": "retrieval",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "mig",
+            "to": "db",
+            "label": "target metadata",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "docs",
+            "to": "db",
+            "label": "async sessions",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "orch",
+            "to": "mig",
+            "label": "upgrade and seed",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "orch",
+            "to": "app",
+            "label": "uvicorn dev run",
+            "finding_ids": [],
+            "uncertain": true
           }
         ]
       },
       {
-        "title": "frontend: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "frontend: Architecture",
+        "description": "The container runs the Next.js App Router dev server. Layout renders a static index page. Toolchain config types, lints, and tests the sources but is not a runtime entry point; backend linkage is unevidenced. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "frontend",
-            "label": "frontend",
+            "id": "container",
+            "label": "Frontend container",
             "finding_ids": []
           },
           {
-            "id": "answers",
-            "label": "answers",
+            "id": "nextapp",
+            "label": "Next.js App Router",
             "finding_ids": []
           },
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "layout",
+            "label": "Root layout",
             "finding_ids": []
           },
           {
-            "id": "retrieval",
-            "label": "retrieval",
+            "id": "home",
+            "label": "Static index page",
+            "finding_ids": []
+          },
+          {
+            "id": "toolchain",
+            "label": "Lint type test config",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "frontend",
-            "to": "answers",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "container",
+            "to": "nextapp",
+            "label": "Runs dev server",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "frontend",
-            "to": "foundation",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "nextapp",
+            "to": "layout",
+            "label": "Renders root",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "frontend",
-            "to": "retrieval",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "layout",
+            "to": "home",
+            "label": "Renders children",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "toolchain",
+            "to": "nextapp",
+            "label": "Types and lints",
+            "finding_ids": [],
+            "uncertain": false
           }
         ]
       },
       {
-        "title": "ingestion: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "ingestion: Architecture",
+        "description": "The chunking package groups parsed blocks per heading section, packs them under the token budget, enriches embedding text, and emits Chunk contracts whose identities are derived from config and document digests. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "ingestion",
-            "label": "ingestion",
+            "id": "chunking_pkg",
+            "label": "Chunking package",
             "finding_ids": []
           },
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "chunker",
+            "label": "Chunker",
+            "finding_ids": []
+          },
+          {
+            "id": "embed_builder",
+            "label": "Embedding text builder",
+            "finding_ids": []
+          },
+          {
+            "id": "contracts",
+            "label": "Chunk contract",
+            "finding_ids": []
+          },
+          {
+            "id": "config",
+            "label": "Chunking config",
+            "finding_ids": []
+          },
+          {
+            "id": "identity",
+            "label": "Identity digests",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "ingestion",
-            "to": "foundation",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "chunking_pkg",
+            "to": "chunker",
+            "label": "Public entry point",
+            "finding_ids": [],
+            "uncertain": true
+          },
+          {
+            "from": "chunker",
+            "to": "embed_builder",
+            "label": "Heading path + body",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "embed_builder",
+            "to": "chunker",
+            "label": "Embedding text",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "chunker",
+            "label": "Token limits",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "chunker",
+            "to": "contracts",
+            "label": "Emits Chunks",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "identity",
+            "to": "contracts",
+            "label": "Chunk identity",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "identity",
+            "label": "Config version",
+            "finding_ids": [],
+            "uncertain": false
           }
         ]
       },
       {
-        "title": "retrieval: connections",
-        "description": "Dependency hints are configured or inferred from resolvable imports. See subsystem maps for source-backed behavior.",
+        "title": "retrieval: Architecture",
+        "description": "Settings derive a dense config and connection details; the retriever injects an embedding provider, queries the OpenSearch read alias with tenant-scoped filters, and emits shared results plus a separate trace. Open this subsystem map for source evidence.",
         "nodes": [
           {
-            "id": "retrieval",
-            "label": "retrieval",
+            "id": "settings",
+            "label": "Settings",
             "finding_ids": []
           },
           {
-            "id": "foundation",
-            "label": "foundation",
+            "id": "config",
+            "label": "DenseRetrievalConfig",
             "finding_ids": []
           },
           {
-            "id": "ingestion",
-            "label": "ingestion",
+            "id": "retriever",
+            "label": "Dense retriever",
+            "finding_ids": []
+          },
+          {
+            "id": "embed",
+            "label": "Embedding provider",
+            "finding_ids": []
+          },
+          {
+            "id": "opensearch",
+            "label": "OpenSearch alias",
+            "finding_ids": []
+          },
+          {
+            "id": "results",
+            "label": "Retrieval results",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "retrieval",
-            "to": "foundation",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "settings",
+            "to": "config",
+            "label": "Derives fields",
+            "finding_ids": [],
+            "uncertain": false
           },
           {
-            "from": "retrieval",
-            "to": "ingestion",
-            "label": "Uses",
-            "uncertain": true,
-            "finding_ids": []
+            "from": "settings",
+            "to": "retriever",
+            "label": "URL and alias",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "config",
+            "to": "retriever",
+            "label": "Limits and model",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "embed",
+            "to": "retriever",
+            "label": "Injected provider",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "retriever",
+            "to": "embed",
+            "label": "Query embedding",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "retriever",
+            "to": "opensearch",
+            "label": "k-NN search",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "opensearch",
+            "to": "results",
+            "label": "Hit mapping",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "retriever",
+            "to": "results",
+            "label": "Response plus trace",
+            "finding_ids": [],
+            "uncertain": false
           }
         ]
       }
     ],
     "unknowns": [
-      "Import inference is incomplete; configure aliases and cross-service dependencies explicitly."
+      "Subsystem boundaries and configured or import-inferred dependencies are recorded in manifest.json; they do not establish runtime calls."
     ]
   },
   "findings": {},
   "sources": {},
   "metadata": {
-    "revision": "56291a0b9cc466341d5d7a4b71aed8b2c5f412bb",
-    "generated_at": "2026-10-17T22:59:54.019420+00:00"
+    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
+    "generated_at": "2026-10-18T18:36:28.266995+00:00"
   }
 }

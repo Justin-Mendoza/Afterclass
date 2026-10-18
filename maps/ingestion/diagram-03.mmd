@@ -4,8 +4,10 @@ flowchart TD
   n1["Token-limit<br/>check"]
   n2["Largest-prefix<br/>split"]
   n3["Overlap carry"]
+  n4["Chunk emission"]
   n0 -->|"Token count"| n1
-  n1 -->|"Does not fit"| n2
-  n1 -->|"Emit then carry"| n3
+  n1 -->|"Block does not<br/>fit"| n2
   n2 -->|"Remainder<br/>reseeds"| n0
-  n3 -->|"Overlap prepends"| n0
+  n1 -->|"Fits within<br/>limit"| n4
+  n4 -->|"Pending remains"| n3
+  n3 -->|"Overlap seeds"| n0

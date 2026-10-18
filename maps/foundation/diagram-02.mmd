@@ -1,10 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Liveness route"]
-  n1["Readiness route"]
-  n2["dependency_status"]
-  n3["Dependency<br/>probes"]
-  n1 -->|"awaits probes"| n2
-  n2 -->|"gathers"| n3
-  n3 -->|"boolean results"| n2
-  n2 -->|"503 if unready"| n1
+  n0["Identity tables"]
+  n1["Content tables"]
+  n2["Ingestion job<br/>state"]
+  n3["Retrieval<br/>configs and<br/>traces"]
+  n4["Evaluation and<br/>audit"]
+  n5["Trigger<br/>functions"]
+  n0 -->|"scoped grants"| n1
+  n1 -->|"scoped jobs"| n2
+  n1 -->|"scoped refs"| n3
+  n3 -->|"run references"| n4
+  n5 -->|"append-only rows"| n3
+  n5 -->|"append-only rows"| n4

@@ -1,14 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Identity tables"]
-  n1["Content tables"]
-  n2["Retrieval tables"]
-  n3["Evaluation and<br/>audit"]
-  n4["Ingestion job<br/>state"]
-  n5["Trigger<br/>functions"]
-  n0 -->|"revises"| n1
-  n1 -->|"revises"| n2
-  n2 -->|"revises"| n3
-  n3 -->|"revises"| n4
-  n1 -->|"updated_at reuse"| n5
-  n1 -->|"tenant-scoped<br/>FKs"| n3
+  n0["DocumentService"]
+  n1["Dedupe lookup"]
+  n2["FileStorage"]
+  n3["Document status"]
+  n4["Ingestion jobs"]
+  n0 -->|"content hash"| n1
+  n0 -->|"atomic<br/>save/delete"| n2
+  n0 -->|"status<br/>transitions"| n3
+  n3 -.->|"Inferred: per-<br/>recipe job"| n4

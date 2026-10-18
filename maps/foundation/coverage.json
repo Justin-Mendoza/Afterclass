@@ -7,13 +7,13 @@
   "omissions": [],
   "excluded_files": 184,
   "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
-  "analyzed_files": 25,
-  "api_calls": 5,
+  "analyzed_files": 35,
+  "api_calls": 7,
   "usage": [
     {
-      "prompt_tokens": 9518,
-      "total_tokens": 10600,
-      "completion_tokens": 1082,
+      "prompt_tokens": 9975,
+      "total_tokens": 11193,
+      "completion_tokens": 1218,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -21,14 +21,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0023654635200000005,
+      "cost": 0.00252894852,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 8805,
-      "total_tokens": 10095,
-      "completion_tokens": 1290,
+      "prompt_tokens": 9262,
+      "total_tokens": 10461,
+      "completion_tokens": 1199,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -36,14 +36,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00234864252,
+      "cost": 0.00238341852,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 9782,
-      "total_tokens": 10893,
-      "completion_tokens": 1111,
+      "prompt_tokens": 10239,
+      "total_tokens": 11515,
+      "completion_tokens": 1276,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -51,14 +51,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00243180252,
+      "cost": 0.00261173052,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 8695,
-      "total_tokens": 9887,
-      "completion_tokens": 1192,
+      "prompt_tokens": 9152,
+      "total_tokens": 10262,
+      "completion_tokens": 1110,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -66,14 +66,44 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00227228652,
+      "cost": 0.0023121655200000002,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 7792,
-      "total_tokens": 10081,
-      "completion_tokens": 2289,
+      "prompt_tokens": 9937,
+      "total_tokens": 11076,
+      "completion_tokens": 1139,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00247697352,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 9201,
+      "total_tokens": 10328,
+      "completion_tokens": 1127,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0023310655200000003,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 10803,
+      "total_tokens": 13329,
+      "completion_tokens": 2526,
       "prompt_tokens_details": {
         "cached_tokens": 512,
         "cache_write_tokens": null
@@ -81,7 +111,7 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00267668604,
+      "cost": 0.0033801440400000006,
       "cache_discount": 4.829184e-05,
       "cached_tokens": 512
     }
@@ -110,13 +140,15 @@
       "notes*",
       "*/notes*",
       "*/fixtures/*",
+      "backend/src/hybrid_rag_search/providers/__init__.py",
+      "backend/src/hybrid_rag_search/providers/fake.py",
       "frontend/src/app/styles.css"
     ],
     "max_files": 160,
     "max_file_chars": 18000,
     "max_total_chars": 180000,
     "batch_chars": 24000,
-    "max_calls": 5,
+    "max_calls": 7,
     "max_output_tokens": 6000,
     "max_diagrams": 6,
     "request_timeout_seconds": 120,
@@ -171,7 +203,10 @@
           "backend/src/hybrid_rag_search/opensearch_index.py",
           "backend/src/hybrid_rag_search/tokenization.py",
           "backend/src/hybrid_rag_search/tokenizer_setup.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/embeddings.py",
+          "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/tests/test_ingestion*.py",
           "backend/tests/test_worker*.py",
           "backend/tests/test_*parser*.py",
@@ -191,7 +226,12 @@
         "include": [
           "backend/src/hybrid_rag_search/*retrieval*.py",
           "backend/src/hybrid_rag_search/search.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/embeddings.py",
+          "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
+          "backend/src/hybrid_rag_search/providers/reranking.py",
+          "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/src/hybrid_rag_search/opensearch_index.py",
           "backend/tests/test_*retrieval*.py",
           "backend/tests/test_authorized_search.py",
@@ -208,10 +248,11 @@
       "answers": {
         "include": [
           "backend/src/hybrid_rag_search/answer*.py",
-          "backend/src/hybrid_rag_search/providers/*",
+          "backend/src/hybrid_rag_search/providers/generation.py",
+          "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+          "backend/src/hybrid_rag_search/providers/errors.py",
+          "backend/src/hybrid_rag_search/providers/usage.py",
           "backend/src/hybrid_rag_search/models/answers.py",
-          "backend/src/hybrid_rag_search/tokenization.py",
-          "backend/src/hybrid_rag_search/chunking/contracts.py",
           "backend/tests/test_answer*.py",
           "backend/tests/test_generation.py",
           "backend/tests/test_cohere_generation.py"
@@ -250,16 +291,6 @@
     "full_refresh_after_updates": 20
   },
   "not_analyzed_due_to_call_budget": [
-    "backend/src/hybrid_rag_search/models/evaluation.py",
-    "backend/src/hybrid_rag_search/models/identity.py",
-    "backend/src/hybrid_rag_search/models/retrieval.py",
-    "backend/src/hybrid_rag_search/seed.py",
-    "backend/src/hybrid_rag_search/storage.py",
-    "backend/tests/test_database.py",
-    "backend/tests/test_dependency_health.py",
-    "backend/tests/test_documents.py",
-    "backend/tests/test_documents_integration.py",
-    "backend/tests/test_health.py",
     "backend/tests/test_schema_integration.py",
     "backend/tests/test_seed.py",
     "backend/tests/test_storage.py",

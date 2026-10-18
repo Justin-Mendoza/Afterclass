@@ -1,13 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Makefile targets"]
-  n1["CI backend job"]
-  n2["PostgreSQL"]
-  n3["OpenSearch"]
-  n4["Redis"]
-  n5["Test suites"]
-  n0 -->|"seed then run"| n5
-  n1 -->|"ruff, pytest"| n5
-  n5 -->|"migrated DB"| n2
-  n5 -->|"retrieval tests"| n3
-  n0 -.->|"Inferred:<br/>Dramatiq broker"| n4
+  n0["Settings"]
+  n1["Cohere providers"]
+  n2["Postgres and<br/>Redis"]
+  n3["Dramatiq worker"]
+  n4["Backend image"]
+  n0 -->|"models and<br/>timeouts"| n1
+  n0 -->|"URLs and aliases"| n2
+  n4 -.->|"Inferred: no<br/>worker started"| n3
+  n3 -.->|"Inferred: broker<br/>and lease"| n2

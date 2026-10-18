@@ -8,8 +8,9 @@ flowchart TD
   n5["Evaluation ORM"]
   n0 -->|"Validated<br/>records"| n1
   n1 -->|"Prepared scope"| n2
-  n3 -->|"Per query mode"| n2
+  n3 -->|"Per query/mode"| n2
   n3 -->|"Loads dataset"| n0
   n4 -->|"Verify prepared"| n1
   n4 -->|"Debug search"| n2
-  n1 -->|"Ingestion rows"| n5
+  n1 -->|"Ingestion job<br/>rows"| n5
+  n1 -->|"Corpus hash<br/>scope"| n0
