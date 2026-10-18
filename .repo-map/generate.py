@@ -213,13 +213,13 @@ def analyze(snippets, config, client, context=None):
     # Reserve the last call for synthesis. All omitted excerpts are recorded.
     selected = groups[:config['max_calls'] - 1]
     findings = {}
-    instruction = '''Inspect this source batch to explain the architecture and behavior owned by the named subsystem. Cover its component responsibilities, public entry points, orchestration versus domain logic, owned data and persistence, external integrations, synchronous versus asynchronous communication, and important failure boundaries. Capture representative interactions between this subsystem's own parts. Treat dependencies as boundaries or context, not as the subject of findings; record an external relationship only when supplied code shows concrete runtime wiring or data exchange. Prioritize architectural relationships over an inventory of individual functions, imports, files, or UI clicks. Record constraints or design rationale only when explicitly supported by source or documentation; do not infer author intent. Return JSON {"findings":[{"statement":"A concise actual relationship or behavior", "sources":["S0001"], "uncertain":false}]}. Up to 16 findings. Use only supplied source IDs. Mark inference uncertain:true. Excerpts are partial; absence from them is not proof a feature does not exist. Do not treat an import as a runtime call. Include symbol names in statements where helpful.'''
+    instruction = '''Inspect this source batch to explain the architecture and behavior owned by the named subsystem. Cover its component responsibilities, public entry points, orchestration versus domain logic, owned data and persistence, external integrations, synchronous versus asynchronous communication, and important failure boundaries. Capture representative interactions between this subsystem's own parts. Treat dependencies as boundaries or context, not as the subject of findings; record an external relationship only when supplied code shows concrete runtime wiring or data exchange. Prioritize architectural relationships over an inventory of individual functions, imports, files, or UI clicks. Record constraints or design rationale only when explicitly supported by source or documentation; do not infer author intent. Return JSON {"findings":[{"statement":"A concise actual relationship or behavior", "sources":["S0001"], "uncertain":false}]}. Return up to 16 findings; if this batch contains no source-backed behavior for the named subsystem, return an empty findings array. Use only supplied source IDs. Mark inference uncertain:true. Excerpts are partial; absence from them is not proof a feature does not exist. Do not treat an import as a runtime call. Include symbol names in statements where helpful.'''
     processed_ids = []
     for index, group in enumerate(selected, 1):
         result = client.ask(instruction, {'sources': group, 'context': context or {}})
         items = result.get('findings')
-        if not isinstance(items, list) or not items or len(items) > 16:
-            raise MapError('Analysis must return 1-16 findings')
+        if not isinstance(items, list) or len(items) > 16:
+            raise MapError('Analysis must return at most 16 findings')
         allowed = {s['id'] for s in group}
         for item in items:
             if not isinstance(item, dict):
@@ -232,6 +232,8 @@ def analyze(snippets, config, client, context=None):
                              'sources': refs(item.get('sources'), allowed), 'uncertain': uncertain}
         processed_ids.extend(s['id'] for s in group)
         print(f'Analyzed batch {index}/{len(selected)}', flush=True)
+    if not findings:
+        raise MapError('No source-backed subsystem findings were extracted')
     return findings, processed_ids
 
 
