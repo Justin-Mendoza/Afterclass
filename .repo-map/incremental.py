@@ -270,34 +270,37 @@ def build_map(repo, target, previous, mid, spec, config, client, revision, chang
             'summary': result['summary'], 'api_calls_last_update': calls}
 
 
-def overview(map_dirs):
-    """Reuse each subsystem's analyzed architecture view; dependencies stay metadata."""
+def overview(specs, entries, source_state, staged_maps):
+    """Compose the root overview from subsystem architecture diagrams already analyzed by the model."""
     views = []
-    for mid, directory in sorted(map_dirs.items()):
-        path = directory / 'map.json'
+    for mid in sorted(entries):
+        staged_map = staged_maps / mid / 'map.json'
+        saved_map = source_state / 'maps' / mid / 'map.json'
+        path = staged_map if staged_map.is_file() else saved_map
         if not path.is_file():
-            raise base.MapError(f'Missing analyzed map for overview subsystem {mid}')
-        data = json.loads(path.read_text())
-        diagrams = data.get('map', {}).get('diagrams', [])
+            raise base.MapError(f'Missing generated subsystem map for overview: {mid}')
+        saved = json.loads(path.read_text())
+        diagrams = saved.get('map', {}).get('diagrams', [])
         if not diagrams:
-            raise base.MapError(f'No analyzed architecture diagram for overview subsystem {mid}')
-        source_diagram = diagrams[0]
-        diagram = {
-            'title': f'{mid}: {source_diagram["title"]}'[:100],
-            'description': source_diagram['description'],
-            'nodes': [{k: node[k] for k in ('id', 'label')} | {'finding_ids': []}
-                      for node in source_diagram['nodes']],
-            'edges': [{k: edge[k] for k in ('from', 'to', 'label', 'uncertain')} | {'finding_ids': []}
-                      for edge in source_diagram['edges']],
-        }
+            raise base.MapError(f'Subsystem map has no architecture diagram: {mid}')
+        diagram = copy.deepcopy(diagrams[0])
+        diagram['title'] = f'{mid}: {diagram["title"]}'[:100]
+        diagram['description'] = (diagram['description'] + ' Open this subsystem map for source evidence.')[:500]
+        # Evidence IDs are local to each subsystem and are shown in that subsystem's linked page.
+        for node in diagram['nodes']:
+            node['finding_ids'] = []
+        for edge in diagram['edges']:
+            edge['finding_ids'] = []
         views.append(diagram)
-    return {'summary': 'An overview assembled from each source-analyzed subsystem architecture diagram.',
-            'diagrams': views,
-            'unknowns': ['Subsystem relationships are shown as dependency metadata, not asserted runtime calls.']}
+    return {
+        'summary': 'The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.',
+        'diagrams': views,
+        'unknowns': ['Subsystem boundaries and configured or import-inferred dependencies are recorded in manifest.json; they do not establish runtime calls.'],
+    }
 
 
-def write_index(state, entries, map_dirs, revision, rerender=False):
-    result = overview(map_dirs)
+def write_index(state, specs, entries, revision, source_state, staged_maps, rerender=False):
+    result = overview(specs, entries, source_state, staged_maps)
     directory = state / 'overview'
     previous = json.loads((directory / 'map.json').read_text()) if (directory / 'map.json').is_file() else None
     if rerender or previous is None or previous['map'] != result or not map_outputs_exist(directory):
@@ -308,7 +311,7 @@ def write_index(state, entries, map_dirs, revision, rerender=False):
         directory.mkdir(parents=True, exist_ok=True)
         try:
             meta = {'revision': revision, 'generated_at': base.dt.datetime.now(base.dt.timezone.utc).isoformat()}
-            coverage = {'scope': 'The first source-analyzed architecture diagram from each subsystem map; dependency hints remain metadata.', 'analyzed_files': 0, 'eligible_files': 0, 'excluded_files': 0, 'api_calls': 0}
+            coverage = {'scope': 'Source-backed architecture views composed from each subsystem map. See linked subsystem pages for evidence.', 'analyzed_files': 0, 'eligible_files': 0, 'excluded_files': 0, 'api_calls': 0}
             base.write_artifacts(result, {}, {}, coverage, meta, directory, reuse_dir=None if rerender else backup)
         finally:
             if backup:
@@ -324,7 +327,6 @@ def write_index(state, entries, map_dirs, revision, rerender=False):
         summary = entry['summary'].replace('|', '/').replace('\n', ' ')
         lines.append(f'| [{mid}](maps/{mid}/README.md) | {summary} | [PDF](maps/{mid}/repository-map.pdf) · [JSON](maps/{mid}/map.json) | `{entry["source_revision"][:12]}` |')
     lines += ['', 'JSON is the source of truth; Mermaid, PNGs, and PDFs are generated views.', '',
-              'Dependency hints are kept in manifest.json for incremental refresh planning; they are not runtime-call claims and are not used as the overview diagrams.', '',
               'Unchanged subsystem views are retained. Source existence checks do not prove model interpretation. See manifest.json and update.json for dependencies, coverage and updates.']
     (state / 'README.md').write_text('\n'.join(lines) + '\n')
 
@@ -364,15 +366,17 @@ def update(repo, state, config, force=False, plan_only=False, client=None, seed_
                 seed = None
                 budget = min(config['max_calls'], config['max_total_calls'] - client.calls - 2 * (len(affected) - index - 1))
             context = {'subsystem': mid, 'changed_files': [p for p in current['changed_files'] if p in spec['files']],
-                       'dependencies': spec['depends_on'],
+                       'dependencies': spec['depends_on'], 'previous_summary': entries.get(mid, {}).get('summary'),
                        'neighbor_summaries': {d: entries[d]['summary'] for d in spec['depends_on'] if d in entries}}
             previous = state / 'maps' / mid
-            if mid in entries:
-                context['previous_summary'] = entries[mid]['summary']
             if (previous / 'map.json').is_file():
                 context['previous_map'] = json.loads((previous / 'map.json').read_text())['map']
-            entries[mid] = build_map(repo, staged / mid, previous, mid, spec, config | {'max_calls': budget}, client,
-                                     current['revision'], current['changed_files'], seed, context, rerender=current['full_refresh'])
+            print(f'Updating subsystem {mid} ({index + 1}/{len(affected)}); API call budget: {budget}', flush=True)
+            try:
+                entries[mid] = build_map(repo, staged / mid, previous, mid, spec, config | {'max_calls': budget}, client,
+                                         current['revision'], current['changed_files'], seed, context, rerender=current['full_refresh'])
+            except base.MapError as error:
+                raise base.MapError(f'subsystem {mid}: {error}') from None
         # Stage index/overview as well, so PDF/layout failures cannot advance the manifest.
         staged_state = staged / 'state'
         staged_state.mkdir()
@@ -380,8 +384,8 @@ def update(repo, state, config, force=False, plan_only=False, client=None, seed_
             shutil.copytree(state / 'overview', staged_state / 'overview')
         for mid in current['removed']:
             entries.pop(mid, None)
-        map_dirs = {mid: (staged / mid if mid in affected else state / 'maps' / mid) for mid in entries}
-        write_index(staged_state, entries, map_dirs, current['revision'], rerender=current['full_refresh'])
+        write_index(staged_state, current['maps'], entries, current['revision'], state, staged,
+                    rerender=current['full_refresh'])
         manifest = {'generator': GENERATOR, 'schema_version': SCHEMA, 'source_revision': current['revision'],
                     'fingerprint': current['fingerprint'], 'files': current['files'], 'maps': entries,
                     'updates_since_refresh': 0 if current['full_refresh'] else old['updates_since_refresh'] + bool(affected),

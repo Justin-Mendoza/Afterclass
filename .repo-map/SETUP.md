@@ -2,39 +2,6 @@
 
 JSON summaries are stored on a dedicated `repo-map` branch. Each subsystem has its own GitHub-readable Mermaid page, PNG diagrams and PDF. Default-branch merges update the affected subsystems; generated output does not go onto the application branch.
 
-## Hybrid RAG Search configuration
-
-The first activated workflow run bootstraps all six maps through Kyma; no local seed is prepared. Subsequent default-branch pushes update affected maps and their known dependents.
-
-| Map | Owned behavior | Explicit dependencies |
-| --- | --- | --- |
-| `foundation` | API wiring, authorization, models, migrations, document management, storage and operations | ingestion, retrieval, answers |
-| `ingestion` | Workers, jobs, parsing, chunking, embedding and indexing | foundation |
-| `retrieval` | Lexical/dense retrieval, fusion, reranking and filters | foundation, ingestion |
-| `answers` | Generation, citations, streaming and saved history | foundation, retrieval |
-| `evaluation` | Dataset loading, metrics, evaluation runs and dataset schemas | foundation, ingestion, retrieval |
-| `frontend` | Next.js interface and API interactions | foundation, retrieval, answers |
-
-See `config.json` for exact file ownership. Shared provider adapters and contracts belong to multiple maps. Explicit dependencies describe consumed behavior, including API wiring and cross-service calls that basic import detection misses. The foundation map contains both shared infrastructure and API composition, so it has reciprocal dependencies with application maps. This is deliberate and conservative: many backend changes can refresh all six maps. A frontend-only change refreshes only the frontend map. Smaller refresh scopes would require separating API composition from shared infrastructure in a later map-boundary revision.
-
-The source allowlist covers backend application code, migrations, tests, frontend code, dataset schemas and operational configuration. Corpus/query/judgment records, evaluation output, parser record fixtures, personal notes, ticket history, environment files, lockfiles, generated content and styling are excluded. The empty provider package initializer and deterministic fake-provider bundle are also excluded because they do not describe production subsystem behavior. Only `datasets/schemas/*.schema.json` is exempted from the template's blanket dataset-directory block; other dataset paths remain blocked. Tracked files are subject to the same policy as other source; `.gitignore` alone does not protect them.
-
-Analysis remains bounded, not exhaustive. The existing limits are retained: 24 total API calls per update, six requested diagrams per subsystem (automatic splitting can produce more pages), and a full refresh after 20 analysis updates. Actual charges depend on provider usage; the call limit is not a dollar cap. No application dependency or runtime service is added.
-
-To inspect map ownership after committing the setup and other source changes:
-
-```sh
-python3 .repo-map/incremental.py --repo . --state /tmp/hybrid-rag-map-state --plan
-```
-
-Use an empty state directory outside the repository. Expect all six maps on the first plan, no unassigned eligible source, and no API calls. The planner requires a clean tracked working tree; do not stash unrelated work merely to run it. During installation, validation can use a separate temporary Git snapshot instead. Plans report eligible files without reproducing source excerpts.
-
-## Architectural explanations
-
-Each subsystem map explains its purpose, responsibilities, and relationship to the wider application. Its summary describes the main architectural interaction. Views show components and boundaries at a consistent level, with labels for the contracts or data exchanged. They may cover persistence, external integrations, asynchronous work, or a representative runtime flow where code evidence supports it. The model avoids generic “Uses” or “Calls” edges, function traces, and file inventories. Rationale appears only where source evidence supports it.
-
-The overview continues to show configured dependency hints; inferred edges are explicitly labeled and should not be read as verified runtime calls. The new prompts do not change the saved JSON fields or finding-reference schema, so existing branch state remains readable. Since the generator contents are part of the state fingerprint, its next run requests a full refresh of existing maps and uses Kyma credits.
-
 ## Activate
 
 1. Under **Settings → Secrets and variables → Actions → New repository secret**, add `KYMA_API_KEY` with your Kyma key. Do not put the key in source code.
@@ -54,7 +21,7 @@ repo-map branch
 ├── README.md                 overview and subsystem links
 ├── manifest.json             file hashes, map ownership, dependencies, revisions
 ├── update.json               last update scope, API calls and usage
-├── overview/                 first analyzed architecture view per subsystem + PDF
+├── overview/                 subsystem architecture views + PDF
 └── maps/
     ├── api/                  example subsystem, chosen for your actual repo
     │   ├── map.json          summary, graph, evidence and metadata
@@ -82,7 +49,7 @@ Successful runs also upload `repo-map-<run number>` under **Actions → complete
 
 Replace these examples with real paths. IDs are lowercase letters/digits/hyphens (start with a letter, at most 48 characters). Use at most 12 maps and ensure the total call budget can cover them. Shared files can belong to multiple maps. Relevant files not assigned to any explicit map are listed in `manifest.json`; resolve those omissions during setup.
 
-`depends_on` means the map consumes another subsystem's interface or behavior. It is used for conservative incremental refresh planning and is kept as metadata; it is not rendered as an asserted runtime call. The overview reuses the first source-analyzed architecture diagram from each subsystem map. Resolvable relative JS imports and basic Python imports add dependency hints. Aliases, framework wiring, Go package paths, dynamic calls and cross-service contracts are not fully inferred; add dependencies explicitly. Globs use Python `fnmatch` against repo-relative paths (`*` also matches slashes). Global `include`/`exclude` apply before map scopes. Only tracked, eligible text is sent; `.gitignore` does not hide already tracked files.
+`depends_on` means the map consumes another subsystem's interface or behavior. Resolvable relative JS imports and basic Python imports add dependency hints. Aliases, framework wiring, Go package paths, dynamic calls and cross-service contracts are not fully inferred; add dependencies explicitly. Globs use Python `fnmatch` against repo-relative paths (`*` also matches slashes). Global `include`/`exclude` apply before map scopes. Only tracked, eligible text is sent; `.gitignore` does not hide already tracked files.
 
 ## What updates
 
@@ -98,11 +65,9 @@ The publisher writes only to `repo-map`; it does not update source branches, ope
 
 ## Readability and limits
 
-Use focused top-down views: 2-6 nodes, at most 8 edges, short wrapped labels, and 1-2 sentence explanations (40 words maximum). Subsystem maps explain their own purpose, responsibilities and behavior; dependency hints provide refresh context, not map content. Oversized model graphs are automatically split into small connected views after their source references are validated. Shared nodes repeat across views so no connection or evidence is discarded. The report records these splits; they need no extra API calls. The requested diagram count is a model target; splitting can create extra pages. Hard limits (64 raw nodes / 128 edges per graph and 64 views per map) still bound malformed or extreme output. Each PDF page shows one diagram. Rendering uses Graphviz at 144 dpi; Mermaid comes from the same graph. Node text is 22pt at layout time and must stay at least 12pt after fitting a PDF page; oversized layouts fail instead of silently shrinking. The fallback is not a general Mermaid ER/sequence renderer.
+Use focused top-down views: 2-6 nodes, at most 8 edges, short wrapped labels, and 1-2 sentence explanations (40 words maximum). Oversized model graphs are automatically split into small connected views after their source references are validated. Shared nodes repeat across views so no connection or evidence is discarded. The report records these splits; they need no extra API calls. The requested diagram count is a model target; splitting can create extra pages. Hard limits (64 raw nodes / 128 edges per graph and 64 views per map) still bound malformed or extreme output. Each PDF page shows one diagram. Rendering uses Graphviz at 144 dpi; Mermaid comes from the same graph. Node text is 22pt at layout time and must stay at least 12pt after fitting a PDF page; oversized layouts fail instead of silently shrinking. The fallback is not a general Mermaid ER/sequence renderer.
 
 Default per-map analysis: 160 files, 18,000 source characters per file, 180,000 total source characters, 24,000-character batch target, 12 API calls (including synthesis), 6,000 output tokens per call, and six diagrams. A shared limit of 24 calls covers the entire update. Calls are allocated so remaining affected maps retain at least an analysis and synthesis call. Increase budgets deliberately or group scopes more broadly if needed. Runtime timeout is 60 minutes. Provider and Actions billing apply; request limits are not an exact dollar cap.
-
-Missing `uncertain` fields in model findings or diagram edges default to `true`, so underspecified claims are shown as inferred. Explicit non-boolean values remain errors. This lets analysis continue while keeping unsupported certainty out of the diagrams.
 
 Coverage and source IDs prove that evidence locations were supplied, not that the model's interpretation is true. Excerpt truncation and call-budget omissions are recorded. Credential-like lines are redacted and common credential/build/dependency files excluded. Raw source snippets and raw model responses are not persisted as artifacts, but generated summaries can reveal architecture. Review who can read the repo and the chosen API provider's handling of submitted source.
 
@@ -122,8 +87,16 @@ For local full generation, use an existing Python 3.12+ environment with ReportL
 
 References: [Actions secrets](https://docs.github.com/en/actions/how-tos/write-workflows/choose-what-workflows-do/use-secrets), [workflow artifacts](https://docs.github.com/en/actions/concepts/workflows-and-actions/workflow-artifacts), [Kyma Chat Completions](https://docs.kymaapi.com/api-reference/chat-completions).
 
-## Update verification
+### Architectural explanations
 
-The graph-splitting update passed 28 offline tests against an isolated copy of the installed scripts, using mocked API responses and local Git remotes. Tests cover lossless splitting (including duplicate edges and isolated nodes), invalid evidence rejection, extra-page generation without extra model calls, allowed job-level contexts and runner-path export. `actionlint -shellcheck= .github/workflows/repo-map.yml` also passed.
+The overview PDF and Mermaid index bring together the first analyzed architecture view from each subsystem map. They show subsystem responsibilities and source-backed component relationships instead of generic import dependency sketches. Open each subsystem README for its finding citations. Generated maps emphasize component responsibilities, system boundaries, data ownership, and communication contracts. Each subsystem includes a concise architectural summary and short explanations beside its diagrams. Runtime flows illustrate the architecture where useful. Design rationale is included only when supported by inspected evidence. After updating the generator, the next run refreshes existing maps because generator changes invalidate the saved fingerprint.
 
-A synthetic Hybrid RAG graph rendered into four PDF pages and was rasterized and visually inspected. Local preview used temporary Graphviz WASM plus SVG-to-PNG conversion at 144 dpi; GitHub continues to use native Graphviz. Labels and arrows were readable and unclipped, and the PDF's 12pt minimum-node-text guard passed. No application dependencies were installed. Source-ownership checks retained all six maps and the four dataset schemas with no unassigned eligible files. These offline checks do not validate live Kyma access or future model interpretations.
+### Diagnosing failures
+
+The log names each subsystem before its analysis starts. Validation errors include the subsystem, stage, one-based diagram and node/edge positions, and the violated rule. For example: `subsystem retrieval: synthesis validation: diagrams[2]: node 4: duplicate node ID; first declared at node 1`. IDs may contain punctuation; each must be unique within its diagram. Length failures report actual and allowed sizes. Logs do not dump raw model responses or source excerpts. Saved state is published only after all affected maps succeed.
+
+Long node and edge labels are shortened automatically for display. Their full wording remains in the generated README layout notes and map JSON; endpoints and evidence are unchanged. No extra model call is needed for this formatting step.
+
+## Hybrid RAG Search scope
+
+The configured maps are foundation, ingestion, retrieval, answers, evaluation, and frontend. Existing ownership globs, provider defaults, budgets, and exclusions are preserved in config.json. Only structural datasets/schemas/*.schema.json files are exempt from the dataset directory exclusion; corpus and evaluation records remain blocked. Dependency hints drive conservative refresh planning and remain separate from architecture views.
