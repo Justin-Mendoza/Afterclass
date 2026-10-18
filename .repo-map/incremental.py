@@ -363,13 +363,14 @@ def update(repo, state, config, force=False, plan_only=False, client=None, seed_
             else:
                 seed = None
                 budget = min(config['max_calls'], config['max_total_calls'] - client.calls - 2 * (len(affected) - index - 1))
-            context = {'subsystem': mid, 'changed_files': [p for p in current['changed_files'] if p in spec['files']]}
+            context = {'subsystem': mid, 'changed_files': [p for p in current['changed_files'] if p in spec['files']],
+                       'dependencies': spec['depends_on'],
+                       'neighbor_summaries': {d: entries[d]['summary'] for d in spec['depends_on'] if d in entries}}
             previous = state / 'maps' / mid
-            if not current['full_refresh']:
-                if mid in entries:
-                    context['previous_summary'] = entries[mid]['summary']
-                if (previous / 'map.json').is_file():
-                    context['previous_map'] = json.loads((previous / 'map.json').read_text())['map']
+            if mid in entries:
+                context['previous_summary'] = entries[mid]['summary']
+            if (previous / 'map.json').is_file():
+                context['previous_map'] = json.loads((previous / 'map.json').read_text())['map']
             entries[mid] = build_map(repo, staged / mid, previous, mid, spec, config | {'max_calls': budget}, client,
                                      current['revision'], current['changed_files'], seed, context, rerender=current['full_refresh'])
         # Stage index/overview as well, so PDF/layout failures cannot advance the manifest.
