@@ -3,503 +3,380 @@
     "summary": "The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.",
     "diagrams": [
       {
-        "title": "answers: Architecture",
-        "description": "Application-owned protocols define the boundary; the opt-in Cohere adapter and the deterministic fake both implement GenerationProvider. The configured factory gates live generation on credentials, but caller wiring is not evidenced. Open this subsystem map for source evidence.",
+        "title": "answers: How a prompt becomes an answer",
+        "description": "A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.",
         "nodes": [
           {
-            "id": "factory",
-            "label": "Configured factory",
+            "id": "req",
+            "label": "Validated prompt",
             "finding_ids": []
           },
           {
-            "id": "cohere",
-            "label": "Cohere adapter",
+            "id": "provider",
+            "label": "Answer provider",
             "finding_ids": []
           },
           {
-            "id": "fake",
-            "label": "Fake provider",
+            "id": "svc",
+            "label": "Model service",
             "finding_ids": []
           },
           {
-            "id": "contracts",
-            "label": "Generation contract",
+            "id": "check",
+            "label": "Reply checked",
             "finding_ids": []
           },
           {
-            "id": "errors",
-            "label": "ProviderError",
-            "finding_ids": []
-          },
-          {
-            "id": "usage",
-            "label": "Usage and cost",
+            "id": "result",
+            "label": "Answer and usage",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "factory",
-            "to": "cohere",
-            "label": "Constructs live provider",
+            "from": "req",
+            "to": "provider",
+            "label": "Messages and limit",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "cohere",
-            "to": "contracts",
-            "label": "Returns result",
+            "from": "provider",
+            "to": "svc",
+            "label": "One chat request",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "fake",
-            "to": "contracts",
-            "label": "Returns result",
-            "finding_ids": [],
-            "uncertain": true
-          },
-          {
-            "from": "cohere",
-            "to": "errors",
-            "label": "Raises mapped codes",
+            "from": "svc",
+            "to": "check",
+            "label": "Raw reply text",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "cohere",
-            "to": "usage",
-            "label": "Billed usage",
+            "from": "check",
+            "to": "result",
+            "label": "Accepts answer",
             "finding_ids": [],
             "uncertain": false
-          },
-          {
-            "from": "contracts",
-            "to": "usage",
-            "label": "Carries usage",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "factory",
-            "to": "fake",
-            "label": "Adapter selection",
-            "finding_ids": [],
-            "uncertain": true
           }
         ]
       },
       {
-        "title": "evaluation: Architecture",
-        "description": "Dataset loading, corpus preparation, search dispatch, scoring/reporting, and the HTTP surface are separate boundaries; the API and runner share one search boundary, while corpus state faults map to distinct errors. Open this subsystem map for source evidence.",
+        "title": "evaluation: How a dataset becomes a scored report",
+        "description": "A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.",
         "nodes": [
           {
-            "id": "datasets",
-            "label": "Dataset loader",
+            "id": "bundle",
+            "label": "Verified dataset bundle",
             "finding_ids": []
           },
           {
-            "id": "corpus",
-            "label": "Corpus preparation",
+            "id": "prepare",
+            "label": "Prepare search index",
+            "finding_ids": []
+          },
+          {
+            "id": "verify",
+            "label": "Confirm index ready",
             "finding_ids": []
           },
           {
             "id": "search",
-            "label": "EvaluationSearch",
+            "label": "Try each search style",
             "finding_ids": []
           },
           {
-            "id": "runner",
-            "label": "Runner and reports",
+            "id": "score",
+            "label": "Score against labels",
             "finding_ids": []
           },
           {
-            "id": "api",
-            "label": "Debug search API",
-            "finding_ids": []
-          },
-          {
-            "id": "models",
-            "label": "Evaluation ORM",
+            "id": "report",
+            "label": "Reproducible report files",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "datasets",
-            "to": "corpus",
-            "label": "Validated records",
+            "from": "bundle",
+            "to": "prepare",
+            "label": "Corpus and questions",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "corpus",
+            "from": "prepare",
+            "to": "verify",
+            "label": "Check job receipts",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "verify",
             "to": "search",
-            "label": "Prepared scope",
+            "label": "Index confirmed",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "runner",
+            "from": "search",
+            "to": "score",
+            "label": "Ranked results",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "score",
+            "to": "report",
+            "label": "Metrics per question",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "bundle",
             "to": "search",
-            "label": "Per query/mode",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "runner",
-            "to": "datasets",
-            "label": "Loads dataset",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "api",
-            "to": "corpus",
-            "label": "Verify prepared",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "api",
-            "to": "search",
-            "label": "Debug search",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "corpus",
-            "to": "models",
-            "label": "Ingestion job rows",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "corpus",
-            "to": "datasets",
-            "label": "Corpus hash scope",
+            "label": "Questions and labels",
             "finding_ids": [],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "foundation: Architecture",
-        "description": "The FastAPI app reads shared Settings and mounts health and evaluation routes; the same Settings feeds schema management and dependency probes. Makefile, Compose, and CI form the orchestration boundary around app, schema, and tests. Open this subsystem map for source evidence.",
+        "title": "foundation: How an uploaded file becomes a stored document",
+        "description": "A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.",
         "nodes": [
           {
-            "id": "app",
-            "label": "FastAPI app",
+            "id": "upload",
+            "label": "File upload",
             "finding_ids": []
           },
           {
-            "id": "config",
-            "label": "Settings",
+            "id": "fp",
+            "label": "Fingerprint and duplicate check",
             "finding_ids": []
           },
           {
-            "id": "db",
-            "label": "SQLAlchemy Base",
+            "id": "save",
+            "label": "Save original file",
             "finding_ids": []
           },
           {
-            "id": "docs",
-            "label": "DocumentService",
+            "id": "record",
+            "label": "Document record",
             "finding_ids": []
           },
           {
-            "id": "orch",
-            "label": "Makefile and CI",
-            "finding_ids": []
-          },
-          {
-            "id": "mig",
-            "label": "Alembic migrations",
+            "id": "dupe",
+            "label": "Existing document returned",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "app",
-            "to": "config",
-            "label": "reads settings",
+            "from": "upload",
+            "to": "fp",
+            "label": "same file before?",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "mig",
-            "to": "config",
-            "label": "same db URL",
+            "from": "fp",
+            "to": "dupe",
+            "label": "already stored",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "mig",
-            "to": "db",
-            "label": "target metadata",
+            "from": "fp",
+            "to": "save",
+            "label": "new content",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "docs",
-            "to": "db",
-            "label": "async sessions",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "orch",
-            "to": "mig",
-            "label": "upgrade and seed",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "orch",
-            "to": "app",
-            "label": "uvicorn dev run",
-            "finding_ids": [],
-            "uncertain": true
-          }
-        ]
-      },
-      {
-        "title": "frontend: Architecture",
-        "description": "The container runs the Next.js App Router dev server. Layout renders a static index page. Toolchain config types, lints, and tests the sources but is not a runtime entry point; backend linkage is unevidenced. Open this subsystem map for source evidence.",
-        "nodes": [
-          {
-            "id": "container",
-            "label": "Frontend container",
-            "finding_ids": []
-          },
-          {
-            "id": "nextapp",
-            "label": "Next.js App Router",
-            "finding_ids": []
-          },
-          {
-            "id": "layout",
-            "label": "Root layout",
-            "finding_ids": []
-          },
-          {
-            "id": "home",
-            "label": "Static index page",
-            "finding_ids": []
-          },
-          {
-            "id": "toolchain",
-            "label": "Lint type test config",
-            "finding_ids": []
-          }
-        ],
-        "edges": [
-          {
-            "from": "container",
-            "to": "nextapp",
-            "label": "Runs dev server",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "nextapp",
-            "to": "layout",
-            "label": "Renders root",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "layout",
-            "to": "home",
-            "label": "Renders children",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "toolchain",
-            "to": "nextapp",
-            "label": "Types and lints",
+            "from": "save",
+            "to": "record",
+            "label": "bytes written",
             "finding_ids": [],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "ingestion: Architecture",
-        "description": "The chunking package groups parsed blocks per heading section, packs them under the token budget, enriches embedding text, and emits Chunk contracts whose identities are derived from config and document digests. Open this subsystem map for source evidence.",
+        "title": "frontend: How a visitor gets the landing page",
+        "description": "A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.",
         "nodes": [
           {
-            "id": "chunking_pkg",
-            "label": "Chunking package",
+            "id": "visitor",
+            "label": "Site visitor",
             "finding_ids": []
           },
           {
-            "id": "chunker",
-            "label": "Chunker",
+            "id": "server",
+            "label": "Web server",
             "finding_ids": []
           },
           {
-            "id": "embed_builder",
-            "label": "Embedding text builder",
+            "id": "shell",
+            "label": "Page shell and styling",
             "finding_ids": []
           },
           {
-            "id": "contracts",
-            "label": "Chunk contract",
-            "finding_ids": []
-          },
-          {
-            "id": "config",
-            "label": "Chunking config",
-            "finding_ids": []
-          },
-          {
-            "id": "identity",
-            "label": "Identity digests",
+            "id": "landing",
+            "label": "Landing page content",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "chunking_pkg",
-            "to": "chunker",
-            "label": "Public entry point",
-            "finding_ids": [],
-            "uncertain": true
-          },
-          {
-            "from": "chunker",
-            "to": "embed_builder",
-            "label": "Heading path + body",
+            "from": "visitor",
+            "to": "server",
+            "label": "Opens the site",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "embed_builder",
-            "to": "chunker",
-            "label": "Embedding text",
+            "from": "server",
+            "to": "shell",
+            "label": "Builds the page",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "config",
-            "to": "chunker",
-            "label": "Token limits",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "chunker",
-            "to": "contracts",
-            "label": "Emits Chunks",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "identity",
-            "to": "contracts",
-            "label": "Chunk identity",
-            "finding_ids": [],
-            "uncertain": false
-          },
-          {
-            "from": "config",
-            "to": "identity",
-            "label": "Config version",
+            "from": "shell",
+            "to": "landing",
+            "label": "Shows headings",
             "finding_ids": [],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "retrieval: Architecture",
-        "description": "Settings derive a dense config and connection details; the retriever injects an embedding provider, queries the OpenSearch read alias with tenant-scoped filters, and emits shared results plus a separate trace. Open this subsystem map for source evidence.",
+        "title": "ingestion: How a parsed document becomes searchable pieces",
+        "description": "A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.",
         "nodes": [
           {
-            "id": "settings",
-            "label": "Settings",
+            "id": "parsed",
+            "label": "Parsed document",
             "finding_ids": []
           },
           {
-            "id": "config",
-            "label": "DenseRetrievalConfig",
+            "id": "sections",
+            "label": "Split by heading",
             "finding_ids": []
           },
           {
-            "id": "retriever",
-            "label": "Dense retriever",
+            "id": "packing",
+            "label": "Pack within token budget",
             "finding_ids": []
           },
           {
-            "id": "embed",
-            "label": "Embedding provider",
+            "id": "enrich",
+            "label": "Rebuild heading text",
             "finding_ids": []
           },
           {
-            "id": "opensearch",
-            "label": "OpenSearch alias",
-            "finding_ids": []
-          },
-          {
-            "id": "results",
-            "label": "Retrieval results",
+            "id": "pieces",
+            "label": "Identified pieces",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "settings",
-            "to": "config",
-            "label": "Derives fields",
+            "from": "parsed",
+            "to": "sections",
+            "label": "Group blocks by heading",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "settings",
-            "to": "retriever",
-            "label": "URL and alias",
+            "from": "sections",
+            "to": "packing",
+            "label": "One section at a time",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "config",
-            "to": "retriever",
-            "label": "Limits and model",
+            "from": "packing",
+            "to": "enrich",
+            "label": "Text and heading path",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "embed",
-            "to": "retriever",
-            "label": "Injected provider",
+            "from": "enrich",
+            "to": "pieces",
+            "label": "Final text and spans",
+            "finding_ids": [],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "retrieval: How a search becomes matching passages",
+        "description": "A search phrase is cleaned, sent out to be turned into numbers, used to find the closest stored passages in the search index, and returned as passages with optional diagnostic detail.",
+        "nodes": [
+          {
+            "id": "query",
+            "label": "Search phrase",
+            "finding_ids": []
+          },
+          {
+            "id": "clean",
+            "label": "Clean up text",
+            "finding_ids": []
+          },
+          {
+            "id": "fingerprint",
+            "label": "Turn words into numbers",
+            "finding_ids": []
+          },
+          {
+            "id": "lookup",
+            "label": "Find closest passages",
+            "finding_ids": []
+          },
+          {
+            "id": "passages",
+            "label": "Matching passages",
+            "finding_ids": []
+          }
+        ],
+        "edges": [
+          {
+            "from": "query",
+            "to": "clean",
+            "label": "Text to tidy",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "retriever",
-            "to": "embed",
-            "label": "Query embedding",
+            "from": "clean",
+            "to": "fingerprint",
+            "label": "Cleaned text",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "retriever",
-            "to": "opensearch",
-            "label": "k-NN search",
+            "from": "fingerprint",
+            "to": "lookup",
+            "label": "Numeric fingerprint",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "opensearch",
-            "to": "results",
-            "label": "Hit mapping",
+            "from": "lookup",
+            "to": "passages",
+            "label": "Closest passages",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "retriever",
-            "to": "results",
-            "label": "Response plus trace",
+            "from": "lookup",
+            "to": "passages",
+            "label": "Diagnostic details",
             "finding_ids": [],
             "uncertain": false
           }
@@ -513,7 +390,7 @@
   "findings": {},
   "sources": {},
   "metadata": {
-    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
-    "generated_at": "2026-10-18T18:36:28.266995+00:00"
+    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
+    "generated_at": "2026-10-19T00:25:53.475115+00:00"
   }
 }

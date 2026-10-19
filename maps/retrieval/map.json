@@ -1,404 +1,291 @@
 {
   "map": {
-    "summary": "Dense-query retrieval for a multi-tenant hybrid RAG backend: a normalized query is embedded via an injected provider into a vector, then issued as an OpenSearch k-NN search against a read alias with tenant scoping applied at query level. Hits are renormalized into the shared RetrievalResult contract reused by lexical retrieval, with diagnostics kept in a separate trace. Configuration derives from Settings; the only local entry point is a debug CLI, with orchestration living elsewhere.",
+    "summary": "This area turns a person's search text into likely matching document passages. The text is cleaned, turned into a numeric fingerprint by an outside service, then used to ask a search index for the closest passages, scoped so one customer only sees their own material. It returns those passages plus separate diagnostic details, and is currently runnable only through a developer test command. Blank text is handled without contacting anything.",
     "unknowns": [
-      "How dense retrieval is composed with lexical, hybrid, or reranked retrieval is not shown by any supplied finding; orchestration is stated to live elsewhere.",
-      "No supplied finding exposes a public search API or production caller; only a debug CLI is present.",
-      "Behavior of supporting modules (retrieval models, retrieval_filters, opensearch_index, providers) beyond dense_retrieval's use is not described.",
-      "The EmbeddingProvider implementation behind configured_cohere_embeddings and its failure modes are not detailed beyond the debug CLI wiring."
+      "How this search is combined with word-based or mixed search, or exposed as a service others call, is not shown; orchestration is stated to live elsewhere.",
+      "No public search interface or production caller appears in the supplied evidence; only a developer command-line tool is present.",
+      "The outside number service's internals and its failure behaviour beyond the debug tool wiring are not described.",
+      "Behaviour of supporting pieces (shared result shapes, filter objects, index naming, provider helpers) beyond their use here is not described."
     ],
     "diagrams": [
       {
-        "title": "Architecture",
-        "description": "Settings derive a dense config and connection details; the retriever injects an embedding provider, queries the OpenSearch read alias with tenant-scoped filters, and emits shared results plus a separate trace.",
-        "nodes": [
-          {
-            "id": "settings",
-            "label": "Settings",
-            "finding_ids": [
-              "F0003"
-            ]
-          },
-          {
-            "id": "config",
-            "label": "DenseRetrievalConfig",
-            "finding_ids": [
-              "F0003",
-              "F0013"
-            ]
-          },
-          {
-            "id": "retriever",
-            "label": "Dense retriever",
-            "finding_ids": [
-              "F0001",
-              "F0005"
-            ]
-          },
-          {
-            "id": "embed",
-            "label": "Embedding provider",
-            "finding_ids": [
-              "F0001",
-              "F0008"
-            ]
-          },
-          {
-            "id": "opensearch",
-            "label": "OpenSearch alias",
-            "finding_ids": [
-              "F0004",
-              "F0005"
-            ]
-          },
-          {
-            "id": "results",
-            "label": "Retrieval results",
-            "finding_ids": [
-              "F0002",
-              "F0011"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "settings",
-            "to": "config",
-            "label": "Derives fields",
-            "finding_ids": [
-              "F0003"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "settings",
-            "to": "retriever",
-            "label": "URL and alias",
-            "finding_ids": [
-              "F0003"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "config",
-            "to": "retriever",
-            "label": "Limits and model",
-            "finding_ids": [
-              "F0009",
-              "F0013"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "embed",
-            "to": "retriever",
-            "label": "Injected provider",
-            "finding_ids": [
-              "F0001"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "retriever",
-            "to": "embed",
-            "label": "Query embedding",
-            "finding_ids": [
-              "F0008"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "retriever",
-            "to": "opensearch",
-            "label": "k-NN search",
-            "finding_ids": [
-              "F0004",
-              "F0005"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "opensearch",
-            "to": "results",
-            "label": "Hit mapping",
-            "finding_ids": [
-              "F0002",
-              "F0006"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "retriever",
-            "to": "results",
-            "label": "Response plus trace",
-            "finding_ids": [
-              "F0011"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Request Lifecycle",
-        "description": "A query is normalized, validated, embedded, and issued as a k-NN search; empty queries short-circuit before any external call, and stage timings are recorded in a trace kept separate from evidence.",
+        "title": "How a search becomes matching passages",
+        "description": "A search phrase is cleaned, sent out to be turned into numbers, used to find the closest stored passages in the search index, and returned as passages with optional diagnostic detail.",
         "nodes": [
           {
             "id": "query",
-            "label": "Query input",
+            "label": "Search phrase",
             "finding_ids": [
               "F0001"
             ]
           },
           {
-            "id": "normalize",
-            "label": "Normalized query",
+            "id": "clean",
+            "label": "Clean up text",
             "finding_ids": [
+              "F0006"
+            ]
+          },
+          {
+            "id": "fingerprint",
+            "label": "Turn words into numbers",
+            "finding_ids": [
+              "F0002",
               "F0007"
             ]
           },
           {
-            "id": "validate",
-            "label": "Vector validation",
+            "id": "lookup",
+            "label": "Find closest passages",
             "finding_ids": [
-              "F0008"
-            ]
-          },
-          {
-            "id": "searchstep",
-            "label": "k-NN search",
-            "finding_ids": [
-              "F0005",
+              "F0003",
               "F0010"
             ]
           },
           {
-            "id": "response",
-            "label": "Response object",
+            "id": "passages",
+            "label": "Matching passages",
             "finding_ids": [
-              "F0011"
-            ]
-          },
-          {
-            "id": "trace",
-            "label": "Diagnostics trace",
-            "finding_ids": [
-              "F0012"
+              "F0004",
+              "F0009"
             ]
           }
         ],
         "edges": [
           {
             "from": "query",
-            "to": "normalize",
-            "label": "Whitespace collapse",
+            "to": "clean",
+            "label": "Text to tidy",
             "finding_ids": [
+              "F0006"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "clean",
+            "to": "fingerprint",
+            "label": "Cleaned text",
+            "finding_ids": [
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fingerprint",
+            "to": "lookup",
+            "label": "Numeric fingerprint",
+            "finding_ids": [
+              "F0002",
               "F0007"
             ],
             "uncertain": false
           },
           {
-            "from": "normalize",
-            "to": "validate",
-            "label": "Query text",
+            "from": "lookup",
+            "to": "passages",
+            "label": "Closest passages",
             "finding_ids": [
-              "F0007",
-              "F0008"
+              "F0004",
+              "F0010"
             ],
             "uncertain": false
           },
           {
-            "from": "validate",
-            "to": "searchstep",
-            "label": "Validated vector",
+            "from": "lookup",
+            "to": "passages",
+            "label": "Diagnostic details",
             "finding_ids": [
-              "F0008"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "searchstep",
-            "to": "response",
-            "label": "Hits",
-            "finding_ids": [
-              "F0002",
-              "F0011"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "searchstep",
-            "to": "trace",
-            "label": "Stage timings",
-            "finding_ids": [
-              "F0012"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "response",
-            "to": "trace",
-            "label": "Trace attached",
-            "finding_ids": [
-              "F0011"
+              "F0009"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Data Ownership And Filtering",
-        "description": "Tenant scoping is pushed into the k-NN query as filter clauses rather than post-filtering, and the search body selects the source fields required to rebuild the shared result contract.",
+        "title": "Keeping one customer's material separate",
+        "description": "Customer and filter details are applied inside the search request itself, so only that customer's own passages are considered, and the requested fields are enough to rebuild each passage for callers.",
         "nodes": [
           {
             "id": "filters",
-            "label": "RetrievalFilters",
+            "label": "Customer and filters",
             "finding_ids": [
-              "F0005"
+              "F0003"
             ]
           },
           {
-            "id": "knnbody",
-            "label": "k-NN search body",
+            "id": "request",
+            "label": "Search request",
             "finding_ids": [
-              "F0005",
-              "F0006"
+              "F0003"
             ]
           },
           {
-            "id": "hitsource",
-            "label": "Selected _source",
+            "id": "fields",
+            "label": "Requested fields",
             "finding_ids": [
-              "F0006"
+              "F0003"
             ]
           },
           {
-            "id": "result",
-            "label": "RetrievalResult",
+            "id": "rebuild",
+            "label": "Rebuilt passages",
             "finding_ids": [
-              "F0002"
+              "F0004"
             ]
           }
         ],
         "edges": [
           {
             "from": "filters",
-            "to": "knnbody",
-            "label": "Filter clauses",
+            "to": "request",
+            "label": "Limits scope",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "request",
+            "to": "fields",
+            "label": "Asks for fields",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fields",
+            "to": "rebuild",
+            "label": "Rebuilds passages",
+            "finding_ids": [
+              "F0004"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "What happens with empty or unusable input",
+        "description": "Blank text returns nothing without contacting any outside service, while mismatched or malformed answers from the number service and search index stop the flow with a clear failure reason.",
+        "nodes": [
+          {
+            "id": "clean",
+            "label": "Clean up text",
+            "finding_ids": [
+              "F0005",
+              "F0006"
+            ]
+          },
+          {
+            "id": "empty",
+            "label": "Empty outcome",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "checks",
+            "label": "Answer checks",
+            "finding_ids": [
+              "F0007"
+            ]
+          },
+          {
+            "id": "failure",
+            "label": "Failure reason",
+            "finding_ids": [
+              "F0008"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "clean",
+            "to": "empty",
+            "label": "Nothing left",
             "finding_ids": [
               "F0005"
             ],
             "uncertain": false
           },
           {
-            "from": "knnbody",
-            "to": "hitsource",
-            "label": "Requested fields",
+            "from": "clean",
+            "to": "checks",
+            "label": "Usable text",
             "finding_ids": [
-              "F0006"
+              "F0007"
             ],
             "uncertain": false
           },
           {
-            "from": "hitsource",
-            "to": "result",
-            "label": "Mapped hits",
+            "from": "checks",
+            "to": "failure",
+            "label": "Bad answer",
             "finding_ids": [
-              "F0002"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Failure And Error Contract",
-        "description": "Transport and error responses from OpenSearch are normalized into a single RetrievalError type, with retryability distinguishing transient unavailability from malformed payloads.",
-        "nodes": [
-          {
-            "id": "transport",
-            "label": "HTTP transport",
-            "finding_ids": [
-              "F0004"
-            ]
-          },
-          {
-            "id": "errors",
-            "label": "RetrievalError",
-            "finding_ids": [
-              "F0010"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "transport",
-            "to": "errors",
-            "label": "Unavailable (retryable)",
-            "finding_ids": [
-              "F0010"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "transport",
-            "to": "errors",
-            "label": "Invalid response",
-            "finding_ids": [
-              "F0010"
+              "F0008"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Debug CLI Entry",
-        "description": "The only local entry point is a debug CLI that parses query, tenant, and optional collection/limit, opens the configured embedding provider, and builds the retriever from settings.",
+        "title": "How a developer runs it today",
+        "description": "A command-line tool takes a search phrase with a required customer identifier and optional collection and size, opens the outside number service, builds the searcher, and prints the outcome with extra explanation switched on.",
         "nodes": [
           {
-            "id": "cli",
-            "label": "CLI main",
+            "id": "command",
+            "label": "Command line",
             "finding_ids": [
               "F0014"
             ]
           },
           {
-            "id": "provider",
-            "label": "Cohere embeddings",
+            "id": "numberservice",
+            "label": "Number service",
             "finding_ids": [
+              "F0013"
+            ]
+          },
+          {
+            "id": "searcher",
+            "label": "Searcher setup",
+            "finding_ids": [
+              "F0013",
               "F0014"
             ]
           },
           {
-            "id": "denseret",
-            "label": "Dense retriever",
+            "id": "output",
+            "label": "Printed outcome",
             "finding_ids": [
-              "F0014",
-              "F0003"
+              "F0014"
             ]
           }
         ],
         "edges": [
           {
-            "from": "cli",
-            "to": "provider",
-            "label": "Opens provider",
+            "from": "command",
+            "to": "numberservice",
+            "label": "Opens service",
             "finding_ids": [
+              "F0013"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "command",
+            "to": "searcher",
+            "label": "Builds searcher",
+            "finding_ids": [
+              "F0013",
               "F0014"
             ],
             "uncertain": false
           },
           {
-            "from": "cli",
-            "to": "denseret",
-            "label": "Builds via settings",
-            "finding_ids": [
-              "F0014"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "denseret",
-            "to": "provider",
-            "label": "Debug query embed",
+            "from": "searcher",
+            "to": "output",
+            "label": "Prints result",
             "finding_ids": [
               "F0014"
             ],
@@ -411,116 +298,116 @@
   },
   "findings": {
     "F0001": {
-      "statement": "OpenSearchDenseRetriever orchestrates dense retrieval: it normalizes the query via normalize_dense_query, embeds it through an injected EmbeddingProvider (EmbeddingPurpose.QUERY), then issues an OpenSearch k-NN search and maps hits into the shared RetrievalResult contract.",
+      "statement": "OpenSearchDenseRetriever.search is the core dense retrieval path: it accepts a query string with required tenant_id UUID and optional collection, source_type, author, source_date_from/to, limit, and debug, returning a DenseRetrievalResponse containing results tuple and a trace.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "Dense retrieval reuses lexical retrieval code for hit normalization and counting: it calls OpenSearchBM25Retriever._result_from_hit per hit and OpenSearchBM25Retriever._candidate_count, so both paths share one result representation.",
+      "statement": "search normalizes and embeds the query through an injected EmbeddingProvider (embed(EmbeddingRequest((normalized_query,), EmbeddingPurpose.QUERY))) and issues a POST to the OpenSearch read alias _search endpoint within a 10-second httpx AsyncClient timeout.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "DenseRetrievalConfig can be built from Settings via from_settings, deriving embedding_model, embedding_dimensions, index_schema_version, and candidate_limit from cohere_ and opensearch_ settings fields; from_settings on the retriever also pulls opensearch_url and opensearch_read_alias.",
+      "statement": "Tenant and metadata scoping is pushed into the OpenSearch k-NN query as a bool filter built from RetrievalFilters rather than post-filtering, and the requested _source fields (chunk_id, tenant_id, content_text, source_spans, etc.) are those needed to rebuild the shared RetrievalResult contract.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "The retriever sends the k-NN query to the OpenSearch read alias path /{read_alias}/_search by constructing an httpx.AsyncClient per request (base_url, optional injected transport, timeout 10) inside _request.",
+      "statement": "Result hits are converted to shared RetrievalResult objects by reusing OpenSearchBM25Retriever._result_from_hit and _candidate_count, so dense evidence shares the same normalized shape as lexical retrieval.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "Tenant scoping and filtering are applied inside the k-NN query: RetrievalFilters is constructed from tenant_id, collection_id, source_type, author, and source date range, and its clauses() become the kNN filter bool.filter, so tenant scoping is enforced at the query level rather than post-filtering.",
+      "statement": "A blank normalized query short-circuits: search returns an empty results tuple and a trace with zero counts and zero elapsed times without making any embedding or OpenSearch call.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "The search body requests _source fields covering chunk_id, tenant/collection/document IDs, content_text, source_spans, generation_id, pipeline_version, and source_metadata, and sets track_total_hits true with explain bound to the debug flag.",
+      "statement": "Query normalization (normalize_dense_query) trims outer whitespace and collapses internal whitespace via ' '.join(query_text.split()) without otherwise rewriting text; non-string input raises ValueError.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "Empty or whitespace-only queries short-circuit: after normalization the retriever returns an empty DenseRetrievalResponse with zero candidate counts and zero timings, without calling the embedding provider or OpenSearch.",
+      "statement": "Embedding responses are validated before search: purpose must be QUERY, exactly one vector must be returned, model and dimensions must match configured embedding_model/embedding_dimensions, the vector length must match configured dimensions, and every element must be a finite non-boolean number.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0008": {
-      "statement": "Embedding responses are validated before use in _query_vector: purpose must be QUERY with exactly one vector, model and dimensions must match the config, and every vector component must be a finite non-boolean number, otherwise a non-retryable RetrievalError is raised.",
+      "statement": "RetrievalFailures are raised with distinct codes for embedding_invalid_response, embedding_model_mismatch, query_vector_dimensions_mismatch, and opensearch_invalid_response (non-retryable) versus opensearch_unavailable (marked retryable based on HTTPError or 5xx/408/429 status).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0009": {
-      "statement": "Candidate limit handling caps the caller's limit at config.candidate_limit via min(limit, candidate_limit), defaulting to the config value when limit is None, and rejecting non-positive or boolean limits.",
+      "statement": "Diagnostics (normalized query, embedding model/dimensions, adapter, schema version, read alias, candidate limit/count, per-stage elapsed milliseconds, tenant/collection, filter values) are kept in a separate DenseRetrievalTrace attached to the response rather than merged into evidence results.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "OpenSearch transport failures and error responses are normalized into RetrievalError: httpx.HTTPError becomes opensearch_unavailable (retryable), and HTTP error status codes are retryable when >=500 or in (408, 429); malformed payloads raise non-retryable opensearch_invalid_response.",
+      "statement": "The effective candidate limit defaults to DenseRetrievalConfig.candidate_limit (20) and any provided limit is capped at that maximum (min(limit, candidate_limit)); non-positive or boolean limits raise ValueError.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0011": {
-      "statement": "Diagnostics are separated from evidence: DenseRetrievalTrace records normalized query, model/dimensions, embedding adapter, schema version, read alias, limits/counts, per-stage elapsed ms, tenant/collection IDs, and filter trace values, while DenseRetrievalResponse carries only results plus trace.",
+      "statement": "DenseRetrievalConfig binds a query embedding model (default embed-english-light-v3.0, 384 dims) to an index schema version (default chunks-v3) and validates these at construction; from_settings derives these from Settings fields (cohere_embed_model, cohere_embed_dimensions, opensearch_index_schema_version, opensearch_dense_candidate_limit).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "Embedding and OpenSearch stages are timed separately using time.perf_counter around the embedding call and the OpenSearch request, and both durations are stored in the trace.",
+      "statement": "DenseRetrievalConfig.__post_init__ invokes physical_index_name(index_schema_version, 'dense-query') only as a validation sanity check of the schema-version naming contract; the code explicitly does not issue a mapping request per query.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "DenseRetrievalConfig.__post_init__ validates the model/index pairing by calling physical_index_name(index_schema_version, \"dense-query\"), reusing the existing physical-index naming rules rather than issuing a mapping request per query.",
+      "statement": "The debug request path (_debug_query) opens a configured Cohere embeddings provider via configured_cohere_embeddings(settings), builds the retriever via OpenSearchDenseRetriever.from_settings, and always runs search with debug=True (which sets explain:true on the OpenSearch body).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "The only local entry point in this module is a debug CLI (main / _debug_query) that parses query, required --tenant UUID, optional --collection and --limit, opens configured_cohere_embeddings(settings), builds the retriever from settings, and runs search with debug=True via asyncio.run.",
+      "statement": "The only local entry point is a CLI main(): positional query plus --tenant (required UUID), --collection (UUID), and --limit (int) are parsed, then asyncio.run(_debug_query(get_settings(), args)) is printed. No public search API is exposed here.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "Communication with the embedding provider is asynchronous (awaited embed) and OpenSearch access is asynchronous (awaited httpx request), while hit renormalization and validation logic is synchronous.",
+      "statement": "Required type/shape validation is defensive at boundaries: tenant_id must be a UUID, collection_id must be UUID or None, debug must be boolean, base_url and read_alias must be nonblank strings, and the embedding provider must expose an 'embed' attribute.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0016": {
-      "statement": "The module docstring and main docstring state that a public search API does not yet exist for dense retrieval and that orchestration lives elsewhere, so composition with lexical/hybrid/reranked retrieval is not shown in this source.",
+      "statement": "Dense retrieval runs an HTTP call out to OpenSearch per query and (via the provider) out to an embedding service; orchestration that composes it with lexical/hybrid ranking or exposes it as a service is not present in this excerpt.",
       "sources": [
         "S0001"
       ],
-      "uncertain": false
+      "uncertain": true
     }
   },
   "sources": {
@@ -532,8 +419,8 @@
     }
   },
   "metadata": {
-    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
-    "generated_at": "2026-10-18T18:36:27.937462+00:00",
+    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
+    "generated_at": "2026-10-19T00:25:53.220315+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {

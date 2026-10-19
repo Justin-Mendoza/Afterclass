@@ -1,8 +1,8 @@
 # Repository map
 
-The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks. It groups parsed blocks by heading path so no chunk crosses a section boundary, greedily packs whole blocks within a token budget with trailing overlap, splits oversized blocks by binary prefix search, and enriches text with reconstructed Markdown headings for embedding while stamping config-version and document-derived identity digests.
+This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown.
 
-Commit: `f8493c1d264c525948d9d33ffaf2dd197be97e26` | Generated: 2026-10-18T18:36:01.162392+00:00
+Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:25:15.681194+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -16,26 +16,22 @@ Tracked, eligible text only; bounded excerpts, not exhaustive.
 
 2 API calls. See coverage.json for budgets, exclusions, and usage.
 
-## Architecture
+## How a parsed document becomes searchable pieces
 
-The chunking package groups parsed blocks per heading section, packs them under the token budget, enriches embedding text, and emits Chunk contracts whose identities are derived from config and document digests.
+A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunking package"]
-  n1["Chunker"]
-  n2["Embedding text<br/>builder"]
-  n3["Chunk contract"]
-  n4["Chunking config"]
-  n5["Identity digests"]
-  n0 -.->|"Inferred: Public<br/>entry point"| n1
-  n1 -->|"Heading path +<br/>body"| n2
-  n2 -->|"Embedding text"| n1
-  n4 -->|"Token limits"| n1
-  n1 -->|"Emits Chunks"| n3
-  n5 -->|"Chunk identity"| n3
-  n4 -->|"Config version"| n5
+  n0["Parsed document"]
+  n1["Split by heading"]
+  n2["Pack within<br/>token budget"]
+  n3["Rebuild heading<br/>text"]
+  n4["Identified<br/>pieces"]
+  n0 -->|"Group blocks by<br/>heading"| n1
+  n1 -->|"One section at a<br/>time"| n2
+  n2 -->|"Text and heading<br/>path"| n3
+  n3 -->|"Final text and<br/>spans"| n4
 ```
 
 <details>
@@ -45,37 +41,39 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
-- **F0016** (inferred): The chunking package __init__ docstring describes the subsystem as 'Deterministic structure-aware document chunking', but the specific symbols it re-exports are not shown in the supplied source. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/__init__.py#L1-L1">backend/src/hybrid_rag_search/chunking/__init__.py:1-1</a>)
-- **F0001**: chunk_document is the package's public entry point: it takes a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig (defaulting to DEFAULT_CHUNKING_CONFIG) and returns a tuple of Chunk records. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0002**: chunk_document groups parsed blocks with itertools.groupby keyed on block.locator.heading_path, then delegates each section to _chunk_section, so chunking is performed section-by-section and a chunk never crosses a heading boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0003**: _candidate enforces the heading-boundary invariant by raising ChunkingError when fragments in one candidate carry differing heading_path values. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0004**: _chunk_section greedily appends whole blocks to the current candidate while _candidate's token count stays within config.max_tokens, then emits a Chunk via _make_chunk with order = first_order + len(chunks). (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0013**: build_embedding_text reconstructs Markdown headings ('#' * level + heading) from heading_path and joins them to the body, dropping a duplicated leading heading block by recognizing it as the content prefix; this produces the enriched embedding_text stored separately from content_text. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/embedding_text.py#L1-L33">backend/src/hybrid_rag_search/chunking/embedding_text.py:1-33</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0014**: _candidate computes embedding_text via build_embedding_text and sets token_count from len(tokenizer.tokenize(embedding_text)), so token budgeting is measured against the enriched embedding text rather than raw content. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/embedding_text.py#L1-L33">backend/src/hybrid_rag_search/chunking/embedding_text.py:1-33</a>)
-- **F0011**: Chunk.chunk_id is a chk_-prefixed stable_digest over document_id, config_version, order, content_text, embedding_text, and each source span's canonical_value, making chunk identity content-addressed and rebuildable. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0012**: Chunk.__post_init__ requires nonempty source_spans, rejects spans whose (block_number, start_char, end_char) positions are not in source order, and validates document_id, config_version, order, and nonblank content/embedding text. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0007**: ChunkingConfig in contracts.py validates max_tokens (positive), overlap_tokens (nonnegative and less than max_tokens), embedding_limit_tokens (positive, and max_tokens must not exceed it), nonblank tokenizer/algorithm strings, and a 64-hex tokenizer_sha256. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0008**: ChunkingConfig.version canonicalizes the algorithm, embedding_limit_tokens, max_tokens, overlap_tokens, tokenizer model/revision/sha256 via sorted-key JSON and returns a chunkcfg_-prefixed stable_digest, so any of these values changing produces a new config version. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
-- **F0009**: stable_digest builds a SHA-256 over a versioned namespace header plus length-prefixed UTF-8 fields, which is the shared identity primitive used for config versions, document IDs, and chunk IDs. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
-- **F0010**: DocumentContentIdentity.document_id derives a doc_-prefixed identity from tenant_id, collection_id, and content_sha256, and Chunk validates document_id against the doc_[0-9a-f]{64} pattern. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0015**: _make_chunk raises ChunkingError when the candidate's embedding_token_count is not positive, and _chunk_section raises ChunkingError when heading context plus a single source token cannot fit in the token limit. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0001**: chunk_document is the subsystem's entry point: it accepts a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig, and returns an ordered tuple of Chunk records. It groups document.blocks by each block's locator.heading_path using groupby, then chunks each section independently so no chunk crosses a heading boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0002**: Chunking is deterministic and structure-aware per the package docstring; the algorithm label is 'structure-aware-v1' (CHUNKING_ALGORITHM) and is stamped into config versioning. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/__init__.py#L1-L1">backend/src/hybrid_rag_search/chunking/__init__.py:1-1</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0003**: _chunk_section greedily packs whole ParsedBlock fragments into a candidate while the candidate's token count stays within config.max_tokens, popping blocks from a pending list and tracking whether a whole block was added. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0004**: When a block does not fit (or the current candidate is heading-only), _largest_fitting_prefix performs a binary search over the fragment's token spans to find the longest prefix whose combined candidate stays within max_tokens; the leftover text becomes a new _Fragment remainder on the pending block. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0006**: After emitting a chunk, _trailing_overlap reconstructs trailing content from the candidate by re-tokenizing the joined content text and taking the last config.overlap_tokens tokens, seeding the next candidate's carry when pending blocks remain. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0007**: _candidate enforces that all fragments share one heading_path ('A chunk cannot cross a heading boundary') and joins fragment text with double newlines to form content_text; it passes content_text, heading_path, and any leading heading block to build_embedding_text, then counts tokens on the embedding text for token_count. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0008**: build_embedding_text reconstructs Markdown headings by joining '# '*level + heading for each level in heading_path, and strips a leading heading block from the body if it duplicates the leaf heading so the heading is not embedded twice; it raises ValueError on invalid inputs or mismatched leading heading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/embedding_text.py#L1-L33">backend/src/hybrid_rag_search/chunking/embedding_text.py:1-33</a>)
+- **F0009**: A Chunk record carries document_id, config_version, order, content_text, embedding_text, embedding_token_count, and source_spans; validation requires nonblank texts, positive order and token count, a nonempty tuple of SourceSpan, and source spans sorted in source order. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0010**: Chunk.chunk_id is computed by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, producing a prefixed digest ('chk_'); this content-addressed identity is what downstream consumers can use as a stable key. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0011**: SourceSpan captures a half-open character range (start_char, end_char) within one parser block, validated nonnegative start and end greater than start, and canonicalizes to JSON including block_number, page_number, and heading_path from the SourceLocator. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
 
-## Section boundary
+## How oversized blocks are split
 
-Blocks are grouped by heading path so chunking operates per section; the heading boundary is enforced so no chunk spans sections.
+Blocks accumulate while they fit the token budget; a block that will not fit is split at the longest fitting prefix, and leftover text carries into the next piece.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Heading-path<br/>grouping"]
-  n2["Chunk section"]
-  n3["Section chunks"]
-  n0 -->|"Blocks by<br/>heading"| n1
-  n1 -->|"One section"| n2
-  n2 -->|"Emits chunks"| n3
+  n0["Growing piece"]
+  n1["Within token<br/>budget?"]
+  n2["Find largest<br/>prefix"]
+  n3["Emit finished<br/>piece"]
+  n4["Overlap carry<br/>and leftover"]
+  n0 -->|"Count tokens"| n1
+  n1 -->|"Whole block fits"| n3
+  n1 -->|"Block too large"| n2
+  n2 -->|"Leftover text"| n4
+  n3 -->|"If work remains"| n4
+  n4 -->|"Seeds next piece"| n0
 ```
 
 <details>
@@ -85,31 +83,27 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
-- **F0001**: chunk_document is the package's public entry point: it takes a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig (defaulting to DEFAULT_CHUNKING_CONFIG) and returns a tuple of Chunk records. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0002**: chunk_document groups parsed blocks with itertools.groupby keyed on block.locator.heading_path, then delegates each section to _chunk_section, so chunking is performed section-by-section and a chunk never crosses a heading boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0004**: _chunk_section greedily appends whole blocks to the current candidate while _candidate's token count stays within config.max_tokens, then emits a Chunk via _make_chunk with order = first_order + len(chunks). (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0011**: Chunk.chunk_id is a chk_-prefixed stable_digest over document_id, config_version, order, content_text, embedding_text, and each source span's canonical_value, making chunk identity content-addressed and rebuildable. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0003**: _chunk_section greedily packs whole ParsedBlock fragments into a candidate while the candidate's token count stays within config.max_tokens, popping blocks from a pending list and tracking whether a whole block was added. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0004**: When a block does not fit (or the current candidate is heading-only), _largest_fitting_prefix performs a binary search over the fragment's token spans to find the longest prefix whose combined candidate stays within max_tokens; the leftover text becomes a new _Fragment remainder on the pending block. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0006**: After emitting a chunk, _trailing_overlap reconstructs trailing content from the candidate by re-tokenizing the joined content text and taking the last config.overlap_tokens tokens, seeding the next candidate's carry when pending blocks remain. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0007**: _candidate enforces that all fragments share one heading_path ('A chunk cannot cross a heading boundary') and joins fragment text with double newlines to form content_text; it passes content_text, heading_path, and any leading heading block to build_embedding_text, then counts tokens on the embedding text for token_count. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
 
-## Packing and splitting
+## What stops the process
 
-Blocks accumulate while the candidate stays within the token budget; oversized blocks are split by binary prefix search, and trailing overlap seeds the next candidate when pending blocks remain.
+A piece must always hold its heading plus at least one source token; if that cannot fit the configured budget, chunking stops with an error instead of producing an invalid piece.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Candidate<br/>accumulator"]
-  n1["Token-limit<br/>check"]
-  n2["Largest-prefix<br/>split"]
-  n3["Overlap carry"]
-  n4["Chunk emission"]
-  n0 -->|"Token count"| n1
-  n1 -->|"Block does not<br/>fit"| n2
-  n2 -->|"Remainder<br/>reseeds"| n0
-  n1 -->|"Fits within<br/>limit"| n4
-  n4 -->|"Pending remains"| n3
-  n3 -->|"Overlap seeds"| n0
+  n0["Heading plus one<br/>token"]
+  n1["Chunk token<br/>limit"]
+  n2["Stop with error"]
+  n0 -->|"Compare against<br/>limit"| n1
+  n1 -->|"Cannot fit"| n2
 ```
 
 <details>
@@ -119,33 +113,30 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
-- **F0003**: _candidate enforces the heading-boundary invariant by raising ChunkingError when fragments in one candidate carry differing heading_path values. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0004**: _chunk_section greedily appends whole blocks to the current candidate while _candidate's token count stays within config.max_tokens, then emits a Chunk via _make_chunk with order = first_order + len(chunks). (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0014**: _candidate computes embedding_text via build_embedding_text and sets token_count from len(tokenizer.tokenize(embedding_text)), so token budgeting is measured against the enriched embedding text rather than raw content. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/embedding_text.py#L1-L33">backend/src/hybrid_rag_search/chunking/embedding_text.py:1-33</a>)
-- **F0005**: When a block does not fit, _largest_fitting_prefix performs a binary search over the block's token spans (using TextTokenizer.tokenize) to find the largest prefix that keeps the candidate within max_tokens, and the split remainder is reseeded as the next pending fragment. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0006**: After emitting a chunk with remaining pending blocks, _trailing_overlap computes carry fragments from the last config.overlap_tokens tokens of the candidate's content text, seeding the next candidate; overlap is suppressed when no pending blocks remain. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0015**: _make_chunk raises ChunkingError when the candidate's embedding_token_count is not positive, and _chunk_section raises ChunkingError when heading context plus a single source token cannot fit in the token limit. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0005**: If even a heading-plus-one-token chunk cannot fit, _chunk_section raises ChunkingError with the message 'Heading context and one source token exceed the chunk token limit', making the token budget a hard failure boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0015**: The default config uses max_tokens=400, overlap_tokens=50, embedding_limit_tokens=512, and pins the tokenizer to the Cohere embed-english-light-v3 model, revision, and SHA-256, so chunk identity is tied to a specific tokenizer artifact. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
 
-## Identity derivation
+## Where stable identifiers come from
 
-ChunkingConfig validates limits and derives a version digest pinning the tokenizer; chunk ids combine document id, config version, order, and canonical content via a shared digest primitive.
+Settings are validated and turned into a version digest; that version, the document identifier, position, and content are hashed together so identical input always yields the same piece identifier.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunking config"]
-  n1["Config version<br/>digest"]
-  n2["Chunk identifier"]
-  n3["Document<br/>identifier"]
-  n4["Stable digest"]
-  n0 -->|"Canonical digest"| n1
-  n4 -->|"Namespace digest"| n1
-  n1 -->|"Feeds chunk id"| n2
-  n3 -->|"Feeds chunk id"| n2
-  n4 -->|"Hashtext fields"| n2
-  n4 -->|"Content sha256"| n3
+  n0["Chunk settings"]
+  n1["Settings version<br/>digest"]
+  n2["Document<br/>identifier"]
+  n3["Shared stable<br/>digest"]
+  n4["Piece identifier"]
+  n0 -->|"Canonical form<br/>hashed"| n1
+  n3 -->|"Length-prefixed<br/>hashing"| n1
+  n3 -->|"Hash owner and<br/>content"| n2
+  n1 -->|"Included in<br/>identity"| n4
+  n2 -->|"Included in<br/>identity"| n4
 ```
 
 <details>
@@ -155,19 +146,18 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
-- **F0007**: ChunkingConfig in contracts.py validates max_tokens (positive), overlap_tokens (nonnegative and less than max_tokens), embedding_limit_tokens (positive, and max_tokens must not exceed it), nonblank tokenizer/algorithm strings, and a 64-hex tokenizer_sha256. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0008**: ChunkingConfig.version canonicalizes the algorithm, embedding_limit_tokens, max_tokens, overlap_tokens, tokenizer model/revision/sha256 via sorted-key JSON and returns a chunkcfg_-prefixed stable_digest, so any of these values changing produces a new config version. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
-- **F0011**: Chunk.chunk_id is a chk_-prefixed stable_digest over document_id, config_version, order, content_text, embedding_text, and each source span's canonical_value, making chunk identity content-addressed and rebuildable. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0012**: Chunk.__post_init__ requires nonempty source_spans, rejects spans whose (block_number, start_char, end_char) positions are not in source order, and validates document_id, config_version, order, and nonblank content/embedding text. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0010**: DocumentContentIdentity.document_id derives a doc_-prefixed identity from tenant_id, collection_id, and content_sha256, and Chunk validates document_id against the doc_[0-9a-f]{64} pattern. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0009**: stable_digest builds a SHA-256 over a versioned namespace header plus length-prefixed UTF-8 fields, which is the shared identity primitive used for config versions, document IDs, and chunk IDs. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/f8493c1d264c525948d9d33ffaf2dd197be97e26/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
+- **F0014**: ChunkingConfig validates that max_tokens is a positive integer, overlap_tokens is nonnegative and strictly less than max_tokens, embedding_limit_tokens is positive and at least max_tokens, and tokenizer/algorithm fields are nonblank with a valid 64-hex SHA-256 tokenizer hash; its version property yields 'chunkcfg_&lt;digest&gt;' over the canonical JSON of these fields. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0013**: DocumentContentIdentity derives document_id ('doc_&lt;digest&gt;') from tenant_id, collection_id, and content_sha256, so document identity is scoped to authorization boundaries and original file content; chunks then embed this document_id. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0012**: stable_digest builds a length-prefixed SHA-256 over a versioned namespace ('hybrid-rag-search/&lt;namespace&gt;/v1') followed by each UTF-8 value, yielding collision-resistant deterministic identities reused for document and chunk IDs. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
+- **F0010**: Chunk.chunk_id is computed by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, producing a prefixed digest ('chk_'); this content-addressed identity is what downstream consumers can use as a stable key. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
 
 ## Uncertainties and untraced areas
 
-- No runtime call site invoking chunk_document is shown; wiring to upstream parsing and downstream embedding or indexing is inferred from the public entry point alone (F0001, F0016).
-- How ParsedDocument and ParsedBlock are produced upstream of chunking is not covered by these findings.
-- How emitted Chunks are consumed downstream (embedding, indexing, storage) is outside the supplied evidence.
-- Which symbols the chunking package __init__ re-exports is not shown (F0016).
-- The relationship between ChunkingConfig.embedding_limit_tokens and any downstream embedding model is not evidenced beyond validation (F0007).
+- No call site invoking chunk_document is shown; wiring from parsing into chunking and from chunks into embedding, indexing, or storage is inferred from the public contract alone (F0001, F0016).
+- How ParsedDocument and ParsedBlock are produced upstream of this area is not covered by the supplied findings (F0001, F0016).
+- What downstream consumers do with the emitted pieces, including their identifier and embedding text, is outside the supplied evidence (F0010, F0016).
+- Which symbols the package __init__ re-exports is not shown (F0016).

@@ -1,13 +1,7 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Candidate<br/>accumulator"]
-  n1["Token-limit<br/>check"]
-  n2["Largest-prefix<br/>split"]
-  n3["Overlap carry"]
-  n4["Chunk emission"]
-  n0 -->|"Token count"| n1
-  n1 -->|"Block does not<br/>fit"| n2
-  n2 -->|"Remainder<br/>reseeds"| n0
-  n1 -->|"Fits within<br/>limit"| n4
-  n4 -->|"Pending remains"| n3
-  n3 -->|"Overlap seeds"| n0
+  n0["Heading plus one<br/>token"]
+  n1["Chunk token<br/>limit"]
+  n2["Stop with error"]
+  n0 -->|"Compare against<br/>limit"| n1
+  n1 -->|"Cannot fit"| n2

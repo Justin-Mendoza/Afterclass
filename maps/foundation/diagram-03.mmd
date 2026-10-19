@@ -1,12 +1,10 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Liveness route"]
-  n1["Readiness route"]
-  n2["dependency_status"]
-  n3["Dependency<br/>probes"]
-  n4["Postgres, Redis,<br/>OpenSearch"]
-  n1 -->|"requests<br/>booleans"| n2
-  n2 -->|"gathers probes"| n3
-  n3 -->|"SELECT 1, PING,<br/>health"| n4
-  n3 -->|"false on error"| n2
-  n2 -->|"503 if any false"| n1
+  n0["Readiness<br/>request"]
+  n1["Run all probes"]
+  n2["Postgres, Redis,<br/>OpenSearch"]
+  n3["Ready or<br/>unavailable"]
+  n0 -->|"check<br/>dependencies"| n1
+  n1 -->|"concurrent<br/>probes"| n2
+  n2 -->|"true or false<br/>each"| n1
+  n1 -->|"all true?"| n3

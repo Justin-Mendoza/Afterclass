@@ -1,594 +1,296 @@
 {
   "map": {
-    "summary": "The evaluation subsystem loads hash-verified versioned datasets, prepares isolated per-scope corpora in OpenSearch through the durable ingestion pipeline, runs four retrieval modes via a shared EvaluationSearch boundary, scores rankings with fixed metrics, and emits reproducible reports. It exposes a production-disabled debug search API and a SciFact builder CLI, and owns evaluation ORM tables.",
+    "summary": "This area builds and runs retrieval-quality tests for the search service. It loads versioned dataset bundles whose files are checked by hash, prepares an isolated search index for each dataset, runs four search styles over every test question, scores how well the results match human relevance labels, and saves reproducible JSON and readable Markdown reports. A local-only debug endpoint and a SciFact dataset builder support this work.",
     "unknowns": [
-      "Runtime wiring between the evaluation ORM models and the dataset loader is not observed.",
-      "Whether the EvaluationSearch module docstring's shared HTTP-and-runner boundary is enforced structurally or only by convention.",
-      "The provider-to-retriever construction path inside EvaluationSearch is inferred from the lazy-construction statement, not directly observed.",
-      "Concurrency behavior and worker interplay of inline durable ingestion jobs versus a real ingestion worker service is untraced.",
-      "Error-code contracts surfaced to callers beyond the HTTP status mapping are not fully described."
+      "How the saved evaluation records in the database connect at runtime to the dataset bundle loader is not shown.",
+      "The internal retrieval, scoring, and settings behavior behind the shared search boundary is only inferred from where it is called.",
+      "Whether durable ingestion jobs always run inline here or can also be handled by a separate worker service is not traced.",
+      "How evaluation scores or saved runs are surfaced to any user interface or external caller beyond the debug endpoint is not described."
     ],
     "diagrams": [
       {
-        "title": "Architecture",
-        "description": "Dataset loading, corpus preparation, search dispatch, scoring/reporting, and the HTTP surface are separate boundaries; the API and runner share one search boundary, while corpus state faults map to distinct errors.",
+        "title": "How a dataset becomes a scored report",
+        "description": "A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.",
         "nodes": [
           {
-            "id": "datasets",
-            "label": "Dataset loader",
+            "id": "bundle",
+            "label": "Verified dataset bundle",
             "finding_ids": [
-              "F0001",
               "F0017",
-              "F0020"
-            ]
-          },
-          {
-            "id": "corpus",
-            "label": "Corpus preparation",
-            "finding_ids": [
-              "F0005",
-              "F0006",
-              "F0012"
-            ]
-          },
-          {
-            "id": "search",
-            "label": "EvaluationSearch",
-            "finding_ids": [
-              "F0049",
-              "F0052",
-              "F0056"
-            ]
-          },
-          {
-            "id": "runner",
-            "label": "Runner and reports",
-            "finding_ids": [
-              "F0033",
-              "F0034",
-              "F0044"
-            ]
-          },
-          {
-            "id": "api",
-            "label": "Debug search API",
-            "finding_ids": [
-              "F0002",
-              "F0003",
-              "F0004"
-            ]
-          },
-          {
-            "id": "models",
-            "label": "Evaluation ORM",
-            "finding_ids": [
-              "F0065",
-              "F0066",
-              "F0068"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "datasets",
-            "to": "corpus",
-            "label": "Validated records",
-            "finding_ids": [
-              "F0008"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "corpus",
-            "to": "search",
-            "label": "Prepared scope",
-            "finding_ids": [
-              "F0012",
-              "F0055"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "runner",
-            "to": "search",
-            "label": "Per query/mode",
-            "finding_ids": [
-              "F0034",
-              "F0035"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "runner",
-            "to": "datasets",
-            "label": "Loads dataset",
-            "finding_ids": [
-              "F0034",
-              "F0017"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "api",
-            "to": "corpus",
-            "label": "Verify prepared",
-            "finding_ids": [
-              "F0004",
-              "F0093"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "api",
-            "to": "search",
-            "label": "Debug search",
-            "finding_ids": [
-              "F0004",
-              "F0093"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "corpus",
-            "to": "models",
-            "label": "Ingestion job rows",
-            "finding_ids": [
-              "F0009",
-              "F0012"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "corpus",
-            "to": "datasets",
-            "label": "Corpus hash scope",
-            "finding_ids": [
-              "F0005",
-              "F0090"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Corpus preparation flow",
-        "description": "prepare_corpus derives a content-hash scope and isolated index aliases, runs durable ingestion inline, treats persisted documents as immutable, then force-merges and verifies against job receipts before search is allowed.",
-        "nodes": [
-          {
-            "id": "scope",
-            "label": "EvaluationScope",
-            "finding_ids": [
-              "F0005",
-              "F0090"
-            ]
-          },
-          {
-            "id": "aliases",
-            "label": "Eval index aliases",
-            "finding_ids": [
-              "F0006",
-              "F0007",
-              "F0075"
+              "F0019",
+              "F0024"
             ]
           },
           {
             "id": "prepare",
-            "label": "prepare_corpus",
+            "label": "Prepare search index",
             "finding_ids": [
               "F0010",
-              "F0071",
-              "F0072"
-            ]
-          },
-          {
-            "id": "jobs",
-            "label": "Durable ingestion",
-            "finding_ids": [
-              "F0008",
-              "F0009",
-              "F0073"
-            ]
-          },
-          {
-            "id": "compact",
-            "label": "compact_corpus",
-            "finding_ids": [
-              "F0011"
+              "F0011",
+              "F0012"
             ]
           },
           {
             "id": "verify",
-            "label": "verify_prepared",
+            "label": "Confirm index ready",
             "finding_ids": [
-              "F0012",
-              "F0013",
-              "F0074"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "scope",
-            "to": "prepare",
-            "label": "Scope input",
-            "finding_ids": [
-              "F0005",
-              "F0071"
-            ],
-            "uncertain": true
-          },
-          {
-            "from": "aliases",
-            "to": "prepare",
-            "label": "Index settings",
-            "finding_ids": [
-              "F0006",
-              "F0007"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "prepare",
-            "to": "jobs",
-            "label": "Inline jobs",
-            "finding_ids": [
-              "F0008",
-              "F0009"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "prepare",
-            "to": "compact",
-            "label": "Forcemerge",
-            "finding_ids": [
-              "F0011"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "jobs",
-            "to": "verify",
-            "label": "Index receipts",
-            "finding_ids": [
-              "F0012",
-              "F0074"
-            ],
-            "uncertain": true
-          },
-          {
-            "from": "compact",
-            "to": "verify",
-            "label": "Ready docs",
-            "finding_ids": [
-              "F0011",
-              "F0013"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Evaluation run flow",
-        "description": "run_baseline selects a dataset, verifies the alias, drives evaluate across queries and modes, scores rankings, attaches credential-free reproduction metadata, and writes JSON plus markdown reports, with bm25 as the delta reference.",
-        "nodes": [
-          {
-            "id": "runbaseline",
-            "label": "run_baseline",
-            "finding_ids": [
-              "F0034",
-              "F0041",
-              "F0046"
+              "F0014",
+              "F0015"
             ]
           },
           {
-            "id": "evaluate",
-            "label": "evaluate",
+            "id": "search",
+            "label": "Try each search style",
             "finding_ids": [
-              "F0035",
-              "F0036",
-              "F0037"
+              "F0056",
+              "F0058",
+              "F0060"
             ]
           },
           {
-            "id": "scores",
-            "label": "score_ranking",
+            "id": "score",
+            "label": "Score against labels",
             "finding_ids": [
               "F0027",
-              "F0028",
-              "F0032"
+              "F0029"
             ]
           },
           {
-            "id": "metadata",
-            "label": "Report metadata",
+            "id": "report",
+            "label": "Reproducible report files",
             "finding_ids": [
-              "F0042",
-              "F0043",
-              "F0047"
-            ]
-          },
-          {
-            "id": "save",
-            "label": "save_report",
-            "finding_ids": [
-              "F0044",
-              "F0045",
-              "F0087"
+              "F0038",
+              "F0041"
             ]
           }
         ],
         "edges": [
           {
-            "from": "runbaseline",
-            "to": "evaluate",
-            "label": "Queries and modes",
+            "from": "bundle",
+            "to": "prepare",
+            "label": "Corpus and questions",
+            "finding_ids": [
+              "F0011",
+              "F0033"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "prepare",
+            "to": "verify",
+            "label": "Check job receipts",
+            "finding_ids": [
+              "F0012",
+              "F0014"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "verify",
+            "to": "search",
+            "label": "Index confirmed",
+            "finding_ids": [
+              "F0015",
+              "F0033"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "search",
+            "to": "score",
+            "label": "Ranked results",
             "finding_ids": [
               "F0034",
-              "F0035"
+              "F0059"
             ],
             "uncertain": false
           },
           {
-            "from": "evaluate",
-            "to": "scores",
-            "label": "Document rankings",
+            "from": "score",
+            "to": "report",
+            "label": "Metrics per question",
             "finding_ids": [
-              "F0036",
-              "F0037"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "scores",
-            "to": "runbaseline",
-            "label": "Mode metrics",
-            "finding_ids": [
-              "F0028",
+              "F0037",
               "F0038"
             ],
             "uncertain": false
           },
           {
-            "from": "runbaseline",
-            "to": "metadata",
-            "label": "Repro metadata",
+            "from": "bundle",
+            "to": "search",
+            "label": "Questions and labels",
             "finding_ids": [
-              "F0042",
-              "F0043"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "metadata",
-            "to": "save",
-            "label": "Report files",
-            "finding_ids": [
-              "F0044",
-              "F0087"
+              "F0033",
+              "F0034"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Search mode dispatch",
-        "description": "EvaluationSearch is the single dispatch boundary: it resolves dataset scope and aliases, applies the fixed benchmark budget, lazily builds only the needed retriever, and rejects results outside the prepared scope.",
+        "title": "How a debug search request is answered",
+        "description": "A local-only request names a dataset and question, the service checks the dataset is prepared, runs one search style in an isolated scope, and returns ranked results or a clear error status.",
         "nodes": [
           {
-            "id": "entry",
-            "label": "search() boundary",
+            "id": "request",
+            "label": "Debug search request",
             "finding_ids": [
-              "F0049",
-              "F0056",
-              "F0081"
+              "F0002"
             ]
           },
           {
-            "id": "budget",
-            "label": "benchmark_settings",
+            "id": "gate",
+            "label": "Local-only check",
             "finding_ids": [
-              "F0051",
+              "F0002",
               "F0092"
             ]
           },
           {
-            "id": "providers",
-            "label": "Lazy providers",
+            "id": "prepared",
+            "label": "Dataset preparation check",
             "finding_ids": [
-              "F0050"
+              "F0003",
+              "F0093"
             ]
           },
           {
-            "id": "retrievers",
-            "label": "Mode retrievers",
+            "id": "run",
+            "label": "Run chosen search style",
             "finding_ids": [
-              "F0049",
-              "F0083"
+              "F0003",
+              "F0089"
             ]
           },
           {
-            "id": "scopecheck",
-            "label": "Scope validation",
+            "id": "answer",
+            "label": "Ranked results or error",
             "finding_ids": [
-              "F0052",
-              "F0082"
-            ]
-          },
-          {
-            "id": "assemble",
-            "label": "Ranked documents",
-            "finding_ids": [
-              "F0054",
-              "F0055"
+              "F0003",
+              "F0093"
             ]
           }
         ],
         "edges": [
           {
-            "from": "entry",
-            "to": "budget",
-            "label": "Fixed budget",
+            "from": "request",
+            "to": "gate",
+            "label": "Incoming call",
             "finding_ids": [
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "gate",
+            "to": "prepared",
+            "label": "Allowed locally",
+            "finding_ids": [
+              "F0092",
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "prepared",
+            "to": "run",
+            "label": "Corpus is ready",
+            "finding_ids": [
+              "F0003",
+              "F0093"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "run",
+            "to": "answer",
+            "label": "Results or status",
+            "finding_ids": [
+              "F0003",
+              "F0093"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "How the SciFact test set is built",
+        "description": "A pinned public archive is downloaded and hash-checked, converted into the shared dataset format, trimmed to a deterministic 30-question, 500-document baseline, and re-loaded to prove it is valid.",
+        "nodes": [
+          {
+            "id": "buildcli",
+            "label": "Dataset builder command",
+            "finding_ids": [
+              "F0049"
+            ]
+          },
+          {
+            "id": "fetch",
+            "label": "Fetch verified archive",
+            "finding_ids": [
+              "F0050"
+            ]
+          },
+          {
+            "id": "translate",
+            "label": "Convert to dataset format",
+            "finding_ids": [
+              "F0051"
+            ]
+          },
+          {
+            "id": "pick",
+            "label": "Pick baseline subset",
+            "finding_ids": [
+              "F0052"
+            ]
+          },
+          {
+            "id": "recheck",
+            "label": "Re-load and validate",
+            "finding_ids": [
+              "F0053",
+              "F0063"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "buildcli",
+            "to": "fetch",
+            "label": "Download request",
+            "finding_ids": [
+              "F0049",
+              "F0050"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "fetch",
+            "to": "translate",
+            "label": "Verified archive",
+            "finding_ids": [
+              "F0050",
               "F0051"
             ],
             "uncertain": false
           },
           {
-            "from": "entry",
-            "to": "providers",
-            "label": "Lazy resources",
-            "finding_ids": [
-              "F0050"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "entry",
-            "to": "retrievers",
-            "label": "Mode dispatch",
-            "finding_ids": [
-              "F0049",
-              "F0083"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "providers",
-            "to": "retrievers",
-            "label": "Embed/rerank",
-            "finding_ids": [
-              "F0050"
-            ],
-            "uncertain": true
-          },
-          {
-            "from": "retrievers",
-            "to": "scopecheck",
-            "label": "Raw hits",
-            "finding_ids": [
-              "F0052",
-              "F0082"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "scopecheck",
-            "to": "assemble",
-            "label": "Scoped hits",
-            "finding_ids": [
-              "F0052",
-              "F0054"
-            ],
-            "uncertain": true
-          },
-          {
-            "from": "budget",
-            "to": "assemble",
-            "label": "Ranked output",
+            "from": "translate",
+            "to": "pick",
+            "label": "Full dataset",
             "finding_ids": [
               "F0051",
-              "F0053"
-            ],
-            "uncertain": true
-          }
-        ]
-      },
-      {
-        "title": "SciFact dataset build",
-        "description": "The SciFact CLI verifies a pinned archive, converts BEIR files into the shared four-file contract, and builds a deterministic 30-query/500-document subset that load_dataset re-validates before registration.",
-        "nodes": [
-          {
-            "id": "cli",
-            "label": "scifact CLI",
-            "finding_ids": [
-              "F0063",
-              "F0096",
-              "F0100"
-            ]
-          },
-          {
-            "id": "download",
-            "label": "download_archive",
-            "finding_ids": [
-              "F0057",
-              "F0095"
-            ]
-          },
-          {
-            "id": "convert",
-            "label": "convert_archive",
-            "finding_ids": [
-              "F0058",
-              "F0059",
-              "F0060"
-            ]
-          },
-          {
-            "id": "subset",
-            "label": "build_subset",
-            "finding_ids": [
-              "F0061",
-              "F0097",
-              "F0098"
-            ]
-          },
-          {
-            "id": "validate",
-            "label": "load_dataset check",
-            "finding_ids": [
-              "F0062",
-              "F0017",
-              "F0018"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "cli",
-            "to": "download",
-            "label": "Download",
-            "finding_ids": [
-              "F0063",
-              "F0095"
+              "F0052"
             ],
             "uncertain": false
           },
           {
-            "from": "download",
-            "to": "convert",
-            "label": "Verified archive",
+            "from": "pick",
+            "to": "recheck",
+            "label": "Built subset",
             "finding_ids": [
-              "F0057",
-              "F0058"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "convert",
-            "to": "subset",
-            "label": "Source dataset",
-            "finding_ids": [
-              "F0058",
-              "F0061"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "subset",
-            "to": "validate",
-            "label": "Re-validated",
-            "finding_ids": [
-              "F0062",
-              "F0017"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "cli",
-            "to": "validate",
-            "label": "Validate report",
-            "finding_ids": [
+              "F0053",
               "F0063"
             ],
             "uncertain": false
@@ -600,779 +302,788 @@
   },
   "findings": {
     "F0001": {
-      "statement": "The evaluation package __init__ re-exports its public contract from hybrid_rag_search.evaluation.datasets: CorpusRecord, DatasetManifest, EvaluationDataset, JudgmentRecord, QueryRecord, and load_dataset, defining the versioned dataset boundary.",
+      "statement": "The evaluation subsystem package re-exports dataset contracts and a loader from hybrid_rag_search.evaluation.datasets: CorpusRecord, DatasetManifest, EvaluationDataset, JudgmentRecord, QueryRecord, and load_dataset, defining the public evaluation data contract surface.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "evaluation/api.py exposes a single FastAPI APIRouter with POST /debug/search, modeling requests via DebugSearchRequest (dataset restricted to synthetic-workspace/scifact/scifact-subset, query length-bounded, plus a SearchMode).",
+      "statement": "The debug search HTTP endpoint POST /debug/search accepts a DebugSearchRequest with dataset limited to synthetic-workspace, scifact, or scifact-subset, a query string (1-4096 chars), and a SearchMode; it refuses requests when settings.app_env is 'production' with a 404, making it local-only.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "debug_search rejects production by raising HTTPException 404 when settings.app_env == 'production', making the evaluation HTTP surface local-only.",
+      "statement": "debug_search resolves the dataset via selected_dataset, verifies preparation via verify_prepared, then opens an EvaluationSearch context and returns search results with debug=True; ValueError/OSError map to HTTP 409 and RetrievalError/ProviderError map to HTTP 503 with the error code.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "debug_search orchestrates selected_dataset, await verify_prepared, then constructs EvaluationSearch as an async context manager and calls search(..., debug=True), mapping ValueError/OSError to HTTP 409 and RetrievalError/ProviderError to HTTP 503 with the error's code.",
+      "statement": "Evaluation scopes use a fixed tenant UUID (EVALUATION_TENANT = 00000000-0000-4000-8000-000000000201) and derive the collection id deterministically via uuid5 from the dataset corpus hash and configured pipeline version, so the same corpus and pipeline reuse the same collection.",
       "sources": [
-        "S0002"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "corpus.py derives a deterministic EvaluationScope: collection_id = uuid5(EVALUATION_TENANT, f'{corpus_hash}:{pipeline}') and document_ids keyed by uuid5(collection, record.id), tying scope identity to dataset content hash and pipeline version.",
+      "statement": "evaluation_scope rejects datasets whose corpus contains non-document record types (\"Day 15 evaluates document corpora only\") and maps each corpus record id to a document id via uuid5(collection, record.id).",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "evaluation_index_settings rewrites opensearch_read_alias/write_alias to hybrid-rag-eval-{collection_id}-read/-write, keeping evaluation index creation separate from demo aliases and manual rebuilds.",
+      "statement": "selected_dataset loads a dataset by name from a fixed DATASETS mapping (synthetic-workspace, scifact, scifact-subset paths) and raises ValueError for unknown names.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "ensure_evaluation_index uses httpx.AsyncClient HEAD on the physical index name; on 404 it creates the index through OpenSearchIndexManager then points the write alias and promotes the read alias.",
+      "statement": "evaluation_index_settings renames the OpenSearch read and write aliases to a hybrid-rag-eval-{collection_id} prefix so evaluation index creation stays separate from demo aliases and manual rebuilds.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0008": {
-      "statement": "prepare_corpus reuses the durable ingestion pipeline: it inserts Tenant/Collection rows via on_conflict_do_nothing, then per corpus record saves content to LocalFileStorage and enqueues an IngestionJob via IngestionJobService with a ManualPublisher.",
+      "statement": "ensure_evaluation_index checks via an HTTP HEAD for the physical index and, when absent (404), creates it through OpenSearchIndexManager and points the write then read alias; other non-404 statuses are raised as errors.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0009": {
-      "statement": "The preparation CLI runs durable jobs inline: when an enqueued job's status is not 'succeeded', prepare_corpus calls run_configured_job with a ManualActor (send returns job_id) and OpenSearchDocumentIndex, raising ValueError if the result is not JobRunResult.SUCCEEDED.",
+      "statement": "ManualActor and ManualPublisher are stand-in components whose send/send_with_options and publish methods are no-ops, allowing durable ingestion jobs to be executed inline by the preparation CLI while retries stay explicit.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "prepare_corpus treats existing documents as immutable: if a Document exists with a differing content_hash or source_metadata it raises ValueError('Prepared evaluation document differs from dataset') instead of overwriting.",
+      "statement": "prepare_corpus validates a nonnegative document_delay, prepares the evaluation index, creates a Tenant and Collection row idempotently (on_conflict_do_nothing), and disposes its database engine in a finally block.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0011": {
-      "statement": "After ingestion prepare_corpus calls compact_corpus (OpenSearch _forcemerge with max_num_segments=1 and flush=true) then verify_prepared, so corpus preparation is ordered force-merge before verification.",
+      "statement": "For each corpus record, prepare_corpus computes a sha256 content digest, saves content to LocalFileStorage under a tenant/document key, and inserts a Document row scoped to tenant and collection; if a document already exists, a differing content_hash or source_metadata triggers a ValueError treating prepared documents as immutable.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "verify_prepared fails closed by querying IngestionJob rows for scope.tenant_id, scope.document_ids, scope.pipeline_version and status 'succeeded', raising ValueError if the count differs from the corpus or if a checkpoint's index receipt lacks a string generation_id or an int chunk_count.",
+      "statement": "prepare_corpus enqueues a durable ingestion job per document and, when the job is not already succeeded, runs run_configured_job inline through ManualActor and the OpenSearch index, raising ValueError with the job id and result if ingestion does not succeed.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "verify_prepared then aggregates the evaluation read alias filtered by tenant_id, collection_id, and visibility=ready, comparing per-document generation_id and doc_count aggregates against the receipts and raising ValueError if the index differs.",
+      "statement": "After ingestion, prepare_corpus calls compact_corpus, which POSTs a forcemerge to the evaluation physical index with max_num_segments=1 and flush=true to settle deleted promotion records before benchmarking.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "evaluation_scope raises ValueError when any corpus record type is not 'document', restricting evaluation to document corpora.",
+      "statement": "verify_prepared fails closed: it queries IngestionJob rows for the scope's documents at the scope pipeline version with status 'succeeded', requires the count to equal the corpus size, and requires each completed job's checkpoint to contain an 'index' receipt with a string generation_id and integer chunk_count.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "corpus.py maps three named datasets to paths: synthetic-workspace to datasets/synthetic-workspace/v1, scifact to DEFAULT_OUTPUT, and scifact-subset to SUBSET_OUTPUT; selected_dataset raises ValueError for unknown names.",
+      "statement": "verify_prepared then queries the evaluation read alias with an aggregation over document_id and generation_id filtered by tenant, collection, and visibility 'ready', and raises ValueError if the observed generations/chunk counts differ from the job receipts, guarding against stale or rebuilt indexes and returning the total ready document count on success.",
       "sources": [
         "S0003"
       ],
       "uncertain": false
     },
     "F0016": {
-      "statement": "The debug endpoint depends on imports from config, evaluation.corpus, evaluation.search, lexical_retrieval, and providers.errors, indicating the HTTP surface composes dataset selection, corpus verification, and shared search/retrieval error types.",
+      "statement": "The debug search API relies on EvaluationSearch and SearchMode from hybrid_rag_search.evaluation.search and selected_dataset/verify_prepared from evaluation.corpus; the actual retrieval dispatch and scoring behavior of EvaluationSearch is not visible in these excerpts.",
       "sources": [
         "S0002"
       ],
-      "uncertain": false
+      "uncertain": true
     },
     "F0017": {
-      "statement": "load_dataset(directory) is the public loader entry point: it reads manifest.json, validates it via DatasetManifest.model_validate_json, and returns an immutable EvaluationDataset bundling manifest, corpus, queries, judgments, corpus_hash, and dataset_hash.",
+      "statement": "load_dataset loads and validates an evaluation dataset from a directory containing a manifest plus corpus, queries, and judgments JSONL files, returning an immutable EvaluationDataset without mutating the source.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0018": {
-      "statement": "Dataset integrity is enforced by comparing each manifest-listed file's SHA-256 (_sha256(data)) against DatasetFile.sha256 and raising DatasetValidationError on mismatch before any parsing occurs.",
+      "statement": "DatasetManifest must declare schema_version 'evaluation-dataset-v1', purpose 'evaluation', and exactly one entry each for corpus.jsonl, queries.jsonl, and judgments.jsonl, enforced by require_all_files_once.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0019": {
-      "statement": "DatasetManifest permits exactly the three file paths corpus.jsonl, queries.jsonl, and judgments.jsonl exactly once, enforced by the require_all_files_once after-validator; DatasetFile.path is a Literal restricted to those names.",
+      "statement": "load_dataset verifies a SHA-256 hash of each declared dataset file against the manifest and raises DatasetValidationError on mismatch, making content integrity part of the load contract.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0020": {
-      "statement": "The strict dataset contract uses StrictModel with ConfigDict(extra=\"forbid\", frozen=True), so records reject unknown fields and are immutable, and Identifier values must match ^[a-z0-9][a-z0-9._-]*$.",
+      "statement": "_read_jsonl parses each line as a JSON object against a Pydantic model, rejecting blank lines and non-object lines with line-numbered DatasetValidationError messages.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0021": {
-      "statement": "CorpusRecord enforces a parent/child relation via validate_parent: type=\"chunk\" requires document_id and type=\"document\" forbids it.",
+      "statement": "CorpusRecord validation distinguishes document versus chunk records: chunks require a document_id and documents must not have one.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0022": {
-      "statement": "load_dataset performs referential validation: every judgments.query_id must exist in queries, every target_id must exist in corpus, and judgment.target_type must match the resolved corpus record's type.",
+      "statement": "_unique_ids rejects duplicate corpus and query identifiers before cross-referencing, ensuring ID uniqueness within each collection.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0023": {
-      "statement": "load_dataset requires every query to have at least one judgment and at least one positive (relevance_grade > 0) judgment, raising DatasetValidationError listing queries without judgments or without a positive judgment.",
+      "statement": "load_dataset enforces referential integrity: every judgment must reference a known query and known corpus target, and the judgment's declared target_type must match the target record's type.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0024": {
-      "statement": "_unique_ids rejects duplicate IDs within corpus and within queries by raising DatasetValidationError on duplicate corpus or query IDs.",
+      "statement": "load_dataset requires every query to have at least one judgment and at least one positive (relevance_grade > 0) judgment, otherwise raising DatasetValidationError.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0025": {
-      "statement": "_read_jsonl rejects blank lines and non-object JSON lines as DatasetValidationError, wrapping JSONDecodeError and pydantic ValidationError with file name and line number.",
+      "statement": "load_dataset computes a corpus_hash from the corpus file bytes and a dataset_hash from a newline-joined digest of schema version, dataset id, dataset version, and per-file hashes, enabling reproducible dataset identity.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0026": {
-      "statement": "EvaluationDataset.dataset_hash is computed from a newline-joined digest of schema_version, dataset_id, version, and each file's name:sha256 sorted by name, whereas corpus_hash is the SHA-256 of the corpus file bytes alone.",
+      "statement": "StrictModel forbids extra fields and freezes instances, so all dataset records reject unexpected input and are immutable after construction.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0027": {
-      "statement": "score_ranking(ranking, judgments) is the scoring entry point that deduplicates ranking order-preservingly via dict.fromkeys before applying cutoffs, so duplicate results do not consume cutoff slots.",
+      "statement": "score_ranking deduplicates the ranking while preserving order, then computes recall@5, recall@10, and recall@50 against the set of positively judged documents.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
     "F0028": {
-      "statement": "score_ranking returns recall@5, recall@10, recall@50, mrr@10, and ndcg@10 as a dict keyed by metric name, all computed against the set of judgments with grade > 0.",
+      "statement": "score_ranking computes mrr@10 as the reciprocal rank of the first relevant document within the top ten, returning 0.0 if none is found.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
     "F0029": {
-      "statement": "score_ranking validates that every relevance grade is an int in [0,3] and raises ValueError otherwise, and raises ValueError if no positive judgment exists for the query.",
+      "statement": "score_ranking computes ndcg@10 using graded relevance (2^grade - 1 discounted by log2(rank+1)) and normalizes by an ideal DCG over the top ten judged grades.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
     "F0030": {
-      "statement": "score_ranking assigns no credit to unjudged documents: documents absent from the judgments mapping contribute grade 0 to nDCG via judgments.get(key, 0) and are not counted in recall or MRR relevant sets.",
+      "statement": "score_ranking enforces input contracts: it raises ValueError if any grade is not an integer between 0 and 3, or if the judgment set contains no positive grade.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
     "F0031": {
-      "statement": "nDCG@10 uses graded gain with the exponential form (2**grade - 1)/log2(rank+1), normalized by an ideal DCG computed from the top-10 sorted judgment grades.",
+      "statement": "score_ranking treats unjudged documents as grade zero during nDCG and count them against recall and MRR, so only judged-relevant documents earn credit.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
     "F0032": {
-      "statement": "The dataset loader layer (S0004) and metrics layer (S0005) are independent modules: metrics.score_ranking consumes a plain Mapping of judgments and a Sequence of document IDs rather than EvaluationDataset or its record types, so dataset loading and scoring communicate only through caller-supplied primitives.",
+      "statement": "The dataset loader consumes validated on-disk evaluation records and emits tuples of corpus, query, and judgment models plus hashes, which downstream evaluation code (not shown in these excerpts) uses to drive corpus preparation and scoring.",
       "sources": [
-        "S0004",
-        "S0005"
+        "S0004"
       ],
-      "uncertain": false
+      "uncertain": true
     },
     "F0033": {
-      "statement": "The evaluation runner exposes a CLI with four subcommands (prepare, run, compare, export) implemented via argparse subparsers in main(), making the module both a library of evaluation functions and an operator entry point.",
+      "statement": "runner.py is a CLI (main via argparse subcommands prepare/run/compare/export) that orchestrates retrieval-benchmark execution: 'run' loads a named dataset via selected_dataset, applies benchmark_settings and evaluation_index_settings, verifies prepared corpus chunks, then drives evaluate over all queries and all MODES.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0034": {
-      "statement": "run_baseline is the orchestration entry point that chains dataset selection, benchmark/index settings derivation, corpus verification, alias lookup, retrieval, metadata assembly, and report saving, delegating domain scoring to evaluate and score_ranking.",
+      "statement": "evaluate iterates each query and each retrieval mode, calls the injected search function, trims chunk fields, computes ranking from result documents, scores via score_ranking against per-query judgments, and records metrics, elapsed_ms, chunk_count, document_count and full search result per mode.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0035": {
-      "statement": "evaluate() iterates sequentially over dataset queries and then over each mode in MODES, awaiting an injected async SearchFunction per (query, mode) pair, and applies query_delay via asyncio.sleep between queries.",
+      "statement": "Judgment loading enforces that each query has unique document-type judgments; duplicate target_id or non-document target_type raises ValueError.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0036": {
-      "statement": "The search dependency is injected as a SearchFunction callable (EvaluationSearch.search passed in by run_baseline), so evaluate() itself holds no direct dependency on the retrieval implementation or HTTP client.",
+      "statement": "Per-query and per-mode deltas relative to bm25 metrics are computed (delta_vs_bm25) using bm25 as the reference baseline for every other mode.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0037": {
-      "statement": "evaluate() builds a per-query judgment map and rejects datasets whose judgments are non-document targets or duplicate per query, raising ValueError; it treats that invariant as preprocessing, not scoring.",
+      "statement": "Aggregate metrics are the mean across queries for each mode and metric key, with metric names recall@5, recall@10, recall@50, mrr@10, ndcg@10.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0038": {
-      "statement": "Score ranking compares each mode against bm25 as the reference, and per-mode metrics are differenced against bm25 metrics into delta_vs_bm25 fields.",
+      "statement": "save_report writes both report.json (jsonable_encoder-serialized, sorted keys) and report.md (markdown_report rendering aggregate table plus per-query BM25 differences) into a created output directory.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0039": {
-      "statement": "evaluate() trims each result's chunks to only chunk_id, evaluation_document_id, rank, and score before storing them, explicitly avoiding repeated source bytes in benchmark reports.",
+      "statement": "compare_reports refuses comparisons when metadata keys dataset/configuration/pipeline_version/index/models/adapters differ or query sets differ, and otherwise reports maximum absolute per-query and aggregate metric drift, noting latency is descriptive only.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0040": {
-      "statement": "Aggregate metrics are computed as the mean across queries for each mode and metric key, keyed off the metric keys present in the first row's per-mode metrics.",
+      "statement": "configuration uses an explicit allowlist of Settings fields (opensearch_bm25_* plus listed limits/timeouts/schema version) plus a fixed rrf_rank_constant of 60, expressly to keep credentials and unrelated settings out of reports.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0041": {
-      "statement": "run_baseline verifies the prepared OpenSearch alias via an httpx.AsyncClient GET to /_alias/{opensearch_read_alias}, raising on non-success status, and records the sorted alias index names as metadata.",
+      "statement": "run_baseline records reproduction metadata: schema identifier, UTC creation time, git HEAD revision and dirty-worktree flag, dataset id/version/hashes/counts, chunk count, pipeline version, resolved OpenSearch indexes, tenant and collection ids, hardware info, caller-supplied cache_state, query delay, execution note, model names, adapters, allowlisted config, metric rules, and a count of hybrid_rerank results with a fallback reason.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0042": {
-      "statement": "run_baseline captures reproduction metadata including git HEAD revision and dirty-worktree state (via subprocess git calls), platform/CPU details, dataset hashes and counts, settings-derived models, and a rerank_fallback_count summed from hybrid_rerank trace fallback_reason values.",
+      "statement": "run_baseline resolves OpenSearch indexes by GETting /_alias/<opensearch_read_alias> through an httpx AsyncClient and raising on HTTP error, and captures git revision via subprocess calls to 'git rev-parse HEAD' and 'git diff HEAD --name-only'.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0043": {
-      "statement": "configuration() uses an explicit allowlist over Settings model fields (opensearch_bm25_* plus a fixed list, plus a literal rrf_rank_constant of 60) to keep credentials and unrelated settings out of reports.",
+      "statement": "The runner wires external systems: OpenSearch (via httpx alias lookup and via EvaluationSearch/benchmark_settings), Cohere embedding and rerank models (recorded as adapters 'cohere'), and the durable corpus preparation boundary (verify_prepared, evaluation_scope, prepare_corpus, DATASETS).",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0044": {
-      "statement": "save_report serializes the report through fastapi.encoders.jsonable_encoder and writes both report.json and a markdown report (markdown_report) into the output directory, which is created if absent.",
+      "statement": "The export subcommand reloads a previously written report JSON from disk and re-renders it to JSON and markdown via save_report, without re-running anything.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0045": {
-      "statement": "compare_reports refuses to compare reports that differ in dataset, configuration, pipeline_version, index, models, or adapters, or that have different query-id sequences, then reports maximum absolute per-query and aggregate metric drift while declaring latency descriptive-only.",
+      "statement": "evaluate supports an optional nonnegative query_delay that sleeps between queries; negative values are rejected with ValueError.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0046": {
-      "statement": "run_baseline derives evaluation index settings from the base Settings and dataset via evaluation_index_settings, and derives an evaluation_scope used both for the search scope and metadata tenant/collection ids and pipeline_version.",
+      "statement": "The 'prepare' subcommand runs prepare_corpus for the selected dataset with settings from get_settings and an optional document delay, i.e. the runner also owns corpus setup (delegated to the evaluation.corpus module).",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0047": {
-      "statement": "The metadata execution field documents sequential query/mode execution with concurrent hybrid branches and no query embedding cache, and adapters are recorded as cohere embedding/rerank with opensearch retrieval.",
+      "statement": "main is marked as exercised only through documented CLI commands and the module itself is guarded by if __name__ == '__main__', so the entry point is the command line rather than an imported API.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0048": {
-      "statement": "Query embedding and reranking are external Cohere models configured via settings.cohere_embed_model and settings.cohere_rerank_model, but the runner only records these names and does not call Cohere directly; retrieval is routed through EvaluationSearch.",
+      "statement": "The concrete behavior inside EvaluationSearch, score_ranking, benchmark_settings, evaluation_index_settings, verify_prepared, selected_dataset, and prepare_corpus is not defined in this excerpt; their roles are inferred from call sites only.",
       "sources": [
         "S0006"
       ],
       "uncertain": true
     },
     "F0049": {
-      "statement": "EvaluationSearch.search is the single dispatch boundary that selects one of four retrieval modes ('bm25', 'dense', 'hybrid', 'hybrid_rerank') declared in MODES, raising ValueError for an unknown mode.",
+      "statement": "The SciFact module is a command-line dataset builder: main() parses a required command (download, validate, subset), optional --output and --source paths, defaults output to the versioned cache directory for download/validate and to the subset v1 directory for subset, then prints a summary line after running.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0050": {
-      "statement": "EvaluationSearch reuses provider resources across queries via AsyncExitStack and lazily constructs the embedding provider, dense retriever, hybrid retriever, and reranker only when a mode requires them; bm25 mode constructs no dense/hybrid/reranked components.",
+      "statement": "download_archive fetches the pinned BEIR SciFact zip from a fixed HTTPS URL with redirects and a 60-second timeout, writes it to a temporary '.partial' file, verifies its SHA-256 against SCIFACT_ARCHIVE_SHA256, and only then atomically replaces the destination, raising ValueError on hash mismatch and removing the partial file in a finally block.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0051": {
-      "statement": "benchmark_settings overrides opensearch_bm25_candidate_limit, opensearch_dense_candidate_limit, rerank_candidate_limit, and rerank_result_limit to the fixed BUDGET of 100 for evaluation runs.",
+      "statement": "convert_archive re-verifies the archive hash before reading, extracts 'scifact/qrels/test.tsv', 'scifact/corpus.jsonl' and 'scifact/queries.jsonl' from the zip in memory, maps corpus ids to 'scifact-doc-<id>', query ids to 'scifact-query-<id>', keeps only queries that appear in qrels, converts qrels scores to relevance grades (3 if score>0 else 0), and writes corpus.jsonl, queries.jsonl and judgments.jsonl sorted by id plus a manifest.json recording the source URL, archive hash, license and per-file SHA-256 hashes.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0052": {
-      "statement": "EvaluationSearch.search validates that every returned evidence item's tenant_id, collection_id, pipeline_version, and document_id match the resolved evaluation scope, raising ValueError('Search returned evidence outside the prepared evaluation scope') on mismatch.",
+      "statement": "build_subset selects a deterministic sample from an already-converted dataset: 30 queries by lowest salted SHA-256 of 'scifact-subset-v1:<id>', all their judgments, then fills to exactly 500 documents by the same salted hash ordering, raising ValueError if the source has fewer than 30 queries or 500 documents or if judgments already require more than 500 documents.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0053": {
-      "statement": "EvaluationSearch.search enforces an allow-list of metadata filters (source_type, author, source_date_from, source_date_to) and parses keys starting with 'source_date_' via parse_source_date, rejecting unsupported filters.",
+      "statement": "build_subset writes a rewritten manifest labeled dataset_id 'scifact-subset' version 'scifact-subset-v1' that records the parent dataset hash and describes the selection rule, then reloads the output via load_dataset as a final validation before returning the output path.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0054": {
-      "statement": "EvaluationSearch.search deduplicates returned chunks by evaluation_document_id, producing a 'documents' list with one entry per document and sequential ranks. This is an inferred derivation from the loop that tracks a 'seen' set.",
+      "statement": "The SciFact CLI's validate command performs no explicit branch in main and instead falls through to the shared _summary() call, which loads the target directory with load_dataset and reports dataset id, version, corpus/query/judgment counts and corpus/dataset hashes.",
       "sources": [
-        "S0008"
+        "S0007"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0055": {
-      "statement": "EvaluationSearch.search reads per-dataset index settings from evaluation_index_settings and evaluates scope via evaluation_scope, then reassigns the bm25 and (when constructed) dense retriever read_alias to the configured opensearch_read_alias on each call.",
+      "statement": "EvaluationSearch is the single search boundary for evaluation: it holds a Settings copy whose candidate and result limits are pinned to BUDGET=100 via benchmark_settings, and creates the BM25 retriever eagerly while leaving dense, hybrid and reranked retrievers unbuilt until first needed.",
       "sources": [
         "S0008"
       ],
       "uncertain": false
     },
     "F0056": {
-      "statement": "The evaluation search module docstring describes EvaluationSearch as 'One evaluation search boundary shared by HTTP and the benchmark runner', indicating intended reuse across HTTP and benchmark entry points.",
+      "statement": "EvaluationSearch.search receives an EvaluationDataset, a query string, a mode in ('bm25','dense','hybrid','hybrid_rerank') and optional metadata filters, raises ValueError on unknown modes, and derives per-dataset index scope and read alias through evaluation_scope and evaluation_index_settings, updating the aliases on the lexical and (if present) dense retrievers.",
       "sources": [
         "S0008"
       ],
       "uncertain": false
     },
     "F0057": {
-      "statement": "scifact.py downloads the pinned BEIR SciFact archive from SCIFACT_URL and verifies its SHA-256 against SCIFACT_ARCHIVE_SHA256, raising ValueError on mismatch, with download to a .partial temporary path that is replaced atomically on success.",
+      "statement": "Metadata filters accepted by EvaluationSearch.search are restricted to source_type, author, source_date_from and source_date_to; any other key raises ValueError, and source_date_* values are normalized through parse_source_date before being passed as search options alongside tenant_id, collection_id and debug.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0058": {
-      "statement": "convert_archive re-verifies the archive SHA-256 before opening the zip, then converts scifact/qrels/test.tsv, scifact/corpus.jsonl, and scifact/queries.jsonl into the shared corpus/queries/judgments JSONL contract with prefixed IDs (scifact-doc-, scifact-query-).",
+      "statement": "Mode dispatch branches by retriever: bm25 uses the lexical retriever; dense lazily constructs a Cohere embeddings provider and a dense retriever; hybrid adds a HybridRetriever with RRF candidate_limit=BUDGET; hybrid_rerank additionally lazily constructs a Cohere reranker and a RerankedRetriever with settings-derived config. Providers are entered into an AsyncExitStack for the lifetime of the EvaluationSearch context.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0059": {
-      "statement": "convert_archive maps BEIR qrels scores to relevance_grade 3 when score > 0 else 0, and filters queries to those appearing in the qrels (relevant_query_ids).",
+      "statement": "After retrieval, EvaluationSearch.search validates every returned chunk against the prepared evaluation scope, raising ValueError if tenant, collection, document id or pipeline_version mismatch, then annotates each chunk with its rank and mapped evaluation_document_id and produces a de-duplicated document-level ranking keyed by evaluation document id.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0060": {
-      "statement": "convert_archive emits a 'evaluation-dataset-v1' schema manifest with dataset_id 'scifact', version SCIFACT_VERSION ('beir-2021-03-19-test-v1'), source URL, archive SHA-256, license 'CC BY-NC 2.0', and per-file SHA-256 entries.",
+      "statement": "EvaluationSearch.search returns a dict containing mode, a chunks list with document/chunk identity and rank, a documents list of unique ranked document ids, and a trace converted from the selected retriever's trace dataclass via asdict.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0061": {
-      "statement": "build_subset selects 30 queries and 500 documents by stable salted SHA-256 ordering ('scifact-subset-v1:' prefix), including all judgments for selected queries and filling remaining document slots from the same hash ordering, raising ValueError if the source has fewer than 30 queries or 500 documents or if judgments alone require more than 500 documents.",
+      "statement": "The evaluation subsystem depends on shared retrieval contracts (RetrievalResult, HybridRetriever/RRFConfig, RerankedRetriever, OpenSearch BM25 and dense retrievers) and provider factories configured from Settings, so evaluation runs are wired into the same retrieval stack used elsewhere rather than a separate implementation.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0062": {
-      "statement": "build_subset writes the subset, then calls load_dataset(output) to re-validate the produced files, and the default source/output paths are DEFAULT_OUTPUT (datasets/.cache/scifact/<version>) and SUBSET_OUTPUT (datasets/scifact-subset/v1).",
+      "statement": "EvaluationSearch is an async context manager that opens and closes its AsyncExitStack via __aenter__/__aexit__, so lazily created provider resources (embeddings, reranker) are released when the shared search boundary exits.",
       "sources": [
-        "S0007"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0063": {
-      "statement": "The scifact CLI (main) accepts commands 'download', 'validate', or 'subset'; only download (download_archive then convert_archive) and subset (build_subset) branches are implemented in the excerpt, and every run prints a summary from _summary that loads the dataset and reports dataset_id, version, corpus/query/judgment counts, corpus_hash, and dataset_hash.",
+      "statement": "Dataset integrity is enforced at multiple points: archive and file-level SHA-256 hashes, a pinned version label, and a full load_dataset re-read between building and returning a dataset, so a corrupted or altered SciFact source is rejected before downstream use.",
       "sources": [
         "S0007"
       ],
       "uncertain": false
     },
     "F0064": {
-      "statement": "scifact.py imports load_dataset and StrictModel from hybrid_rag_search.evaluation.datasets as the shared dataset contract, while EvaluationSearch in search.py composes with retrieval, providers, config, and evaluation corpus/dataset modules; the evaluation subsystem therefore depends on the foundation config/settings, retrieval, and provider boundaries.",
+      "statement": "The SciFact subset is explicitly described as a pipeline baseline with 30 queries and 500 documents, not the full BEIR SciFact, which bounds what evaluation results derived from it can claim.",
       "sources": [
-        "S0007",
-        "S0008"
+        "S0007"
       ],
       "uncertain": false
     },
     "F0065": {
-      "statement": "The evaluation ORM layer defines four SQLAlchemy models on a shared Base: EvaluationDataset, Judgment, EvaluationRun, and AuditEvent, with enums JudgmentTarget (document/chunk) and EvaluationRunStatus (queued/running/succeeded/failed/cancelled).",
+      "statement": "The evaluation subsystem persists its domain state as four tenant-scoped PostgreSQL tables: EvaluationDataset (versioned, hash-addressed dataset metadata), Judgment (per-query relevance labels targeting documents or chunks), EvaluationRun (execution status, seed, metrics and error state), and AuditEvent (namespaced action records attributed to a membership). All rows carry tenant_id and most cross-references use composite (tenant_id, id) foreign keys so tenant isolation is enforced at the database level.",
       "sources": [
         "S0009"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0066": {
-      "statement": "EvaluationDataset is tenant-scoped via a ForeignKey to tenants.id with ON DELETE CASCADE and enforces a unique (tenant_id, name, version) constraint, a positive integer version, a 64-hex-char corpus_hash, and object-typed dataset_metadata.",
+      "statement": "EvaluationDataset enforces integrity through database constraints: name must be non-blank, version must be positive, corpus_hash must be a 64-character lowercase hex SHA-256 digest, dataset_metadata must be a JSON object, and (tenant_id, name, version) is unique. This makes a dataset a versioned, content-addressed artifact.",
       "sources": [
         "S0009"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0067": {
-      "statement": "Judgment references EvaluationDataset through a composite ForeignKeyConstraint on (tenant_id, dataset_id) to (evaluation_datasets.tenant_id, evaluation_datasets.id) with ON DELETE CASCADE, keeping judgments tenant-consistent with their dataset and deleted with it.",
+      "statement": "Judgment constrains each label: target_type must be 'document' or 'chunk', target_id and query text/keys must be non-blank, relevance_grade must be between 0 and 3, key_facts must be a JSON array and metadata_filters a JSON object. The unique key (tenant_id, dataset_id, query_key, target_type, target_id) prevents duplicate judgments, and the foreign key to evaluation_datasets cascades on delete.",
       "sources": [
         "S0009"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0068": {
-      "statement": "EvaluationRun references both EvaluationDataset and retrieval_configs via composite foreign keys, both with ON DELETE RESTRICT, so a run cannot be created without a dataset and retrieval config and those parents cannot be deleted while a run exists.",
+      "statement": "EvaluationRun records execution lifecycle: a status drawn from the EvaluationRunStatus enumeration (queued, running, succeeded, failed, cancelled) defaulting to queued, a non-negative seed, JSON object metrics, optional error message and started/finished timestamps, with updated_at refreshed on modification. Its dataset and retrieval_config foreign keys are RESTRICT on delete, so a run cannot exist without both.",
       "sources": [
         "S0009"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0069": {
-      "statement": "EvaluationRun persists status, seed, metrics JSONB, error_message, and started_at/finished_at timestamps, with status constrained to the five EvaluationRunStatus values and seed constrained non-negative.",
+      "statement": "AuditEvent captures who did what to which entity: an actor_membership_id (nullable) referencing memberships (RESTRICT), an action matching a namespaced pattern such as 'namespace.event', an entity_type matching a lowercase identifier pattern, a non-blank entity_id, and a JSON object of details, timestamped on insert. This provides an append-oriented audit trail tied to tenant and membership.",
       "sources": [
         "S0009"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0070": {
-      "statement": "AuditEvent records tenant-scoped actor actions with action, entity_type, entity_id, details JSONB and occurred_at; action must match a namespaced pattern 'a.b', entity_type must be lowercase snake, and it references memberships via a composite (tenant_id, actor_membership_id) FK with ON DELETE RESTRICT.",
+      "statement": "Dataset loading (load_dataset) is deterministic and re-loadable: loading the synthetic workspace dataset twice yields equal objects, exposing a manifest version, 8 corpus records, 12 queries spanning four categories (exact-match, paraphrase, stale-version, conflicting-evidence), a fixed corpus_hash, and a 64-character dataset_hash. Determinism means repeated loads produce identical hashes.",
       "sources": [
-        "S0009"
+        "S0011"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0071": {
-      "statement": "corpus.prepare_corpus derives a deterministic document id as uuid5(scope.collection_id, dataset.corpus[i].id) and persists source_metadata containing evaluation_id, so prepared evaluation corpus documents are content-addressed and traceable to their dataset record.",
+      "statement": "load_dataset validates each file against the manifest SHA-256: appending even a single space to corpus.jsonl causes a 'SHA-256 mismatch' DatasetValidationError. File contents are therefore integrity-checked before use.",
       "sources": [
-        "S0010"
+        "S0011"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0072": {
-      "statement": "corpus.prepare_corpus reuses already-persisted documents: when a session.get for the derived id returns an existing record whose content_hash matches, it neither re-enqueues ingestion nor writes a new row, but raises ValueError if the stored content_hash 'differs'.",
+      "statement": "load_dataset rejects malformed and semantically inconsistent records with specific messages: invalid JSON lines, non-object entries, blank lines, judgments referencing unknown queries or unknown targets, target-type mismatches, duplicate query IDs, queries without any judgment, and queries with only a zero-grade (no positive) judgment. These enforce referential and label-quality rules at load time.",
       "sources": [
-        "S0010"
+        "S0011"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0073": {
-      "statement": "corpus.prepare_corpus treats a JobRunResult.RETRY_SCHEDULED from the durable ingestion run as an error (raises ValueError 'retry_scheduled'), and rejects a negative document_delay, so inline ingestion outcomes are surfaced as preparation failures rather than silently retried.",
+      "statement": "The dataset contract also validates manifest and record shape independently of files: DatasetManifest requires a minimum set of files (rejecting a truncated files list), CorpusRecord requires document_id for chunk records and forbids document_id on document records, and an unreadable/missing corpus.jsonl or invalid manifest produces DatasetValidationError. These are Pydantic validation errors surfaced at load time.",
       "sources": [
-        "S0010"
+        "S0011"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0074": {
-      "statement": "corpus.verify_prepared cross-checks ingestion job receipts (checkpoint[\"index\"][\"generation_id\"]) against OpenSearch aggregation buckets keyed by document, raising ValueError when jobs are missing, lack a receipt, or the index generation 'differs' from the job checkpoint.",
-      "sources": [
-        "S0010"
-      ],
-      "uncertain": true
-    },
-    "F0075": {
-      "statement": "corpus.ensure_evaluation_index is idempotent: it probes the eval index over HTTP and only calls OpenSearchIndexManager.create when the probe returns non-200, and settings.opensearch_read_alias for eval starts with the prefix 'hybrid-rag-eval-' (isolation from production aliases).",
-      "sources": [
-        "S0010"
-      ],
-      "uncertain": true
-    },
-    "F0076": {
-      "statement": "The evaluation corpus preparation path owns direct database engine/session lifecycle (create_async_engine, async_sessionmaker) and disposes the engine at the end of prepare/verify/ensure operations, acting as an orchestration boundary rather than a pure domain module.",
-      "sources": [
-        "S0010"
-      ],
-      "uncertain": true
-    },
-    "F0077": {
-      "statement": "load_dataset validates datasets against a DatasetManifest contract and returns a deterministic object: identical directories produce equal results, and the synthetic-workspace v1 corpus hash is pinned to a specific SHA-256 value, so datasets are hash-verified and versioned.",
-      "sources": [
-        "S0011"
-      ],
-      "uncertain": true
-    },
-    "F0078": {
-      "statement": "load_dataset enforces multiple integrity invariants over JSONL inputs: file SHA-256 hashes must match the manifest, queries.jsonl must be non-blank JSON objects, judgments must reference known queries and targets with matching target_type, and every query must have at least one positive judgment.",
-      "sources": [
-        "S0011"
-      ],
-      "uncertain": true
-    },
-    "F0079": {
-      "statement": "CorpusRecord enforces that chunk records require a document_id while document records must not carry one, and DatasetManifest requires a fixed set of files, so parent/child corpus shape is validated at load time.",
-      "sources": [
-        "S0011"
-      ],
-      "uncertain": true
-    },
-    "F0080": {
-      "statement": "score_ranking in evaluation.metrics is a pure function over an ordered ranking and a graded relevance map, producing recall@5/@10/@50, mrr@10, and ndcg@10, removing duplicate results before cutoffs, keeping the judgment-set denominator for short result lists, and rejecting invalid grades (0, negative, >3, or bool) with ValueError.",
+      "statement": "score_ranking produces fixed retrieval metrics for a ranked list of result IDs against graded relevance judgments: recall@5/@10/@50, mrr@10, and nDCG@10. In the known-answer example ['negative','weak','best'] with grades {weak:1,best:3,negative:0}, all recalls are 1, mrr@10 is 0.5, and nDCG@10 follows the expected logarithmic formula, so the metric definitions are pinned and reproducible.",
       "sources": [
         "S0012"
       ],
-      "uncertain": true
+      "uncertain": false
+    },
+    "F0075": {
+      "statement": "score_ranking removes duplicate result IDs before applying cutoffs and keeps the full judged denominator for recall even when fewer results are returned: 60 copies of 'a' plus one 'b' against grades {a:3,b:2,c:1} yields recall@5 == recall@50 == 2/3 and mrr@10 == 1. Unjudged results and empty inputs produce zeros rather than errors, so metrics degrade gracefully.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0076": {
+      "statement": "score_ranking rejects invalid judgments by raising ValueError when a grade is 0-only-invalid, negative, above 3, or a non-integer boolean, so grade validation is enforced at scoring time as well as at persistence time.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0077": {
+      "statement": "corpus.prepare_corpus takes a dataset, settings, and an optional non-negative document_delay, enqueues durable ingestion jobs per corpus document, persists IngestionJob rows, and verifies prepared state. It reuses an already-succeeded durable job without re-running it or re-adding a document, and rejects a negative delay with a 'nonnegative' ValueError, making preparation idempotent and bounded.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0078": {
+      "statement": "prepare_corpus treats persisted documents as immutable: when a stored document's content_hash differs from the expected hash it raises a 'differs' ValueError, and when a durable job returns RETRY_SCHEDULED the preparation aborts with a 'retry_scheduled' ValueError. This prevents silently searching an inconsistent corpus.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0079": {
+      "statement": "corpus.verify_prepared requires a complete set of ingestion job receipts with matching index generations: missing jobs raise 'not prepared', a job missing its index checkpoint raises 'receipt', and stale generation IDs in the OpenSearch aggregation raise 'differs'. On success it returns 16 (the document count) and queries OpenSearch's documents aggregation for the scope's collection, meaning the indexed corpus must match the prepared scope before evaluation can proceed.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0080": {
+      "statement": "Evaluation index setup is isolated and reusable: ensure_evaluation_index creates the index only when it does not already exist (a 404 creates, a subsequent 200 reuses without a second create), and the evaluation settings use a read alias prefixed 'hybrid-rag-eval-'. compact_corpus is invoked afterward, so the per-scope evaluation index is separate from production aliases and force-merged after preparation.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
     },
     "F0081": {
-      "statement": "EvaluationSearch.search() is the single mode-dispatch boundary for evaluation retrieval: callers pass a dataset, query, mode and filters, and it returns scope-filtered results; it rejects unknown modes and unsupported filter keys with ValueError (observed in tests S0014).",
+      "statement": "Evaluation runs are deterministic given a fixed dataset and search function: calling evaluate twice with the same inputs produces identical per-query metrics (compare_reports(max_absolute_per_query_metric_delta) == 0), which supports regression comparison between runs.",
       "sources": [
-        "S0014"
+        "S0013"
       ],
       "uncertain": false
     },
     "F0082": {
-      "statement": "EvaluationSearch validates that returned hits stay inside the resolved evaluation scope; corrupt hits whose tenant_id is outside the scope raise ValueError before any ranking is assembled (S0014).",
+      "statement": "compare_reports rejects comparisons when report metadata differs in models or when query sets differ, raising ValueError with 'models' or 'query sets' messages.",
       "sources": [
-        "S0014"
+        "S0013"
       ],
       "uncertain": false
     },
     "F0083": {
-      "statement": "All four evaluation modes (bm25, dense, hybrid, hybrid_rerank) are exercised through the same EvaluationSearch.search() entry point and are driven from the MODES constant (S0013, S0014).",
+      "statement": "evaluate validates the dataset, raising ValueError mentioning 'unique' when judgments contain duplicate entries.",
       "sources": [
-        "S0013",
-        "S0014"
+        "S0013"
       ],
       "uncertain": false
     },
     "F0084": {
-      "statement": "evaluate(dataset, search) invokes the injected search callable per query and mode, and accepts an explicit query_delay that is awaited via asyncio.sleep once per query; negative query_delay raises ValueError (S0013).",
+      "statement": "save_report writes a JSON report (report.json) containing aggregate and per-query metrics keyed by mode, plus a markdown report (report.md) including a 'Per-query differences' section; per-query entries carry delta_vs_bm25 metrics relative to BM25.",
       "sources": [
         "S0013"
       ],
       "uncertain": false
     },
     "F0085": {
-      "statement": "evaluate returns a report with an 'aggregate' section keyed by mode (e.g., mrr@10, recall@50) and a per-query 'queries' section with per-mode deltas_vs_bm25 and per-mode search trace (S0013).",
+      "statement": "evaluation_scope is stable against dataset_hash changes but changes when corpus_hash or opensearch_index_schema_version change, and requires a document-type corpus (rejecting chunk-typed corpora with 'document corpora'), and selected_dataset rejects path-traversal style names like '../notes.txt'.",
       "sources": [
         "S0013"
       ],
       "uncertain": false
     },
     "F0086": {
-      "statement": "compare_reports requires matching metadata (e.g., 'models') and identical query sets, raising ValueError otherwise, and reports max_absolute_per_query_metric_delta for equivalent reports (S0013).",
+      "statement": "benchmark_settings enforces a fixed evaluation budget (rerank_candidate_limit and rerank_result_limit both 100) independent of the base Settings value (which is 20).",
       "sources": [
         "S0013"
       ],
       "uncertain": false
     },
     "F0087": {
-      "statement": "save_report persists a JSON report.json and a report.md containing per-query differences; run_baseline orchestrates dataset selection, corpus verification, evaluation, metadata assembly, and saving the report files (S0013).",
+      "statement": "configuration() strips the rerank provider API key (cohere_api_key) from recorded configuration, so saved baseline metadata never contains credentials; run_baseline also records cache_state, rerank_fallback_count, code_revision/tracked_worktree_dirty from git, platform/processor, and adapter identifiers.",
       "sources": [
         "S0013"
       ],
       "uncertain": false
     },
     "F0088": {
-      "statement": "run_baseline records reproduction metadata including rerank_fallback_count, code_revision, tracked_worktree_dirty, cache_state, adapter names, and pipeline version, while ensuring secrets (e.g., cohere_api_key) are never written to report.json (S0013).",
+      "statement": "evaluate paces queries with an explicit query_delay: it awaits asyncio.sleep(query_delay) between queries and rejects negative delays with a ValueError mentioning 'nonnegative'.",
       "sources": [
         "S0013"
       ],
       "uncertain": false
     },
     "F0089": {
-      "statement": "evaluate rejects datasets with duplicate judgments by raising ValueError, enforcing uniqueness of judgment records before scoring (S0013).",
+      "statement": "EvaluationSearch.search supports the four modes in MODES, rejects unknown modes with 'Unknown search', rejects unsupported filters such as tenant_id with 'Unsupported', and rejects hits whose tenant/collection fall outside the evaluation scope with a ValueError mentioning 'outside'.",
       "sources": [
-        "S0013"
+        "S0014"
       ],
       "uncertain": false
     },
     "F0090": {
-      "statement": "evaluation_scope derives a deterministic scope from the dataset and settings that depends on the corpus_hash and opensearch_index_schema_version but is independent of dataset_hash; it represents document corpora and rejects chunk-typed corpora, and its document_ids count matches the dataset size (S0013).",
+      "statement": "EvaluationSearch applies tenant and collection scope in every OpenSearch request body, so retrieval is isolated per evaluation scope rather than relying only on client-side filtering.",
       "sources": [
-        "S0013"
+        "S0014"
       ],
       "uncertain": false
     },
     "F0091": {
-      "statement": "selected_dataset rejects path-like dataset identifiers (e.g., '../notes.txt') with ValueError, so dataset names cannot traverse outside the known dataset registry (S0013, S0014).",
+      "statement": "For each mode, search returns ranked document entries (document_id, chunk_id, rank) derived from retrieved chunks, with duplicate source chunk ids collapsed to a single document result.",
       "sources": [
-        "S0013",
         "S0014"
       ],
       "uncertain": false
     },
     "F0092": {
-      "statement": "benchmark_settings(settings) overrides rerank candidate and result limits to 100, while the underlying Settings keeps rerank_candidate_limit at 20, and configuration() strips cohere_api_key from the settings snapshot (S0013).",
+      "statement": "The debug search endpoint (/debug/search) validates dataset and scope selection (rejecting '../notes.txt' and caller-supplied tenant_ids with 422), returns results for each supported mode, and is disabled (404) when app_env is production.",
       "sources": [
-        "S0013"
+        "S0014"
       ],
       "uncertain": false
     },
     "F0093": {
-      "statement": "The debug search API (hybrid_rag_search.evaluation.api) exposes POST /debug/search which validates the requested mode against MODES, verifies corpus preparedness via verify_prepared, and returns 422 for invalid dataset/tenant, 404 in production app_env, 409 for unprepared corpus, and 503 for RetrievalError or ProviderError (S0014).",
+      "statement": "The debug endpoint maps preparation and retrieval failures to HTTP status codes: 409 when the corpus is not prepared, and 503 for RetrievalError/ProviderError unavailability.",
       "sources": [
         "S0014"
       ],
       "uncertain": false
     },
     "F0094": {
-      "statement": "The debug search endpoint is registered through the application create_app() factory (hybrid_rag_search.main), wiring the evaluation API into the FastAPI app tested with TestClient (S0014).",
+      "statement": "scifact.download_archive fetches the SciFact archive over HTTP, verifies its SHA-256 against a pinned constant, writes to a temporary '.partial' path, and removes the partial file on hash mismatch (raising 'SHA-256 mismatch').",
       "sources": [
-        "S0014"
+        "S0015"
       ],
       "uncertain": false
     },
     "F0095": {
-      "statement": "scifact.convert_archive deterministically converts a BEIR-format zip into the shared dataset contract (four-file loadable via load_dataset), assigning stable ids (scifact-doc-N, scifact-query-N), mapping qrels scores to relevance grades, and rejecting archives whose SHA-256 does not match SCIFACT_ARCHIVE_SHA256 (S0015).",
+      "statement": "scifact.convert_archive converts the BEIR-style archive (corpus.jsonl, queries.jsonl, qrels/test.tsv) into the shared dataset contract deterministically: renamed document/query ids, sorted records, grades mapped onto the evaluation scale, and a version summary string; it rejects archives failing the pinned SHA-256 check.",
       "sources": [
         "S0015"
       ],
       "uncertain": false
     },
     "F0096": {
-      "statement": "The scifact CLI (scifact.main) supports download and validate subcommands: download verifies the archive hash before moving it into place (leaving no .partial on mismatch), and validate re-loads and reports dataset id, dataset_hash, and manifest metadata (S0015).",
+      "statement": "The scifact CLI exposes 'download' and 'validate' subcommands: download converts and reports corpus/query/judgment counts, validate reloads the dataset via load_dataset and prints dataset identity plus dataset_hash and writes a manifest.json recording the archive SHA-256.",
       "sources": [
         "S0015"
       ],
       "uncertain": false
     },
     "F0097": {
-      "statement": "SciFact subset building is deterministic: build_subset produces identical datasets regardless of input corpus/query/judgment ordering, selecting queries by sorted sha256 of the key \"scifact-subset-v1:<query_id>\" and requiring the resulting subset to load back via load_dataset.",
+      "statement": "scifact.build_subset(source, output) deterministically builds an evaluation subset: running it twice on the same source and differing output paths yields datasets that compare equal (test_subset_is_repeatable_and_preserves_all_selected_judgments, test_selection_ignores_input_order_and_retains_complete_judgments).",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
     "F0098": {
-      "statement": "build_subset enforces size constraints: it raises ValueError matching \"at least 30\" when the source has too few items and \"more than 500\" when required documents exceed 500.",
+      "statement": "The subset produced contains exactly 500 corpus items and 30 queries, and its judgments equal the source dataset's judgments, with every judgment target_id contained in the corpus ids.",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
     "F0099": {
-      "statement": "A built subset preserves all judgments belonging to its selected queries and its judgment target_ids are a subset of the produced corpus ids, with manifest source license \"CC BY-NC 2.0\".",
+      "statement": "Subset query selection is order-independent: selected queries are the 30 queries whose ids have the smallest sha256 of the string 'scifact-subset-v1:<query_id>', so the choice depends only on query ids, not input ordering.",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
     "F0100": {
-      "statement": "scifact exposes a CLI main() supporting a 'subset' subcommand with a --source option and a default output location SUBSET_OUTPUT.",
+      "statement": "The subset build retains the complete set of judgments whose query_id belongs to the selected queries, and rejects/keeps nothing based on input order.",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
     "F0101": {
-      "statement": "The debug search API accepts a dataset name via DebugSearchRequest and resolves it through selected_dataset; a registered 'scifact-subset' resolves to a 500-document corpus.",
+      "statement": "build_subset enforces validation constraints: it raises ValueError mentioning 'at least 30' when the source dataset has fewer than 30 queries, and ValueError mentioning 'more than 500' when required documents exceed 500 (tests monkeypatch load_dataset to inject these conditions).",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
     "F0102": {
-      "statement": "The evaluation corpus JSONL schema (evaluation-corpus-v1) requires id, type (document|chunk), and text, with optional document_id, title, and metadata, disallowing additional properties.",
+      "statement": "The registered 'scifact-subset' dataset is reachable from the debug search API: selected_dataset(request.dataset) for that name returns a corpus of 500 documents (test_registered_subset_is_available_to_debug_api).",
+      "sources": [
+        "S0016"
+      ],
+      "uncertain": false
+    },
+    "F0103": {
+      "statement": "A scifact CLI entry point ('scifact subset --source <path>') exists; scifact.main() reads sys.argv and writes the built subset to scifact.SUBSET_OUTPUT when no output is given, and the result is loadable via load_dataset.",
+      "sources": [
+        "S0016"
+      ],
+      "uncertain": false
+    },
+    "F0104": {
+      "statement": "The subset's manifest records source license 'CC BY-NC 2.0', indicating license provenance is preserved in the built dataset manifest.",
+      "sources": [
+        "S0016"
+      ],
+      "uncertain": false
+    },
+    "F0105": {
+      "statement": "The evaluation dataset corpus contract (corpus.schema.json) requires id, type, and text per record; type is one of 'document' or 'chunk'; optional fields include document_id, title, and metadata; extra properties are forbidden.",
       "sources": [
         "S0017"
       ],
       "uncertain": false
     },
-    "F0103": {
-      "statement": "The evaluation judgment schema (evaluation-judgment-v1) requires query_id, target_type, target_id, and an integer relevance_grade bounded 0..3.",
+    "F0106": {
+      "statement": "The evaluation judgment contract (judgment.schema.json) requires query_id, target_type, target_id, and relevance_grade, with relevance_grade an integer from 0 to 3 and target_type one of 'document' or 'chunk'.",
       "sources": [
         "S0018"
       ],
       "uncertain": false
     },
-    "F0104": {
-      "statement": "The evaluation manifest schema (evaluation-manifest-v1) requires exactly three files whose paths are corpus.jsonl, queries.jsonl, and judgments.jsonl, each with a sha256, and a source object carrying an optional archive_sha256.",
-      "sources": [
-        "S0019"
-      ],
-      "uncertain": false
-    },
-    "F0105": {
-      "statement": "The evaluation query schema (evaluation-query-v1) requires id and text, with optional category, expected_answer, key_facts, and metadata_filters.",
-      "sources": [
-        "S0020"
-      ],
-      "uncertain": false
-    },
-    "F0106": {
-      "statement": "The manifest's schema_version is fixed to the constant \"evaluation-dataset-v1\" and its purpose to the constant \"evaluation\", pairing each dataset with a versioned schema identity.",
-      "sources": [
-        "S0019"
-      ],
-      "uncertain": false
-    },
     "F0107": {
-      "statement": "Datasets are described as a four-file contract per the manifest (corpus, queries, judgments plus the manifest itself), with ingestion-side JSONL record shapes validated by the per-record schemas.",
+      "statement": "The evaluation query contract (query.schema.json) requires id and text; optional fields include category, expected_answer, key_facts (array of strings), and metadata_filters (object), suggesting supported filtering and answer/key-fact metadata.",
       "sources": [
-        "S0017",
-        "S0018",
-        "S0019",
         "S0020"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0108": {
-      "statement": "test_subset_cli_and_default_output monkeypatches scifact.SUBSET_OUTPUT and scifact.main, indicating SUBSET_OUTPUT and main are module-level names on the scifact module that the CLI honors.",
+      "statement": "The dataset manifest contract (manifest.schema.json) enforces schema_version 'evaluation-dataset-v1', purpose 'evaluation', a source object (with optional url, 64-hex archive_sha256, and license), and exactly three files enumerated as corpus.jsonl, queries.jsonl, judgments.jsonl each with a 64-hex sha256 \u2014 so dataset integrity is pinned by per-file hashes.",
       "sources": [
-        "S0016"
+        "S0019"
       ],
       "uncertain": false
     },
     "F0109": {
-      "statement": "test_registered_subset_is_available_to_debug_api imports selected_dataset from hybrid_rag_search.evaluation.corpus and DebugSearchRequest from hybrid_rag_search.evaluation.api, indicating the API layer resolves dataset names to loaded corpora.",
+      "statement": "Dataset manifests require a non-empty name, version, and description and a source.name, indicating versioned, described datasets with named provenance.",
+      "sources": [
+        "S0019"
+      ],
+      "uncertain": false
+    },
+    "F0110": {
+      "statement": "Entity ids across corpus, query, and judgment schemas follow the same pattern '^[a-z0-9][a-z0-9._-]*$', indicating a shared identifier convention across evaluation records.",
+      "sources": [
+        "S0017",
+        "S0018",
+        "S0020"
+      ],
+      "uncertain": false
+    },
+    "F0111": {
+      "statement": "load_dataset is reused both by the subset builder (to read source datasets) and by consumers (tests call load_dataset on built output), making it the read/validation boundary the builder depends on.",
       "sources": [
         "S0016"
       ],
       "uncertain": false
     },
-    "F0110": {
-      "statement": "test_subset_rejects_too_many_required_documents monkeypatches scifact.load_dataset and calls build_subset(output=...) without an explicit source, implying build_subset has default arguments for source and output.",
+    "F0112": {
+      "statement": "The schemas declare an https://hybrid-rag-search.local host and fixed file set (corpus.jsonl, queries.jsonl, judgments.jsonl), implying evaluation datasets are stored as a three-file JSONL bundle plus a manifest; this file layout is inferred from schema constraints, not observed runtime code.",
       "sources": [
-        "S0016"
+        "S0019"
       ],
       "uncertain": true
     }
@@ -1500,8 +1211,8 @@
     }
   },
   "metadata": {
-    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
-    "generated_at": "2026-10-18T18:33:37.746827+00:00",
+    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
+    "generated_at": "2026-10-19T00:21:57.138353+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {

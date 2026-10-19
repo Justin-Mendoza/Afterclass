@@ -2,7 +2,7 @@
 
 The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.
 
-Commit: `f8493c1d264c525948d9d33ffaf2dd197be97e26` | Generated: 2026-10-18T18:36:28.266995+00:00
+Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:25:53.475115+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -16,26 +16,22 @@ Source-backed architecture views composed from each subsystem map. See linked su
 
 0 API calls. See coverage.json for budgets, exclusions, and usage.
 
-## answers: Architecture
+## answers: How a prompt becomes an answer
 
-Application-owned protocols define the boundary; the opt-in Cohere adapter and the deterministic fake both implement GenerationProvider. The configured factory gates live generation on credentials, but caller wiring is not evidenced. Open this subsystem map for source evidence.
+A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Configured<br/>factory"]
-  n1["Cohere adapter"]
-  n2["Fake provider"]
-  n3["Generation<br/>contract"]
-  n4["ProviderError"]
-  n5["Usage and cost"]
-  n0 -->|"Constructs live<br/>provider"| n1
-  n1 -->|"Returns result"| n3
-  n2 -.->|"Inferred:<br/>Returns result"| n3
-  n1 -->|"Raises mapped<br/>codes"| n4
-  n1 -->|"Billed usage"| n5
-  n3 -->|"Carries usage"| n5
-  n0 -.->|"Inferred:<br/>Adapter<br/>selection"| n2
+  n0["Validated prompt"]
+  n1["Answer provider"]
+  n2["Model service"]
+  n3["Reply checked"]
+  n4["Answer and usage"]
+  n0 -->|"Messages and<br/>limit"| n1
+  n1 -->|"One chat request"| n2
+  n2 -->|"Raw reply text"| n3
+  n3 -->|"Accepts answer"| n4
 ```
 
 <details>
@@ -45,30 +41,30 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
 
-## evaluation: Architecture
+## evaluation: How a dataset becomes a scored report
 
-Dataset loading, corpus preparation, search dispatch, scoring/reporting, and the HTTP surface are separate boundaries; the API and runner share one search boundary, while corpus state faults map to distinct errors. Open this subsystem map for source evidence.
+A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Dataset loader"]
-  n1["Corpus<br/>preparation"]
-  n2["EvaluationSearch"]
-  n3["Runner and<br/>reports"]
-  n4["Debug search API"]
-  n5["Evaluation ORM"]
-  n0 -->|"Validated<br/>records"| n1
-  n1 -->|"Prepared scope"| n2
-  n3 -->|"Per query/mode"| n2
-  n3 -->|"Loads dataset"| n0
-  n4 -->|"Verify prepared"| n1
-  n4 -->|"Debug search"| n2
-  n1 -->|"Ingestion job<br/>rows"| n5
-  n1 -->|"Corpus hash<br/>scope"| n0
+  n0["Verified dataset<br/>bundle"]
+  n1["Prepare search<br/>index"]
+  n2["Confirm index<br/>ready"]
+  n3["Try each search<br/>style"]
+  n4["Score against<br/>labels"]
+  n5["Reproducible<br/>report files"]
+  n0 -->|"Corpus and<br/>questions"| n1
+  n1 -->|"Check job<br/>receipts"| n2
+  n2 -->|"Index confirmed"| n3
+  n3 -->|"Ranked results"| n4
+  n4 -->|"Metrics per<br/>question"| n5
+  n0 -->|"Questions and<br/>labels"| n3
 ```
 
 <details>
@@ -78,28 +74,27 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
 
-## foundation: Architecture
+## foundation: How an uploaded file becomes a stored document
 
-The FastAPI app reads shared Settings and mounts health and evaluation routes; the same Settings feeds schema management and dependency probes. Makefile, Compose, and CI form the orchestration boundary around app, schema, and tests. Open this subsystem map for source evidence.
+A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["FastAPI app"]
-  n1["Settings"]
-  n2["SQLAlchemy Base"]
-  n3["DocumentService"]
-  n4["Makefile and CI"]
-  n5["Alembic<br/>migrations"]
-  n0 -->|"reads settings"| n1
-  n5 -->|"same db URL"| n1
-  n5 -->|"target metadata"| n2
-  n3 -->|"async sessions"| n2
-  n4 -->|"upgrade and seed"| n5
-  n4 -.->|"Inferred:<br/>uvicorn dev run"| n0
+  n0["File upload"]
+  n1["Fingerprint and<br/>duplicate check"]
+  n2["Save original<br/>file"]
+  n3["Document record"]
+  n4["Existing<br/>document<br/>returned"]
+  n0 -->|"same file<br/>before?"| n1
+  n1 -->|"already stored"| n4
+  n1 -->|"new content"| n2
+  n2 -->|"bytes written"| n3
 ```
 
 <details>
@@ -109,25 +104,25 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
 
-## frontend: Architecture
+## frontend: How a visitor gets the landing page
 
-The container runs the Next.js App Router dev server. Layout renders a static index page. Toolchain config types, lints, and tests the sources but is not a runtime entry point; backend linkage is unevidenced. Open this subsystem map for source evidence.
+A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Frontend<br/>container"]
-  n1["Next.js App<br/>Router"]
-  n2["Root layout"]
-  n3["Static index<br/>page"]
-  n4["Lint type test<br/>config"]
-  n0 -->|"Runs dev server"| n1
-  n1 -->|"Renders root"| n2
-  n2 -->|"Renders children"| n3
-  n4 -->|"Types and lints"| n1
+  n0["Site visitor"]
+  n1["Web server"]
+  n2["Page shell and<br/>styling"]
+  n3["Landing page<br/>content"]
+  n0 -->|"Opens the site"| n1
+  n1 -->|"Builds the page"| n2
+  n2 -->|"Shows headings"| n3
 ```
 
 <details>
@@ -137,29 +132,27 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
 
-## ingestion: Architecture
+## ingestion: How a parsed document becomes searchable pieces
 
-The chunking package groups parsed blocks per heading section, packs them under the token budget, enriches embedding text, and emits Chunk contracts whose identities are derived from config and document digests. Open this subsystem map for source evidence.
+A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunking package"]
-  n1["Chunker"]
-  n2["Embedding text<br/>builder"]
-  n3["Chunk contract"]
-  n4["Chunking config"]
-  n5["Identity digests"]
-  n0 -.->|"Inferred: Public<br/>entry point"| n1
-  n1 -->|"Heading path +<br/>body"| n2
-  n2 -->|"Embedding text"| n1
-  n4 -->|"Token limits"| n1
-  n1 -->|"Emits Chunks"| n3
-  n5 -->|"Chunk identity"| n3
-  n4 -->|"Config version"| n5
+  n0["Parsed document"]
+  n1["Split by heading"]
+  n2["Pack within<br/>token budget"]
+  n3["Rebuild heading<br/>text"]
+  n4["Identified<br/>pieces"]
+  n0 -->|"Group blocks by<br/>heading"| n1
+  n1 -->|"One section at a<br/>time"| n2
+  n2 -->|"Text and heading<br/>path"| n3
+  n3 -->|"Final text and<br/>spans"| n4
 ```
 
 <details>
@@ -169,30 +162,28 @@ flowchart TD
 
 </details>
 
+Read from top to bottom; arrows show what happens next or what is passed along.
+
 ### Source evidence
 
 
-## retrieval: Architecture
+## retrieval: How a search becomes matching passages
 
-Settings derive a dense config and connection details; the retriever injects an embedding provider, queries the OpenSearch read alias with tenant-scoped filters, and emits shared results plus a separate trace. Open this subsystem map for source evidence.
+A search phrase is cleaned, sent out to be turned into numbers, used to find the closest stored passages in the search index, and returned as passages with optional diagnostic detail.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Settings"]
-  n1["DenseRetrievalConfig"]
-  n2["Dense retriever"]
-  n3["Embedding<br/>provider"]
-  n4["OpenSearch alias"]
-  n5["Retrieval<br/>results"]
-  n0 -->|"Derives fields"| n1
-  n0 -->|"URL and alias"| n2
-  n1 -->|"Limits and model"| n2
-  n3 -->|"Injected<br/>provider"| n2
-  n2 -->|"Query embedding"| n3
-  n2 -->|"k-NN search"| n4
-  n4 -->|"Hit mapping"| n5
-  n2 -->|"Response plus<br/>trace"| n5
+  n0["Search phrase"]
+  n1["Clean up text"]
+  n2["Turn words into<br/>numbers"]
+  n3["Find closest<br/>passages"]
+  n4["Matching<br/>passages"]
+  n0 -->|"Text to tidy"| n1
+  n1 -->|"Cleaned text"| n2
+  n2 -->|"Numeric<br/>fingerprint"| n3
+  n3 -->|"Closest passages"| n4
+  n3 -->|"Diagnostic<br/>details"| n4
 ```
 
 <details>
@@ -201,6 +192,8 @@ flowchart TD
 ![Diagram](diagram-06.png)
 
 </details>
+
+Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 

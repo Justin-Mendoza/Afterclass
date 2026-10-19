@@ -1,224 +1,143 @@
 {
   "map": {
-    "summary": "This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose container runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page with no state, inputs, or async data loading. No fetch, API route, or environment read is evidenced, so runtime linkage to the answers, foundation, or retrieval subsystems is untraced.",
+    "summary": "This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources.",
     "unknowns": [
-      "No fetch call, API route, database access, or environment-variable read appears in the supplied frontend sources, so how or whether the frontend reaches the answers, foundation, or retrieval subsystems at runtime is untraced (F0012, F0014).",
-      "No user input controls, state, event handlers, or async data loading exist on the index route, so the intended search workspace behavior is not evidenced (F0005).",
-      "No rewrites, redirects, or API proxying are declared in the Next.js config, leaving any client-to-backend routing path unspecified (F0010).",
-      "The Dockerfile runs the Next.js dev server rather than a production build/start, so the production serving path is not shown (F0002).",
-      "No findings cover the answers, foundation, or retrieval subsystems calling toward the frontend, so any inbound contract is unverified (F0012)."
+      "No calls to any answer service, document storage, or search system appear in the web sources, so how this site would reach those systems is unconfirmed.",
+      "The landing page has no input fields, controls, or state, so the intended search workspace behavior is not shown.",
+      "The web server configuration declares no forwarding or routing rules, leaving any path from this site to backend services unspecified.",
+      "The container starts the development server rather than a production build, so production serving behavior is not demonstrated.",
+      "No evidence shows the answer, storage, or search systems calling back toward this website, so any inbound contract is unverified."
     ],
     "diagrams": [
       {
-        "title": "Architecture",
-        "description": "The container runs the Next.js App Router dev server. Layout renders a static index page. Toolchain config types, lints, and tests the sources but is not a runtime entry point; backend linkage is unevidenced.",
+        "title": "How a visitor gets the landing page",
+        "description": "A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.",
         "nodes": [
           {
-            "id": "container",
-            "label": "Frontend container",
+            "id": "visitor",
+            "label": "Site visitor",
+            "finding_ids": [
+              "F0014"
+            ]
+          },
+          {
+            "id": "server",
+            "label": "Web server",
             "finding_ids": [
               "F0001",
               "F0002"
             ]
           },
           {
-            "id": "nextapp",
-            "label": "Next.js App Router",
-            "finding_ids": [
-              "F0011",
-              "F0010"
-            ]
-          },
-          {
-            "id": "layout",
-            "label": "Root layout",
+            "id": "shell",
+            "label": "Page shell and styling",
             "finding_ids": [
               "F0004"
             ]
           },
           {
-            "id": "home",
-            "label": "Static index page",
+            "id": "landing",
+            "label": "Landing page content",
             "finding_ids": [
-              "F0005"
+              "F0005",
+              "F0014"
             ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "visitor",
+            "to": "server",
+            "label": "Opens the site",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
           },
           {
-            "id": "toolchain",
-            "label": "Lint type test config",
+            "from": "server",
+            "to": "shell",
+            "label": "Builds the page",
             "finding_ids": [
-              "F0003",
+              "F0004"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "shell",
+            "to": "landing",
+            "label": "Shows headings",
+            "finding_ids": [
+              "F0004",
+              "F0005"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "How the page is checked before release",
+        "description": "Automated checks run the landing content in a simulated browser and verify the heading text, while code-quality tools scan the source. These checks do not exercise any search or backend behavior.",
+        "nodes": [
+          {
+            "id": "browser",
+            "label": "Simulated browser",
+            "finding_ids": [
               "F0008",
               "F0009"
             ]
+          },
+          {
+            "id": "test",
+            "label": "Page content check",
+            "finding_ids": [
+              "F0008"
+            ]
+          },
+          {
+            "id": "quality",
+            "label": "Source quality checks",
+            "finding_ids": [
+              "F0010",
+              "F0011"
+            ]
+          },
+          {
+            "id": "code",
+            "label": "Website source files",
+            "finding_ids": [
+              "F0012"
+            ]
           }
         ],
         "edges": [
           {
-            "from": "container",
-            "to": "nextapp",
-            "label": "Runs dev server",
+            "from": "browser",
+            "to": "test",
+            "label": "Renders the page",
             "finding_ids": [
-              "F0002"
+              "F0008",
+              "F0009"
             ],
             "uncertain": false
           },
           {
-            "from": "nextapp",
-            "to": "layout",
-            "label": "Renders root",
+            "from": "test",
+            "to": "code",
+            "label": "Confirms heading",
             "finding_ids": [
-              "F0004"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "layout",
-            "to": "home",
-            "label": "Renders children",
-            "finding_ids": [
-              "F0004",
-              "F0005"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "toolchain",
-            "to": "nextapp",
-            "label": "Types and lints",
-            "finding_ids": [
-              "F0003",
               "F0008"
             ],
             "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Page render flow",
-        "description": "The only observed user flow: layout imports the global stylesheet, exports metadata, and wraps the static Home markup. Layout is the response boundary; no search interaction or data loading is wired on this route.",
-        "nodes": [
+          },
           {
-            "id": "viewer",
-            "label": "Viewer",
+            "from": "quality",
+            "to": "code",
+            "label": "Scans and types",
             "finding_ids": [
+              "F0010",
+              "F0011",
               "F0012"
-            ]
-          },
-          {
-            "id": "layout",
-            "label": "Root layout",
-            "finding_ids": [
-              "F0004"
-            ]
-          },
-          {
-            "id": "home",
-            "label": "Static index page",
-            "finding_ids": [
-              "F0005"
-            ]
-          },
-          {
-            "id": "assets",
-            "label": "Styles and metadata",
-            "finding_ids": [
-              "F0004"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "layout",
-            "to": "assets",
-            "label": "Imports stylesheet",
-            "finding_ids": [
-              "F0004"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "layout",
-            "to": "home",
-            "label": "Wraps content",
-            "finding_ids": [
-              "F0004",
-              "F0005"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "viewer",
-            "to": "home",
-            "label": "Views page",
-            "finding_ids": [
-              "F0012"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "Toolchain boundary",
-        "description": "Vitest with jsdom renders Home against Testing Library assertions; ESLint and tsc gate sources. These dev-time tools sit outside the runtime entry point, so passing checks does not evidence any backend wiring.",
-        "nodes": [
-          {
-            "id": "vitest",
-            "label": "Vitest jsdom",
-            "finding_ids": [
-              "F0007"
-            ]
-          },
-          {
-            "id": "hometest",
-            "label": "Page test",
-            "finding_ids": [
-              "F0006"
-            ]
-          },
-          {
-            "id": "home",
-            "label": "Static index page",
-            "finding_ids": [
-              "F0005"
-            ]
-          },
-          {
-            "id": "checks",
-            "label": "ESLint and tsc",
-            "finding_ids": [
-              "F0003",
-              "F0009"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "vitest",
-            "to": "hometest",
-            "label": "Runs assertions",
-            "finding_ids": [
-              "F0007",
-              "F0006"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "hometest",
-            "to": "home",
-            "label": "Renders component",
-            "finding_ids": [
-              "F0006"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "checks",
-            "to": "home",
-            "label": "Validates sources",
-            "finding_ids": [
-              "F0003",
-              "F0009"
             ],
             "uncertain": false
           }
@@ -229,110 +148,119 @@
   },
   "findings": {
     "F0001": {
-      "statement": "The frontend is a private Next.js App Router project named hybrid-rag-search-web that pins Node to the 22.x line via the engines field (>=22 <23), matching the node:22.23.2-bookworm-slim base image in the Dockerfile.",
+      "statement": "The frontend container image installs dependencies with npm ci from package.json and package-lock.json, copies the source tree, and starts the Next.js dev server bound to all interfaces via 'npm run dev -- --hostname 0.0.0.0', exposing port 3000.",
       "sources": [
-        "S0002",
-        "S0001"
+        "S0001",
+        "S0002"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "The frontend container installs dependencies deterministically from package.json and package-lock.json using npm ci, copies the full source tree into /app, exposes port 3000, and its default command runs the Next.js dev server bound to 0.0.0.0 rather than a production build.",
+      "statement": "The image runs the development server (next dev) rather than a production build/start, so production serving behavior is not shown by these files.",
       "sources": [
-        "S0001"
+        "S0001",
+        "S0002"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "The script surface separates development, production (build/start), formatting, linting (eslint --max-warnings=0), type checking (tsc --noEmit), and unit testing (vitest run), indicating lint and typecheck are enforced gates in addition to tests.",
+      "statement": "The package is a private Next.js 16 / React 19 web application, pinned to Node '>=22 <23', with next dev/build/start scripts driving the App Router.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "The App Router entry structure is a root layout (src/app/layout.tsx) exporting metadata for 'Hybrid RAG Search' and importing a global stylesheet, wrapping the Home page (src/app/page.tsx) rendered as children in the body.",
+      "statement": "The user-facing entry point is the App Router root layout (RootLayout in src/app/layout.tsx), which imports the global stylesheet, declares page metadata (title 'Hybrid RAG Search', description 'Evidence-first enterprise search'), and wraps the page children in an html/body shell.",
       "sources": [
-        "S0006",
-        "S0008"
+        "S0006"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "Home is a purely static server component returning only presentational markup (eyebrow, h1, paragraph) with no state, event handlers, data loading, or search input, so no search interaction or user flow is wired on the index route.",
+      "statement": "The index route (Home in src/app/page.tsx) is purely static markup: an eyebrow label 'Hybrid RAG Search', an h1 'Evidence-first answers, built for inspection.', and a note that the search workspace is ready for its first collection. It has no state, props, inputs, event handlers, or async data loading.",
       "sources": [
         "S0008"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "The only observed test (page.test.tsx) renders Home with Testing Library and asserts the level-1 heading text 'Evidence-first answers, built for inspection.', confirming the page is treated as a static presentational component.",
+      "statement": "No fetch call, API route, database access, environment-variable read, rewrite, or redirect appears in the supplied frontend sources, so any runtime linkage from this frontend to the answers, foundation, or retrieval subsystems is untraced.",
       "sources": [
-        "S0007",
+        "S0001",
+        "S0002",
+        "S0005",
+        "S0006",
         "S0008"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "Vitest is configured with the React plugin and jsdom environment, providing the component-test boundary used by the page test; this toolchain is a dev-time concern separate from the runtime dev-server entry point.",
-      "sources": [
-        "S0010",
-        "S0007"
-      ],
-      "uncertain": false
-    },
-    "F0008": {
-      "statement": "TypeScript is configured with strict mode, noEmit, bundler module resolution, the React JSX transform, and a '@/ *' path alias mapping to ./src/*, unifying source imports across the app.",
-      "sources": [
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0009": {
-      "statement": "ESLint is configured by flat config extending eslint-config-next core-web-vitals and typescript rule sets and ignoring .next, coverage, and next-env.d.ts build artifacts.",
-      "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0010": {
-      "statement": "next.config.ts sets reactStrictMode true and agentRules false, indicating use of the standard Next config typing with strict-mode rendering enabled; no rewrites, redirects, or proxy rules are declared in the supplied excerpt.",
+      "statement": "Next.js config enables reactStrictMode and disables agentRules (a Next option), with no rewrites, redirects, headers, or proxying declared, leaving client-to-backend routing unspecified.",
       "sources": [
         "S0005"
       ],
       "uncertain": false
     },
+    "F0008": {
+      "statement": "A Vitest test renders the Home component in jsdom and asserts a level-1 heading with the text 'Evidence-first answers, built for inspection.', providing the only observed automated check of the page's rendered output.",
+      "sources": [
+        "S0007",
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "The test toolchain is configured with the Vite React plugin and jsdom environment, so component tests run in a simulated browser DOM rather than a real one.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "eslint.config.mjs applies Next.js core-web-vitals and TypeScript rule sets and ignores build/coverage outputs; this gates source quality but is a development-time concern, not runtime behavior.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
     "F0011": {
-      "statement": "React 19, ReactDOM 19, and Next 16 are the only runtime dependencies, with testing, lint, format, and build tooling confined to devDependencies.",
+      "statement": "The lint, format, typecheck, and test scripts (eslint --max-warnings=0, prettier, tsc --noEmit, vitest run) define static quality gates over the sources without executing application logic.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "No fetch call, API route, database access, or environment-variable read appears in the supplied frontend sources, so how the frontend would reach the answers, foundation, or retrieval subsystems at runtime is not evidenced by this batch.",
+      "statement": "tsconfig.json establishes strict TypeScript compilation for ES2022 with no emission, React JSX transform, bundler module resolution, and a '@/\u2026' path alias mapping to './src/*'.",
       "sources": [
-        "S0008",
-        "S0006",
-        "S0005"
+        "S0009"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "next-env.d.ts references generated Next.js type files under .next (routes and root-params), indicating types are derived from the Next build output rather than hand-authored.",
+      "statement": "next-env.d.ts is a generated, non-editable type reference file pulling in Next.js and image type declarations plus generated route and root-param types; it carries no runtime behavior.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "The absence of any API route handlers, data fetching, or backend URL configuration in the provided files suggests the frontend currently communicates with no backend at runtime, though the excerpt is partial and cannot rule out such wiring elsewhere in the repository.",
+      "statement": "The observed end-to-end flow is: a viewer requests the index route, the root layout supplies the HTML shell, stylesheet, and metadata, and the static Home component renders the heading and workspace placeholder; no data is read, stored, or sent.",
       "sources": [
-        "S0008",
-        "S0005",
-        "S0002"
+        "S0006",
+        "S0008"
       ],
-      "uncertain": true
+      "uncertain": false
+    },
+    "F0015": {
+      "statement": "The product purpose indicated by naming and copy is an evidence-first enterprise 'hybrid RAG' search workspace, but the supplied files only show a placeholder landing page, so search, retrieval, or answering capability in the frontend is not evidenced.",
+      "sources": [
+        "S0002",
+        "S0006",
+        "S0008"
+      ],
+      "uncertain": false
     }
   },
   "sources": {
@@ -398,8 +326,8 @@
     }
   },
   "metadata": {
-    "revision": "f8493c1d264c525948d9d33ffaf2dd197be97e26",
-    "generated_at": "2026-10-18T18:35:34.938676+00:00",
+    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
+    "generated_at": "2026-10-19T00:24:41.881136+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {

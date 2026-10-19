@@ -1,16 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Settings"]
-  n1["DenseRetrievalConfig"]
-  n2["Dense retriever"]
-  n3["Embedding<br/>provider"]
-  n4["OpenSearch alias"]
-  n5["Retrieval<br/>results"]
-  n0 -->|"Derives fields"| n1
-  n0 -->|"URL and alias"| n2
-  n1 -->|"Limits and model"| n2
-  n3 -->|"Injected<br/>provider"| n2
-  n2 -->|"Query embedding"| n3
-  n2 -->|"k-NN search"| n4
-  n4 -->|"Hit mapping"| n5
-  n2 -->|"Response plus<br/>trace"| n5
+  n0["Search phrase"]
+  n1["Clean up text"]
+  n2["Turn words into<br/>numbers"]
+  n3["Find closest<br/>passages"]
+  n4["Matching<br/>passages"]
+  n0 -->|"Text to tidy"| n1
+  n1 -->|"Cleaned text"| n2
+  n2 -->|"Numeric<br/>fingerprint"| n3
+  n3 -->|"Closest passages"| n4
+  n3 -->|"Diagnostic<br/>details"| n4

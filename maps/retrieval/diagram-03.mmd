@@ -1,9 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["RetrievalFilters"]
-  n1["k-NN search body"]
-  n2["Selected _source"]
-  n3["RetrievalResult"]
-  n0 -->|"Filter clauses"| n1
-  n1 -->|"Requested fields"| n2
-  n2 -->|"Mapped hits"| n3
+  n0["Clean up text"]
+  n1["Empty outcome"]
+  n2["Answer checks"]
+  n3["Failure reason"]
+  n0 -->|"Nothing left"| n1
+  n0 -->|"Usable text"| n2
+  n2 -->|"Bad answer"| n3

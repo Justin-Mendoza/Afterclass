@@ -1,16 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Dataset loader"]
-  n1["Corpus<br/>preparation"]
-  n2["EvaluationSearch"]
-  n3["Runner and<br/>reports"]
-  n4["Debug search API"]
-  n5["Evaluation ORM"]
-  n0 -->|"Validated<br/>records"| n1
-  n1 -->|"Prepared scope"| n2
-  n3 -->|"Per query/mode"| n2
-  n3 -->|"Loads dataset"| n0
-  n4 -->|"Verify prepared"| n1
-  n4 -->|"Debug search"| n2
-  n1 -->|"Ingestion job<br/>rows"| n5
-  n1 -->|"Corpus hash<br/>scope"| n0
+  n0["Verified dataset<br/>bundle"]
+  n1["Prepare search<br/>index"]
+  n2["Confirm index<br/>ready"]
+  n3["Try each search<br/>style"]
+  n4["Score against<br/>labels"]
+  n5["Reproducible<br/>report files"]
+  n0 -->|"Corpus and<br/>questions"| n1
+  n1 -->|"Check job<br/>receipts"| n2
+  n2 -->|"Index confirmed"| n3
+  n3 -->|"Ranked results"| n4
+  n4 -->|"Metrics per<br/>question"| n5
+  n0 -->|"Questions and<br/>labels"| n3

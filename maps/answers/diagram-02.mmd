@@ -1,14 +1,10 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["GenerationRequest"]
-  n1["Cohere adapter"]
-  n2["AsyncClientV2<br/>chat"]
-  n3["Strict re-<br/>validation"]
-  n4["GenerationResult"]
-  n5["ProviderError"]
-  n0 -->|"Validated<br/>request"| n1
-  n1 -->|"Non-streaming<br/>chat"| n2
-  n2 -->|"Response body"| n3
-  n3 -->|"Text and usage"| n4
-  n1 -->|"Timeout, no<br/>retries"| n5
-  n3 -->|"Invalid response"| n5
+  n0["App settings"]
+  n1["Live answer<br/>provider"]
+  n2["Test answer<br/>provider"]
+  n3["Shared answer<br/>shape"]
+  n0 -->|"Key and model"| n1
+  n1 -->|"Returns answer"| n3
+  n2 -.->|"Returns answer"| n3
+  n0 -.->|"Provider choice"| n2

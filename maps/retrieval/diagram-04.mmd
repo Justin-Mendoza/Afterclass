@@ -1,6 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["HTTP transport"]
-  n1["RetrievalError"]
-  n0 -->|"Unavailable<br/>(retryable)"| n1
-  n0 -->|"Invalid response"| n1
+  n0["Command line"]
+  n1["Number service"]
+  n2["Searcher setup"]
+  n3["Printed outcome"]
+  n0 -->|"Opens service"| n1
+  n0 -->|"Builds searcher"| n2
+  n2 -->|"Prints result"| n3

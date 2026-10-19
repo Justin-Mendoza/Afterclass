@@ -1,14 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Query input"]
-  n1["Normalized query"]
-  n2["Vector<br/>validation"]
-  n3["k-NN search"]
-  n4["Response object"]
-  n5["Diagnostics<br/>trace"]
-  n0 -->|"Whitespace<br/>collapse"| n1
-  n1 -->|"Query text"| n2
-  n2 -->|"Validated vector"| n3
-  n3 -->|"Hits"| n4
-  n3 -->|"Stage timings"| n5
-  n4 -->|"Trace attached"| n5
+  n0["Customer and<br/>filters"]
+  n1["Search request"]
+  n2["Requested fields"]
+  n3["Rebuilt passages"]
+  n0 -->|"Limits scope"| n1
+  n1 -->|"Asks for fields"| n2
+  n2 -->|"Rebuilds<br/>passages"| n3

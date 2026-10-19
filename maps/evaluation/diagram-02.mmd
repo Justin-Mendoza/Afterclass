@@ -1,14 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["EvaluationScope"]
-  n1["Eval index<br/>aliases"]
-  n2["prepare_corpus"]
-  n3["Durable<br/>ingestion"]
-  n4["compact_corpus"]
-  n5["verify_prepared"]
-  n0 -.->|"Inferred: Scope<br/>input"| n2
-  n1 -->|"Index settings"| n2
-  n2 -->|"Inline jobs"| n3
-  n2 -->|"Forcemerge"| n4
-  n3 -.->|"Inferred: Index<br/>receipts"| n5
-  n4 -->|"Ready docs"| n5
+  n0["Debug search<br/>request"]
+  n1["Local-only check"]
+  n2["Dataset<br/>preparation<br/>check"]
+  n3["Run chosen<br/>search style"]
+  n4["Ranked results<br/>or error"]
+  n0 -->|"Incoming call"| n1
+  n1 -->|"Allowed locally"| n2
+  n2 -->|"Corpus is ready"| n3
+  n3 -->|"Results or<br/>status"| n4

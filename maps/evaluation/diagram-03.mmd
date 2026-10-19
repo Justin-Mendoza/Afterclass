@@ -1,12 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["run_baseline"]
-  n1["evaluate"]
-  n2["score_ranking"]
-  n3["Report metadata"]
-  n4["save_report"]
-  n0 -->|"Queries and<br/>modes"| n1
-  n1 -->|"Document<br/>rankings"| n2
-  n2 -->|"Mode metrics"| n0
-  n0 -->|"Repro metadata"| n3
-  n3 -->|"Report files"| n4
+  n0["Dataset builder<br/>command"]
+  n1["Fetch verified<br/>archive"]
+  n2["Convert to<br/>dataset format"]
+  n3["Pick baseline<br/>subset"]
+  n4["Re-load and<br/>validate"]
+  n0 -->|"Download request"| n1
+  n1 -->|"Verified archive"| n2
+  n2 -->|"Full dataset"| n3
+  n3 -->|"Built subset"| n4

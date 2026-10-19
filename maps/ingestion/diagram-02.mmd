@@ -1,9 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Heading-path<br/>grouping"]
-  n2["Chunk section"]
-  n3["Section chunks"]
-  n0 -->|"Blocks by<br/>heading"| n1
-  n1 -->|"One section"| n2
-  n2 -->|"Emits chunks"| n3
+  n0["Growing piece"]
+  n1["Within token<br/>budget?"]
+  n2["Find largest<br/>prefix"]
+  n3["Emit finished<br/>piece"]
+  n4["Overlap carry<br/>and leftover"]
+  n0 -->|"Count tokens"| n1
+  n1 -->|"Whole block fits"| n3
+  n1 -->|"Block too large"| n2
+  n2 -->|"Leftover text"| n4
+  n3 -->|"If work remains"| n4
+  n4 -->|"Seeds next piece"| n0

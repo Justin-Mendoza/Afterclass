@@ -1,11 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["DocumentService"]
-  n1["Dedupe lookup"]
-  n2["FileStorage"]
-  n3["Document status"]
-  n4["Ingestion jobs"]
-  n0 -->|"content hash"| n1
-  n0 -->|"atomic<br/>save/delete"| n2
-  n0 -->|"status<br/>transitions"| n3
-  n3 -.->|"Inferred: per-<br/>recipe job"| n4
+  n0["Schema changes"]
+  n1["People and<br/>tenants"]
+  n2["Collections and<br/>documents"]
+  n3["Upload job<br/>records"]
+  n4["Search settings<br/>and traces"]
+  n5["Evaluation and<br/>audit records"]
+  n0 -->|"creates tables"| n1
+  n1 -->|"tenant-scoped<br/>rows"| n2
+  n2 -->|"upload work"| n3
+  n2 -->|"searched<br/>material"| n4
+  n4 -.->|"runs and records"| n5

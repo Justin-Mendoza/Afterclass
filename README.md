@@ -1,138 +1,167 @@
 # Repository map
 
-Source revision: `f8493c1d264c525948d9d33ffaf2dd197be97e26`
+Source revision: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25`
 
 Browse the Mermaid diagrams below on GitHub. PDFs and PNGs are linked for download.
 
 [Overview PDF](overview/repository-map.pdf) | [Overview details](overview/README.md)
 
-## answers: Architecture
+## answers: How a prompt becomes an answer
+
+This area defines the app's own contract for asking an AI model to write an answer, plus two implementations: a real Cohere adapter and a fake one used for testing. A caller supplies a validated list of chat messages and a token limit; the result carries the generated text, why it stopped, the model used, and usage/cost details. Live use is opt-in because a configured factory requires an API key. No caller or route choosing an adapter is evidenced.
+
+A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Configured<br/>factory"]
-  n1["Cohere adapter"]
-  n2["Fake provider"]
-  n3["Generation<br/>contract"]
-  n4["ProviderError"]
-  n5["Usage and cost"]
-  n0 -->|"Constructs live<br/>provider"| n1
-  n1 -->|"Returns result"| n3
-  n2 -.->|"Inferred:<br/>Returns result"| n3
-  n1 -->|"Raises mapped<br/>codes"| n4
-  n1 -->|"Billed usage"| n5
-  n3 -->|"Carries usage"| n5
-  n0 -.->|"Inferred:<br/>Adapter<br/>selection"| n2
+  n0["Validated prompt"]
+  n1["Answer provider"]
+  n2["Model service"]
+  n3["Reply checked"]
+  n4["Answer and usage"]
+  n0 -->|"Messages and<br/>limit"| n1
+  n1 -->|"One chat request"| n2
+  n2 -->|"Raw reply text"| n3
+  n3 -->|"Accepts answer"| n4
 ```
 
-## evaluation: Architecture
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/answers/README.md)
+
+## evaluation: How a dataset becomes a scored report
+
+This area builds and runs retrieval-quality tests for the search service. It loads versioned dataset bundles whose files are checked by hash, prepares an isolated search index for each dataset, runs four search styles over every test question, scores how well the results match human relevance labels, and saves reproducible JSON and readable Markdown reports. A local-only debug endpoint and a SciFact dataset builder support this work.
+
+A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Dataset loader"]
-  n1["Corpus<br/>preparation"]
-  n2["EvaluationSearch"]
-  n3["Runner and<br/>reports"]
-  n4["Debug search API"]
-  n5["Evaluation ORM"]
-  n0 -->|"Validated<br/>records"| n1
-  n1 -->|"Prepared scope"| n2
-  n3 -->|"Per query/mode"| n2
-  n3 -->|"Loads dataset"| n0
-  n4 -->|"Verify prepared"| n1
-  n4 -->|"Debug search"| n2
-  n1 -->|"Ingestion job<br/>rows"| n5
-  n1 -->|"Corpus hash<br/>scope"| n0
+  n0["Verified dataset<br/>bundle"]
+  n1["Prepare search<br/>index"]
+  n2["Confirm index<br/>ready"]
+  n3["Try each search<br/>style"]
+  n4["Score against<br/>labels"]
+  n5["Reproducible<br/>report files"]
+  n0 -->|"Corpus and<br/>questions"| n1
+  n1 -->|"Check job<br/>receipts"| n2
+  n2 -->|"Index confirmed"| n3
+  n3 -->|"Ranked results"| n4
+  n4 -->|"Metrics per<br/>question"| n5
+  n0 -->|"Questions and<br/>labels"| n3
 ```
 
-## foundation: Architecture
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/evaluation/README.md)
+
+## foundation: How an uploaded file becomes a stored document
+
+This area is the shared foundation of a multi-tenant document search service. It starts the web application (health and readiness checks), stores documents people upload, deduplicates identical files, and keeps tenants, collections, and upload records separated in PostgreSQL. The main input is an uploaded file plus an already-approved tenant and collection; the useful result is a stored, deduplicated document record with a status, plus database schema and setup commands for local development.
+
+A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["FastAPI app"]
-  n1["Settings"]
-  n2["SQLAlchemy Base"]
-  n3["DocumentService"]
-  n4["Makefile and CI"]
-  n5["Alembic<br/>migrations"]
-  n0 -->|"reads settings"| n1
-  n5 -->|"same db URL"| n1
-  n5 -->|"target metadata"| n2
-  n3 -->|"async sessions"| n2
-  n4 -->|"upgrade and seed"| n5
-  n4 -.->|"Inferred:<br/>uvicorn dev run"| n0
+  n0["File upload"]
+  n1["Fingerprint and<br/>duplicate check"]
+  n2["Save original<br/>file"]
+  n3["Document record"]
+  n4["Existing<br/>document<br/>returned"]
+  n0 -->|"same file<br/>before?"| n1
+  n1 -->|"already stored"| n4
+  n1 -->|"new content"| n2
+  n2 -->|"bytes written"| n3
 ```
 
-## frontend: Architecture
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/foundation/README.md)
+
+## frontend: How a visitor gets the landing page
+
+This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources.
+
+A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Frontend<br/>container"]
-  n1["Next.js App<br/>Router"]
-  n2["Root layout"]
-  n3["Static index<br/>page"]
-  n4["Lint type test<br/>config"]
-  n0 -->|"Runs dev server"| n1
-  n1 -->|"Renders root"| n2
-  n2 -->|"Renders children"| n3
-  n4 -->|"Types and lints"| n1
+  n0["Site visitor"]
+  n1["Web server"]
+  n2["Page shell and<br/>styling"]
+  n3["Landing page<br/>content"]
+  n0 -->|"Opens the site"| n1
+  n1 -->|"Builds the page"| n2
+  n2 -->|"Shows headings"| n3
 ```
 
-## ingestion: Architecture
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/frontend/README.md)
+
+## ingestion: How a parsed document becomes searchable pieces
+
+This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown.
+
+A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunking package"]
-  n1["Chunker"]
-  n2["Embedding text<br/>builder"]
-  n3["Chunk contract"]
-  n4["Chunking config"]
-  n5["Identity digests"]
-  n0 -.->|"Inferred: Public<br/>entry point"| n1
-  n1 -->|"Heading path +<br/>body"| n2
-  n2 -->|"Embedding text"| n1
-  n4 -->|"Token limits"| n1
-  n1 -->|"Emits Chunks"| n3
-  n5 -->|"Chunk identity"| n3
-  n4 -->|"Config version"| n5
+  n0["Parsed document"]
+  n1["Split by heading"]
+  n2["Pack within<br/>token budget"]
+  n3["Rebuild heading<br/>text"]
+  n4["Identified<br/>pieces"]
+  n0 -->|"Group blocks by<br/>heading"| n1
+  n1 -->|"One section at a<br/>time"| n2
+  n2 -->|"Text and heading<br/>path"| n3
+  n3 -->|"Final text and<br/>spans"| n4
 ```
 
-## retrieval: Architecture
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/ingestion/README.md)
+
+## retrieval: How a search becomes matching passages
+
+This area turns a person's search text into likely matching document passages. The text is cleaned, turned into a numeric fingerprint by an outside service, then used to ask a search index for the closest passages, scoped so one customer only sees their own material. It returns those passages plus separate diagnostic details, and is currently runnable only through a developer test command. Blank text is handled without contacting anything.
+
+A search phrase is cleaned, sent out to be turned into numbers, used to find the closest stored passages in the search index, and returned as passages with optional diagnostic detail.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Settings"]
-  n1["DenseRetrievalConfig"]
-  n2["Dense retriever"]
-  n3["Embedding<br/>provider"]
-  n4["OpenSearch alias"]
-  n5["Retrieval<br/>results"]
-  n0 -->|"Derives fields"| n1
-  n0 -->|"URL and alias"| n2
-  n1 -->|"Limits and model"| n2
-  n3 -->|"Injected<br/>provider"| n2
-  n2 -->|"Query embedding"| n3
-  n2 -->|"k-NN search"| n4
-  n4 -->|"Hit mapping"| n5
-  n2 -->|"Response plus<br/>trace"| n5
+  n0["Search phrase"]
+  n1["Clean up text"]
+  n2["Turn words into<br/>numbers"]
+  n3["Find closest<br/>passages"]
+  n4["Matching<br/>passages"]
+  n0 -->|"Text to tidy"| n1
+  n1 -->|"Cleaned text"| n2
+  n2 -->|"Numeric<br/>fingerprint"| n3
+  n3 -->|"Closest passages"| n4
+  n3 -->|"Diagnostic<br/>details"| n4
 ```
+
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+[More about this area and its source evidence](maps/retrieval/README.md)
 
 ## Subsystem maps
 
 | Map | Summary | Views | Last analyzed source |
 | --- | --- | --- | --- |
-| [answers](maps/answers/README.md) | The answers subsystem defines application-owned async provider contracts for generation, embeddings, and reranking, with validating dataclasses and a code-carrying ProviderError that sanitizes SDK failures. A Cohere generation adapter and a deterministic fake provider both implement the shared GenerationProvider protocol, returning GenerationResult with distinct reported and billed usage plus locally measured latency. No orchestration or caller wiring selecting between adapters is evidenced. | [PDF](maps/answers/repository-map.pdf) · [JSON](maps/answers/map.json) | `f8493c1d264c` |
-| [evaluation](maps/evaluation/README.md) | The evaluation subsystem loads hash-verified versioned datasets, prepares isolated per-scope corpora in OpenSearch through the durable ingestion pipeline, runs four retrieval modes via a shared EvaluationSearch boundary, scores rankings with fixed metrics, and emits reproducible reports. It exposes a production-disabled debug search API and a SciFact builder CLI, and owns evaluation ORM tables. | [PDF](maps/evaluation/repository-map.pdf) · [JSON](maps/evaluation/map.json) | `f8493c1d264c` |
-| [foundation](maps/foundation/README.md) | The foundation subsystem is the shared base layer of a multi-tenant hybrid RAG service: a create_app FastAPI entry point exposing health/readiness and an evaluation router, a cached typed Settings boundary, an async SQLAlchemy Base, a tenant-scoped DocumentService over replaceable file storage, and a linear Alembic chain defining identity, content, retrieval, evaluation/audit, and ingestion-job schema. Migrations push authorization, lifecycle, lease, and immutability invariants into PostgreSQL, while a Dockerfile, Makefile, Compose, and CI provide orchestration and verification. | [PDF](maps/foundation/repository-map.pdf) · [JSON](maps/foundation/map.json) | `f8493c1d264c` |
-| [frontend](maps/frontend/README.md) | This subsystem is the hybrid-rag-search-web frontend: a private Next.js 16 / React 19 App Router project whose container runs the dev server on Node 22. It renders a root layout wrapping a purely static Home page with no state, inputs, or async data loading. No fetch, API route, or environment read is evidenced, so runtime linkage to the answers, foundation, or retrieval subsystems is untraced. | [PDF](maps/frontend/repository-map.pdf) · [JSON](maps/frontend/map.json) | `f8493c1d264c` |
-| [ingestion](maps/ingestion/README.md) | The chunking subsystem deterministically converts a ParsedDocument into content-addressed Chunks. It groups parsed blocks by heading path so no chunk crosses a section boundary, greedily packs whole blocks within a token budget with trailing overlap, splits oversized blocks by binary prefix search, and enriches text with reconstructed Markdown headings for embedding while stamping config-version and document-derived identity digests. | [PDF](maps/ingestion/repository-map.pdf) · [JSON](maps/ingestion/map.json) | `f8493c1d264c` |
-| [retrieval](maps/retrieval/README.md) | Dense-query retrieval for a multi-tenant hybrid RAG backend: a normalized query is embedded via an injected provider into a vector, then issued as an OpenSearch k-NN search against a read alias with tenant scoping applied at query level. Hits are renormalized into the shared RetrievalResult contract reused by lexical retrieval, with diagnostics kept in a separate trace. Configuration derives from Settings; the only local entry point is a debug CLI, with orchestration living elsewhere. | [PDF](maps/retrieval/repository-map.pdf) · [JSON](maps/retrieval/map.json) | `f8493c1d264c` |
+| [answers](maps/answers/README.md) | This area defines the app's own contract for asking an AI model to write an answer, plus two implementations: a real Cohere adapter and a fake one used for testing. A caller supplies a validated list of chat messages and a token limit; the result carries the generated text, why it stopped, the model used, and usage/cost details. Live use is opt-in because a configured factory requires an API key. No caller or route choosing an adapter is evidenced. | [PDF](maps/answers/repository-map.pdf) · [JSON](maps/answers/map.json) | `3537e913c1ee` |
+| [evaluation](maps/evaluation/README.md) | This area builds and runs retrieval-quality tests for the search service. It loads versioned dataset bundles whose files are checked by hash, prepares an isolated search index for each dataset, runs four search styles over every test question, scores how well the results match human relevance labels, and saves reproducible JSON and readable Markdown reports. A local-only debug endpoint and a SciFact dataset builder support this work. | [PDF](maps/evaluation/repository-map.pdf) · [JSON](maps/evaluation/map.json) | `3537e913c1ee` |
+| [foundation](maps/foundation/README.md) | This area is the shared foundation of a multi-tenant document search service. It starts the web application (health and readiness checks), stores documents people upload, deduplicates identical files, and keeps tenants, collections, and upload records separated in PostgreSQL. The main input is an uploaded file plus an already-approved tenant and collection; the useful result is a stored, deduplicated document record with a status, plus database schema and setup commands for local development. | [PDF](maps/foundation/repository-map.pdf) · [JSON](maps/foundation/map.json) | `3537e913c1ee` |
+| [frontend](maps/frontend/README.md) | This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources. | [PDF](maps/frontend/repository-map.pdf) · [JSON](maps/frontend/map.json) | `3537e913c1ee` |
+| [ingestion](maps/ingestion/README.md) | This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown. | [PDF](maps/ingestion/repository-map.pdf) · [JSON](maps/ingestion/map.json) | `3537e913c1ee` |
+| [retrieval](maps/retrieval/README.md) | This area turns a person's search text into likely matching document passages. The text is cleaned, turned into a numeric fingerprint by an outside service, then used to ask a search index for the closest passages, scoped so one customer only sees their own material. It returns those passages plus separate diagnostic details, and is currently runnable only through a developer test command. Blank text is handled without contacting anything. | [PDF](maps/retrieval/repository-map.pdf) · [JSON](maps/retrieval/map.json) | `3537e913c1ee` |
 
 JSON is the source of truth; Mermaid, PNGs, and PDFs are generated views.
 

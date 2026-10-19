@@ -1,11 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Settings"]
-  n1["Cohere providers"]
-  n2["Postgres and<br/>Redis"]
-  n3["Dramatiq worker"]
-  n4["Backend image"]
-  n0 -->|"models and<br/>timeouts"| n1
-  n0 -->|"URLs and aliases"| n2
-  n4 -.->|"Inferred: no<br/>worker started"| n3
-  n3 -.->|"Inferred: broker<br/>and lease"| n2
+  n0["Developer<br/>commands"]
+  n1["Web server<br/>started"]
+  n2["Database<br/>prepared"]
+  n3["Demo data loaded"]
+  n4["Tests and checks<br/>run"]
+  n5["Local services<br/>started"]
+  n0 -->|"start backend"| n1
+  n0 -->|"apply migrations"| n2
+  n2 -->|"after schema"| n3
+  n0 -->|"verify"| n4
+  n5 -->|"supports running<br/>app"| n1

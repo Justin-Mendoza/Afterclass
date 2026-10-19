@@ -1,14 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["FastAPI app"]
-  n1["Settings"]
-  n2["SQLAlchemy Base"]
-  n3["DocumentService"]
-  n4["Makefile and CI"]
-  n5["Alembic<br/>migrations"]
-  n0 -->|"reads settings"| n1
-  n5 -->|"same db URL"| n1
-  n5 -->|"target metadata"| n2
-  n3 -->|"async sessions"| n2
-  n4 -->|"upgrade and seed"| n5
-  n4 -.->|"Inferred:<br/>uvicorn dev run"| n0
+  n0["File upload"]
+  n1["Fingerprint and<br/>duplicate check"]
+  n2["Save original<br/>file"]
+  n3["Document record"]
+  n4["Existing<br/>document<br/>returned"]
+  n0 -->|"same file<br/>before?"| n1
+  n1 -->|"already stored"| n4
+  n1 -->|"new content"| n2
+  n2 -->|"bytes written"| n3
