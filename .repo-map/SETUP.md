@@ -97,6 +97,12 @@ The log names each subsystem before its analysis starts. Validation errors inclu
 
 Long node and edge labels are shortened automatically for display. Their full wording remains in the generated README layout notes and map JSON; endpoints and evidence are unchanged. No extra model call is needed for this formatting step.
 
+### Make maps understandable
+
+The main view explains what a feature does, what starts it, and what it produces in familiar words. Internal class names and configuration details belong in source evidence or focused follow-up views. Each overview section includes a short explanation above its diagram. Dashed arrows identify connections that need confirmation; a reading key explains them once per diagram.
+
+Descriptions longer than 40 words or 500 display characters are shortened automatically. Full explanations remain in layout notes. Titles and labels are also compacted for display. Structural errors, ambiguous duplicate IDs, missing evidence, and credential checks still stop publication with a specific diagnostic.
+
 ## Hybrid RAG Search scope
 
 The configured maps are foundation, ingestion, retrieval, answers, evaluation, and frontend. Existing ownership globs, provider defaults, budgets, and exclusions are preserved in config.json. Only structural datasets/schemas/*.schema.json files are exempt from the dataset directory exclusion; corpus and evaluation records remain blocked. Dependency hints drive conservative refresh planning and remain separate from architecture views.
