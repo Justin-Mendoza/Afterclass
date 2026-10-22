@@ -1,11 +1,14 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["File upload"]
-  n1["Fingerprint and<br/>duplicate check"]
-  n2["Save original<br/>file"]
-  n3["Document record"]
-  n4["Existing<br/>document<br/>returned"]
-  n0 -->|"same file<br/>before?"| n1
-  n1 -->|"already stored"| n4
-  n1 -->|"new content"| n2
-  n2 -->|"bytes written"| n3
+  n0["Incoming request"]
+  n1["Identify caller"]
+  n2["Check permission"]
+  n3["Run request work"]
+  n4["Result returned"]
+  n5["Uniform error<br/>reply"]
+  n0 -->|"who is calling"| n1
+  n1 -->|"known caller"| n2
+  n2 -->|"allowed, scoped"| n3
+  n3 -->|"success"| n4
+  n3 -->|"failure"| n5
+  n2 -->|"denied"| n5

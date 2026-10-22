@@ -1,19 +1,39 @@
 {
-  "tracked_files": 223,
-  "eligible_files": 6,
-  "selected_files": 6,
-  "selected_chars": 27931,
+  "tracked_files": 260,
+  "eligible_files": 16,
+  "selected_files": 16,
+  "selected_chars": 114363,
   "redacted_lines": 8,
-  "omissions": [],
-  "excluded_files": 217,
+  "omissions": [
+    {
+      "path": "backend/tests/test_answer_stream.py",
+      "reason": "only first 467 lines selected"
+    }
+  ],
+  "excluded_files": 244,
   "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
-  "analyzed_files": 6,
-  "api_calls": 3,
+  "analyzed_files": 16,
+  "api_calls": 8,
   "usage": [
     {
-      "prompt_tokens": 6319,
-      "total_tokens": 7492,
-      "completion_tokens": 1173,
+      "prompt_tokens": 6473,
+      "total_tokens": 7635,
+      "completion_tokens": 1162,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0018822510000000001,
+      "cache_discount": 0,
+      "cached_tokens": 0
+    },
+    {
+      "prompt_tokens": 6588,
+      "total_tokens": 8071,
+      "completion_tokens": 1483,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -21,14 +41,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00181244952,
+      "cost": 0.0020390605199999997,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 7199,
-      "total_tokens": 8294,
-      "completion_tokens": 1095,
+      "prompt_tokens": 7873,
+      "total_tokens": 9040,
+      "completion_tokens": 1167,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -36,24 +56,84 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0019345435200000002,
+      "cost": 0.00210275352,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 4726,
-      "total_tokens": 5936,
-      "completion_tokens": 1210,
+      "prompt_tokens": 5580,
+      "total_tokens": 7097,
+      "completion_tokens": 1517,
       "prompt_tokens_details": {
-        "cached_tokens": 640,
+        "cached_tokens": 256,
         "cache_write_tokens": null
       },
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0014619528,
-      "cache_discount": 6.03648e-05,
-      "cached_tokens": 640
+      "cost": 0.0018678265200000003,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 8114,
+      "total_tokens": 9516,
+      "completion_tokens": 1402,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00228154752,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 8256,
+      "total_tokens": 9537,
+      "completion_tokens": 1281,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00223977852,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 8587,
+      "total_tokens": 9815,
+      "completion_tokens": 1228,
+      "prompt_tokens_details": {
+        "cached_tokens": 256,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.00227228652,
+      "cache_discount": 2.414592e-05,
+      "cached_tokens": 256
+    },
+    {
+      "prompt_tokens": 12184,
+      "total_tokens": 13662,
+      "completion_tokens": 1478,
+      "prompt_tokens_details": {
+        "cached_tokens": 0,
+        "cache_write_tokens": null
+      },
+      "completion_tokens_details": {
+        "reasoning_tokens": 0
+      },
+      "cost": 0.0031408020000000003,
+      "cache_discount": 0,
+      "cached_tokens": 0
     }
   ],
   "limits": {

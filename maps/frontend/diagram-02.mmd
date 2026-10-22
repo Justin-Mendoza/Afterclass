@@ -1,9 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Simulated<br/>browser"]
-  n1["Page content<br/>check"]
-  n2["Source quality<br/>checks"]
-  n3["Website source<br/>files"]
-  n0 -->|"Renders the page"| n1
-  n1 -->|"Confirms heading"| n3
-  n2 -->|"Scans and types"| n3
+  n0["Browser request"]
+  n1["Path and header<br/>checks"]
+  n2["Upstream request<br/>builder"]
+  n3["Internal backend"]
+  n4["Streamed reply"]
+  n0 -->|"Arrives at site"| n1
+  n1 -->|"Allowed paths<br/>only"| n2
+  n2 -->|"Sends allowed<br/>headers"| n3
+  n3 -->|"Streams response"| n4

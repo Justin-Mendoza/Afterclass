@@ -1,13 +1,5 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Schema changes"]
-  n1["People and<br/>tenants"]
-  n2["Collections and<br/>documents"]
-  n3["Upload job<br/>records"]
-  n4["Search settings<br/>and traces"]
-  n5["Evaluation and<br/>audit records"]
-  n0 -->|"creates tables"| n1
-  n1 -->|"tenant-scoped<br/>rows"| n2
-  n2 -->|"upload work"| n3
-  n2 -->|"searched<br/>material"| n4
-  n4 -.->|"runs and records"| n5
+  n0["Remove stored<br/>file"]
+  n1["Retryable state"]
+  n0 -->|"removal failed"| n1

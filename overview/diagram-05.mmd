@@ -1,11 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Split by heading"]
-  n2["Pack within<br/>token budget"]
-  n3["Rebuild heading<br/>text"]
-  n4["Identified<br/>pieces"]
-  n0 -->|"Group blocks by<br/>heading"| n1
-  n1 -->|"One section at a<br/>time"| n2
-  n2 -->|"Text and heading<br/>path"| n3
-  n3 -->|"Final text and<br/>spans"| n4
+  n0["Caller requests<br/>ingestion"]
+  n1["Check<br/>identifiers and<br/>version"]
+  n2["Save durable job<br/>record"]
+  n3["Mark document<br/>processing"]
+  n4["Publish work<br/>hint"]
+  n0 -->|"Tenant, doc,<br/>version"| n1
+  n1 -->|"Insert inside<br/>transaction"| n2
+  n2 -->|"New job only"| n3
+  n2 -->|"After commit"| n4
+  n3 -.->|"Status is queued"| n4

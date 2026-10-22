@@ -1,9 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Live call"]
-  n1["Failure mapped"]
-  n2["Error codes"]
-  n3["Retry guidance"]
-  n0 -->|"Call fails"| n1
-  n1 -->|"Sanitized code"| n2
-  n2 -->|"Retryable flag"| n3
+  n0["List own answers"]
+  n1["Open one answer"]
+  n2["Re-check source<br/>access"]
+  n3["Shown or<br/>withheld"]
+  n0 -->|"Picks an answer"| n1
+  n1 -->|"Answer's sources"| n2
+  n2 -->|"Allowed or<br/>hidden"| n3

@@ -1,53 +1,52 @@
 {
   "map": {
-    "summary": "This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown.",
+    "summary": "This area lets the system accept a document for processing and keep durable, tamper-evident records of the results. A caller supplies a tenant, document, and pipeline version; the service saves a job record, flips the document to processing, and only then signals that work is ready. Finished artifacts (parsed text, chunks, embeddings) are stored as immutable checksum-verified files under one root, keyed safely per tenant and job, so identical inputs can't produce conflicting or corrupted data.",
     "unknowns": [
-      "No call site invoking chunk_document is shown; wiring from parsing into chunking and from chunks into embedding, indexing, or storage is inferred from the public contract alone (F0001, F0016).",
-      "How ParsedDocument and ParsedBlock are produced upstream of this area is not covered by the supplied findings (F0001, F0016).",
-      "What downstream consumers do with the emitted pieces, including their identifier and embedding text, is outside the supplied evidence (F0010, F0016).",
-      "Which symbols the package __init__ re-exports is not shown (F0016)."
+      "Whether the worker actually reads artifacts written by this storage layer, and how indexed artifacts feed search results, is inferred from changed files but not confirmed by the supplied findings (F0015).",
+      "Local filesystem storage is only one implementation of the storage contract; deployed behavior may use an alternate backend not shown here (F0016).",
+      "The exact end-to-end path from a published work hint to a running worker is described as inferred and may differ in the real deployment (F0010)."
     ],
     "diagrams": [
       {
-        "title": "How a parsed document becomes searchable pieces",
-        "description": "A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.",
+        "title": "How a document becomes an ingestion job",
+        "description": "A caller submits a tenant, document, and pipeline version. The service saves a job, marks the document as processing, and after the database commit signals that work is ready.",
         "nodes": [
           {
-            "id": "parsed",
-            "label": "Parsed document",
+            "id": "request",
+            "label": "Caller requests ingestion",
             "finding_ids": [
-              "F0001"
+              "F0007",
+              "F0010"
             ]
           },
           {
-            "id": "sections",
-            "label": "Split by heading",
+            "id": "validate",
+            "label": "Check identifiers and version",
             "finding_ids": [
+              "F0007",
               "F0002"
             ]
           },
           {
-            "id": "packing",
-            "label": "Pack within token budget",
+            "id": "jobrow",
+            "label": "Save durable job record",
             "finding_ids": [
-              "F0003",
-              "F0004",
-              "F0006"
+              "F0008",
+              "F0009"
             ]
           },
           {
-            "id": "enrich",
-            "label": "Rebuild heading text",
+            "id": "docstate",
+            "label": "Mark document processing",
+            "finding_ids": [
+              "F0009"
+            ]
+          },
+          {
+            "id": "signal",
+            "label": "Publish work hint",
             "finding_ids": [
               "F0007",
-              "F0008"
-            ]
-          },
-          {
-            "id": "pieces",
-            "label": "Identified pieces",
-            "finding_ids": [
-              "F0009",
               "F0010",
               "F0011"
             ]
@@ -55,281 +54,284 @@
         ],
         "edges": [
           {
-            "from": "parsed",
-            "to": "sections",
-            "label": "Group blocks by heading",
-            "finding_ids": [
-              "F0001",
-              "F0002"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "sections",
-            "to": "packing",
-            "label": "One section at a time",
-            "finding_ids": [
-              "F0001",
-              "F0002"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "packing",
-            "to": "enrich",
-            "label": "Text and heading path",
+            "from": "request",
+            "to": "validate",
+            "label": "Tenant, doc, version",
             "finding_ids": [
               "F0007"
             ],
             "uncertain": false
           },
           {
-            "from": "enrich",
-            "to": "pieces",
-            "label": "Final text and spans",
+            "from": "validate",
+            "to": "jobrow",
+            "label": "Insert inside transaction",
             "finding_ids": [
               "F0007",
+              "F0008"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "jobrow",
+            "to": "docstate",
+            "label": "New job only",
+            "finding_ids": [
               "F0009"
             ],
             "uncertain": false
+          },
+          {
+            "from": "jobrow",
+            "to": "signal",
+            "label": "After commit",
+            "finding_ids": [
+              "F0007",
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "docstate",
+            "to": "signal",
+            "label": "Status is queued",
+            "finding_ids": [
+              "F0009",
+              "F0010"
+            ],
+            "uncertain": true
           }
         ]
       },
       {
-        "title": "How oversized blocks are split",
-        "description": "Blocks accumulate while they fit the token budget; a block that will not fit is split at the longest fitting prefix, and leftover text carries into the next piece.",
+        "title": "How artifacts are saved safely",
+        "description": "Finished results become immutable files. Bytes are written to a temporary file, verified, then linked into place under one root so a key can never hold two different payloads.",
         "nodes": [
           {
-            "id": "candidate",
-            "label": "Growing piece",
-            "finding_ids": [
-              "F0003"
-            ]
-          },
-          {
-            "id": "fit",
-            "label": "Within token budget?",
-            "finding_ids": [
-              "F0003",
-              "F0004"
-            ]
-          },
-          {
-            "id": "split",
-            "label": "Find largest prefix",
-            "finding_ids": [
-              "F0004"
-            ]
-          },
-          {
-            "id": "emit",
-            "label": "Emit finished piece",
-            "finding_ids": [
-              "F0006",
-              "F0007"
-            ]
-          },
-          {
-            "id": "carry",
-            "label": "Overlap carry and leftover",
-            "finding_ids": [
-              "F0004",
-              "F0006"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "candidate",
-            "to": "fit",
-            "label": "Count tokens",
-            "finding_ids": [
-              "F0003",
-              "F0007"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "fit",
-            "to": "emit",
-            "label": "Whole block fits",
-            "finding_ids": [
-              "F0003"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "fit",
-            "to": "split",
-            "label": "Block too large",
-            "finding_ids": [
-              "F0004"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "split",
-            "to": "carry",
-            "label": "Leftover text",
-            "finding_ids": [
-              "F0004"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "emit",
-            "to": "carry",
-            "label": "If work remains",
-            "finding_ids": [
-              "F0006"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "carry",
-            "to": "candidate",
-            "label": "Seeds next piece",
-            "finding_ids": [
-              "F0006"
-            ],
-            "uncertain": false
-          }
-        ]
-      },
-      {
-        "title": "What stops the process",
-        "description": "A piece must always hold its heading plus at least one source token; if that cannot fit the configured budget, chunking stops with an error instead of producing an invalid piece.",
-        "nodes": [
-          {
-            "id": "heading",
-            "label": "Heading plus one token",
-            "finding_ids": [
-              "F0005"
-            ]
-          },
-          {
-            "id": "limit",
-            "label": "Chunk token limit",
+            "id": "identity",
+            "label": "Derive stable key",
             "finding_ids": [
               "F0005",
-              "F0015"
+              "F0002"
             ]
           },
           {
-            "id": "fail",
-            "label": "Stop with error",
+            "id": "tempwrite",
+            "label": "Write temp and flush",
             "finding_ids": [
-              "F0005"
+              "F0003"
+            ]
+          },
+          {
+            "id": "publish",
+            "label": "Link into place",
+            "finding_ids": [
+              "F0003"
+            ]
+          },
+          {
+            "id": "stored",
+            "label": "Immutable stored artifact",
+            "finding_ids": [
+              "F0001",
+              "F0003"
+            ]
+          },
+          {
+            "id": "conflict",
+            "label": "Reject different bytes",
+            "finding_ids": [
+              "F0003",
+              "F0014"
             ]
           }
         ],
         "edges": [
           {
-            "from": "heading",
-            "to": "limit",
-            "label": "Compare against limit",
+            "from": "identity",
+            "to": "tempwrite",
+            "label": "Caller values hashed",
             "finding_ids": [
-              "F0005"
+              "F0005",
+              "F0003"
             ],
             "uncertain": false
           },
           {
-            "from": "limit",
-            "to": "fail",
-            "label": "Cannot fit",
+            "from": "tempwrite",
+            "to": "publish",
+            "label": "Flushed to disk",
             "finding_ids": [
-              "F0005"
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "publish",
+            "to": "stored",
+            "label": "Existing file kept",
+            "finding_ids": [
+              "F0003",
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "publish",
+            "to": "conflict",
+            "label": "Existing bytes differ",
+            "finding_ids": [
+              "F0003",
+              "F0014"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Where stable identifiers come from",
-        "description": "Settings are validated and turned into a version digest; that version, the document identifier, position, and content are hashed together so identical input always yields the same piece identifier.",
+        "title": "How artifacts are read back",
+        "description": "A stored artifact is fetched by its reference and re-checked against the declared size and checksum. Bad bytes or malformed keys are rejected rather than returned.",
         "nodes": [
           {
-            "id": "settings",
-            "label": "Chunk settings",
+            "id": "ref",
+            "label": "Artifact reference",
             "finding_ids": [
+              "F0012",
+              "F0002"
+            ]
+          },
+          {
+            "id": "fetch",
+            "label": "Read stored bytes",
+            "finding_ids": [
+              "F0004"
+            ]
+          },
+          {
+            "id": "verify",
+            "label": "Check size and checksum",
+            "finding_ids": [
+              "F0004"
+            ]
+          },
+          {
+            "id": "ok",
+            "label": "Verified artifact bytes",
+            "finding_ids": [
+              "F0004"
+            ]
+          },
+          {
+            "id": "bad",
+            "label": "Report integrity error",
+            "finding_ids": [
+              "F0004",
               "F0014"
             ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "ref",
+            "to": "fetch",
+            "label": "Key, size, checksum",
+            "finding_ids": [
+              "F0012",
+              "F0004"
+            ],
+            "uncertain": false
           },
           {
-            "id": "version",
-            "label": "Settings version digest",
+            "from": "fetch",
+            "to": "verify",
+            "label": "Bytes read",
             "finding_ids": [
+              "F0004"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "verify",
+            "to": "ok",
+            "label": "Matches reference",
+            "finding_ids": [
+              "F0004"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "verify",
+            "to": "bad",
+            "label": "Mismatch found",
+            "finding_ids": [
+              "F0004",
               "F0014"
-            ]
-          },
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Where the checkpoint values come from",
+        "description": "Artifact references and payloads travel through checkpoints in a strict, stable form: only key, checksum, and size fields are allowed, and payload values are serialized deterministically.",
+        "nodes": [
           {
-            "id": "docid",
-            "label": "Document identifier",
+            "id": "payload",
+            "label": "Checkpoint payload value",
             "finding_ids": [
-              "F0013"
+              "F0006"
             ]
           },
           {
-            "id": "hash",
-            "label": "Shared stable digest",
+            "id": "canonical",
+            "label": "Stable byte form",
+            "finding_ids": [
+              "F0006"
+            ]
+          },
+          {
+            "id": "refform",
+            "label": "Reference three fields",
             "finding_ids": [
               "F0012"
             ]
           },
           {
-            "id": "chunkid",
-            "label": "Piece identifier",
+            "id": "guard",
+            "label": "Reject extra or missing",
             "finding_ids": [
-              "F0010"
+              "F0012",
+              "F0014"
             ]
           }
         ],
         "edges": [
           {
-            "from": "settings",
-            "to": "version",
-            "label": "Canonical form hashed",
+            "from": "payload",
+            "to": "canonical",
+            "label": "Sorted, compact form",
             "finding_ids": [
-              "F0014"
+              "F0006"
             ],
             "uncertain": false
           },
           {
-            "from": "hash",
-            "to": "version",
-            "label": "Length-prefixed hashing",
+            "from": "canonical",
+            "to": "refform",
+            "label": "Stored with reference",
+            "finding_ids": [
+              "F0006",
+              "F0012"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "refform",
+            "to": "guard",
+            "label": "Exactly three fields",
             "finding_ids": [
               "F0012",
               "F0014"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "hash",
-            "to": "docid",
-            "label": "Hash owner and content",
-            "finding_ids": [
-              "F0012",
-              "F0013"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "version",
-            "to": "chunkid",
-            "label": "Included in identity",
-            "finding_ids": [
-              "F0010"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "docid",
-            "to": "chunkid",
-            "label": "Included in identity",
-            "finding_ids": [
-              "F0010",
-              "F0013"
             ],
             "uncertain": false
           }
@@ -340,156 +342,136 @@
   },
   "findings": {
     "F0001": {
-      "statement": "chunk_document is the subsystem's entry point: it accepts a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig, and returns an ordered tuple of Chunk records. It groups document.blocks by each block's locator.heading_path using groupby, then chunks each section independently so no chunk crosses a heading boundary.",
+      "statement": "LocalArtifactStorage stores immutable ingestion checkpoint artifacts (parsed, chunks, embeddings) as files beneath an application-owned root, keyed by tenant UUID, job UUID, artifact kind, and a content identity digest; a path containing path traversal components in the key is rejected and all published files live under one root.",
       "sources": [
-        "S0002"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "Chunking is deterministic and structure-aware per the package docstring; the algorithm label is 'structure-aware-v1' (CHUNKING_ALGORITHM) and is stamped into config versioning.",
+      "statement": "Artifact keys and references are strictly validated: keys must match a fixed UUID/UUID/kind/sha256.json pattern (ArtifactKind, _valid_key), references must carry a 64-char lowercase SHA-256 and nonnegative size (ArtifactRef.__post_init__), and lookup rejects symlinks in the key path (_path) to prevent escaping the storage root.",
       "sources": [
-        "S0001",
-        "S0003"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "_chunk_section greedily packs whole ParsedBlock fragments into a candidate while the candidate's token count stays within config.max_tokens, popping blocks from a pending list and tracking whether a whole block was added.",
+      "statement": "save writes new artifact bytes atomically via a temporary file plus os.link, fsyncs before linking, and if the target already exists re-reads it; if existing bytes differ in size or SHA-256 it raises ArtifactConflictError, so a deterministic key can never hold two different payloads.",
       "sources": [
-        "S0002"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "When a block does not fit (or the current candidate is heading-only), _largest_fitting_prefix performs a binary search over the fragment's token spans to find the longest prefix whose combined candidate stays within max_tokens; the leftover text becomes a new _Fragment remainder on the pending block.",
+      "statement": "fetch verifies stored bytes against the reference's declared size and SHA-256 and raises ArtifactIntegrityError on mismatch; lookup describes an existing file without a checkpoint reference, returning None if the file is absent; delete removes one artifact and delete_job removes all artifacts for a tenant/job pair.",
       "sources": [
-        "S0002"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "If even a heading-plus-one-token chunk cannot fit, _chunk_section raises ChunkingError with the message 'Heading context and one source token exceed the chunk token limit', making the token budget a hard failure boundary.",
+      "statement": "Artifact identity is derived from the artifact kind plus caller-supplied values through stable_digest (artifact_identity), so the key for a given input is deterministic and can be reconstructed without side-channel state.",
       "sources": [
-        "S0002"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "After emitting a chunk, _trailing_overlap reconstructs trailing content from the candidate by re-tokenizing the joined content text and taking the last config.overlap_tokens tokens, seeding the next candidate's carry when pending blocks remain.",
+      "statement": "canonical_json_bytes serializes values with sorted keys, compact separators, no NaN, and non-ASCII preserved, providing a stable byte form for hashing or storing checkpoint payloads.",
       "sources": [
-        "S0002"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "_candidate enforces that all fragments share one heading_path ('A chunk cannot cross a heading boundary') and joins fragment text with double newlines to form content_text; it passes content_text, heading_path, and any leading heading block to build_embedding_text, then counts tokens on the embedding text for token_count.",
+      "statement": "IngestionJobService.enqueue_document validates tenant/document UUIDs and a pipe_<64 hex> pipeline version, opens a transaction, calls enqueue_in_session, and only publishes a job to the JobPublisher after the transaction commits and the resulting status is QUEUED.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
     "F0008": {
-      "statement": "build_embedding_text reconstructs Markdown headings by joining '# '*level + heading for each level in heading_path, and strips a leading heading block from the body if it duplicates the leaf heading so the heading is not embedded twice; it raises ValueError on invalid inputs or mismatched leading heading.",
+      "statement": "enqueue_in_session row-locks the target document, raises DocumentNotFound when absent and DocumentUnavailable when the document is deleting or deleted, then inserts an IngestionJob with content_hash and pipeline_version using on-conflict-do-nothing on the unique document/recipe constraint, treating a returned row as a freshly created job.",
       "sources": [
-        "S0004"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0009": {
-      "statement": "A Chunk record carries document_id, config_version, order, content_text, embedding_text, embedding_token_count, and source_spans; validation requires nonblank texts, positive order and token count, a nonempty tuple of SourceSpan, and source spans sorted in source order.",
+      "statement": "When a job is created the service marks the document PROCESSING and clears any error message; when an existing job already exists it falls back to a select by tenant, document, content_hash, and pipeline_version to recover the existing job id and status, making enqueue idempotent for identical inputs.",
       "sources": [
-        "S0003"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "Chunk.chunk_id is computed by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, producing a prefixed digest ('chk_'); this content-addressed identity is what downstream consumers can use as a stable key.",
+      "statement": "The ingestion batch's main input-to-result path is: a caller supplies tenant, document, and pipeline version; the service persists a durable IngestionJob row (and flips the document to PROCESSING) inside a transaction; after commit it emits a Redis-style hint via JobPublisher; the worker later produces artifacts saved as checksum-verified immutable files keyed per job.",
       "sources": [
-        "S0003"
+        "S0002"
       ],
-      "uncertain": false
+      "uncertain": true
     },
     "F0011": {
-      "statement": "SourceSpan captures a half-open character range (start_char, end_char) within one parser block, validated nonnegative start and end greater than start, and canonicalizes to JSON including block_number, page_number, and heading_path from the SourceLocator.",
+      "statement": "Transactions and publishing are deliberately separated so a job hint is never published before its database row is committed, and callers can create durable work inside their own transaction via enqueue_in_session without triggering a publish.",
       "sources": [
-        "S0003"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "stable_digest builds a length-prefixed SHA-256 over a versioned namespace ('hybrid-rag-search/<namespace>/v1') followed by each UTF-8 value, yielding collision-resistant deterministic identities reused for document and chunk IDs.",
+      "statement": "Checkpoint references serialize to and from three fields (key, sha256, size_bytes) via ArtifactRef.checkpoint_value and from_checkpoint, enforcing exact field sets so an untrusted checkpoint cannot smuggle extra or missing keys.",
       "sources": [
-        "S0005"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "DocumentContentIdentity derives document_id ('doc_<digest>') from tenant_id, collection_id, and content_sha256, so document identity is scoped to authorization boundaries and original file content; chunks then embed this document_id.",
+      "statement": "The module exposes the job status from the database as an IngestionJobStatus enum and returns an EnqueueResult carrying job id, a created boolean, and the status, giving callers enough information to distinguish new work from reused work.",
       "sources": [
-        "S0005",
-        "S0003"
+        "S0002"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "ChunkingConfig validates that max_tokens is a positive integer, overlap_tokens is nonnegative and strictly less than max_tokens, embedding_limit_tokens is positive and at least max_tokens, and tokenizer/algorithm fields are nonblank with a valid 64-hex SHA-256 tokenizer hash; its version property yields 'chunkcfg_<digest>' over the canonical JSON of these fields.",
+      "statement": "ArtifactFitMismatch or integrity problems surface as distinct errors: ArtifactConflictError for a key holding different bytes, ArtifactIntegrityError for bytes that no longer match their reference, and ValueError for malformed keys, references, or argument types.",
       "sources": [
-        "S0003"
+        "S0001"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "The default config uses max_tokens=400, overlap_tokens=50, embedding_limit_tokens=512, and pins the tokenizer to the Cohere embed-english-light-v3 model, revision, and SHA-256, so chunk identity is tied to a specific tokenizer artifact.",
+      "statement": "Whether the worker actually reads artifacts produced by this storage layer, and how indexed artifacts feed OpenSearch or search results, is inferred from the batch's changed files but not visible in these excerpts.",
       "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0016": {
-      "statement": "How chunk_document is invoked at runtime, how ParsedDocument/ParsedBlock are produced upstream, and how emitted Chunks are embedded, indexed, or stored downstream are not shown in these excerpts; the wiring from parsing to chunking and from chunks to storage is inferred from the public contract alone.",
-      "sources": [
-        "S0002",
-        "S0003"
+        "S0001",
+        "S0002"
       ],
       "uncertain": true
+    },
+    "F0016": {
+      "statement": "LocalArtifactStorage is only one implementation of the ArtifactStorage protocol (save/lookup/fetch/delete); the protocol allows alternative backends, so local filesystem behavior does not exhaust storage behavior in the deployed system.",
+      "sources": [
+        "S0001"
+      ],
+      "uncertain": false
     }
   },
   "sources": {
     "S0001": {
       "id": "S0001",
-      "path": "backend/src/hybrid_rag_search/chunking/__init__.py",
+      "path": "backend/src/hybrid_rag_search/ingestion/artifacts.py",
       "start": 1,
-      "end": 1
+      "end": 205
     },
     "S0002": {
       "id": "S0002",
-      "path": "backend/src/hybrid_rag_search/chunking/chunker.py",
+      "path": "backend/src/hybrid_rag_search/ingestion/jobs.py",
       "start": 1,
-      "end": 291
-    },
-    "S0003": {
-      "id": "S0003",
-      "path": "backend/src/hybrid_rag_search/chunking/contracts.py",
-      "start": 1,
-      "end": 162
-    },
-    "S0004": {
-      "id": "S0004",
-      "path": "backend/src/hybrid_rag_search/chunking/embedding_text.py",
-      "start": 1,
-      "end": 33
-    },
-    "S0005": {
-      "id": "S0005",
-      "path": "backend/src/hybrid_rag_search/chunking/identity.py",
-      "start": 1,
-      "end": 49
+      "end": 108
     }
   },
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:25:15.681194+00:00",
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:20:38.351186+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {
@@ -604,6 +586,6 @@
       }
     ],
     "local_changes": false,
-    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+    "repository_url": "https://github.com/Justin-Mendoza/Afterclass"
   }
 }

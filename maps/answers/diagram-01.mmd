@@ -1,11 +1,12 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Validated prompt"]
-  n1["Answer provider"]
-  n2["Model service"]
-  n3["Reply checked"]
-  n4["Answer and usage"]
-  n0 -->|"Messages and<br/>limit"| n1
-  n1 -->|"One chat request"| n2
-  n2 -->|"Raw reply text"| n3
-  n3 -->|"Accepts answer"| n4
+  n0["Question asked"]
+  n1["Find permitted<br/>passages"]
+  n2["Write grounded<br/>answer"]
+  n3["Check answer and<br/>citations"]
+  n4["Save private<br/>answer"]
+  n0 -->|"Question text"| n1
+  n1 -->|"Allowed passages"| n2
+  n2 -->|"Draft text and<br/>sources"| n3
+  n3 -->|"Verified answer"| n4
+  n4 -->|"Live text and<br/>answer id"| n0

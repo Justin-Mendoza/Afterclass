@@ -1,8 +1,8 @@
 # Repository map
 
-This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources.
+This area is the web front door of an evidence-backed document search product. Through their browser, a person picks a demo identity and collection, asks a question, and watches the answer arrive live with citations they can open and download the original source. All backend calls travel through the same website origin, which quietly rewrites paths, strips cookies, and streams results back.
 
-Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:24:41.881136+00:00
+Commit: `e4abb88a149b365c2838b0f2f0606dff0127b1ab` | Generated: 2026-10-22T15:20:08.828525+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -12,24 +12,28 @@ Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:24
 
 Tracked, eligible text only; bounded excerpts, not exhaustive.
 
-10/10 eligible files analyzed; 213 tracked files excluded by policy.
+6/17 eligible files analyzed; 243 tracked files excluded by policy.
 
 2 API calls. See coverage.json for budgets, exclusions, and usage.
 
-## How a visitor gets the landing page
+## How a question becomes a cited answer
 
-A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.
+A person picks a collection and identity, asks a question, and watches the answer stream back live. Citations can be opened to view and download the original source document.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Site visitor"]
-  n1["Web server"]
-  n2["Page shell and<br/>styling"]
-  n3["Landing page<br/>content"]
-  n0 -->|"Opens the site"| n1
-  n1 -->|"Builds the page"| n2
-  n2 -->|"Shows headings"| n3
+  n0["Person using the<br/>site"]
+  n1["Document<br/>workspace page"]
+  n2["Same-origin<br/>forwarder"]
+  n3["Answer service"]
+  n4["Opened source<br/>view"]
+  n0 -->|"Picks scope and<br/>asks"| n1
+  n1 -->|"Sends question"| n2
+  n2 -->|"Forwards without<br/>cookies"| n3
+  n3 -->|"Streams draft<br/>then final"| n1
+  n0 -->|"Opens a citation"| n4
+  n2 -->|"Fetches source<br/>file"| n4
 ```
 
 <details>
@@ -43,26 +47,31 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 
-- **F0014**: The observed end-to-end flow is: a viewer requests the index route, the root layout supplies the HTML shell, stylesheet, and metadata, and the static Home component renders the heading and workspace placeholder; no data is read, stored, or sent. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
-- **F0001**: The frontend container image installs dependencies with npm ci from package.json and package-lock.json, copies the source tree, and starts the Next.js dev server bound to all interfaces via 'npm run dev -- --hostname 0.0.0.0', exposing port 3000. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0002**: The image runs the development server (next dev) rather than a production build/start, so production serving behavior is not shown by these files. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/Dockerfile#L1-L12">frontend/Dockerfile:1-12</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0004**: The user-facing entry point is the App Router root layout (RootLayout in src/app/layout.tsx), which imports the global stylesheet, declares page metadata (title 'Hybrid RAG Search', description 'Evidence-first enterprise search'), and wraps the page children in an html/body shell. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/src/app/layout.tsx#L1-L19">frontend/src/app/layout.tsx:1-19</a>)
-- **F0005**: The index route (Home in src/app/page.tsx) is purely static markup: an eyebrow label 'Hybrid RAG Search', an h1 'Evidence-first answers, built for inspection.', and a note that the search workspace is ready for its first collection. It has no state, props, inputs, event handlers, or async data loading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/src/app/page.tsx#L1-L9">frontend/src/app/page.tsx:1-9</a>)
+- **F0007**: The home page (Home in page.tsx, exercised by page.test.tsx) is a client-side document workspace that loads demo identities, workspaces/collections, capabilities, documents, and saved answers from the same-origin API and renders selectors for collection scope and demo user identity. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+- **F0012**: Switching the simulated demo identity reloads workspace/collection/capability data for the new identity and explicitly clears previously loaded answers, open source context (e.g., notes.txt), and manager-only controls like "Permissions"; a read-only identity instead sees a read-only notice about the collection. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+- **F0001**: The web app exposes a catch-all API route handler (forward, exported as GET/POST/PATCH/PUT/DELETE) under /api/[...path] that acts as a fixed reverse proxy: it only permits paths whose first segment is "v1" and whose segments match /^[a-zA-Z0-9_-]+$/, returning a 404 not_found JSON error otherwise. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>)
+- **F0002**: The proxy builds its upstream URL from process.env.API_INTERNAL_URL (defaulting to http://127.0.0.1:8000) plus the sanitized path, and forwards request.method, selected headers, and the request body (with duplex: "half" for non-GET/HEAD methods), so browser clients reach the backend API through the same origin. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+- **F0008**: Asking a question streams answer events (progress, content, citations, complete, error) from the /answers/stream endpoint; partial "content" drafts are shown while streaming and are replaced by the final AnswerResult text once a "complete" event arrives. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+- **F0011**: Selecting a citation ("Open source 1") fetches and displays the currently authorized source document including original filename, page/locator info (e.g., "Page 2"), the cited passage text, and a "Download original" control. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+- **F0003**: Only an allowlist of request headers is forwarded upstream — content-type, accept, x-demo-user-id, idempotency-key, last-event-id — so cookies and authorization headers are intentionally stripped (the backend, not this proxy, owns authorization). (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+- **F0004**: The proxy streams upstream responses rather than buffering: it pipes response.body through a ReadableStream reader, forwards content-type, content-disposition, and x-request-id, and always sets Cache-Control: no-store and X-Accel-Buffering: no, which supports live server-sent-event answer streams. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
 
-## How the page is checked before release
+## How requests are filtered and forwarded
 
-Automated checks run the landing content in a simulated browser and verify the heading text, while code-quality tools scan the source. These checks do not exercise any search or backend behavior.
+A browser request reaches the site forwarder, which rejects anything outside the allowed path shape, strips sensitive headers, and forwards the rest to the internal backend while streaming the reply back.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Simulated<br/>browser"]
-  n1["Page content<br/>check"]
-  n2["Source quality<br/>checks"]
-  n3["Website source<br/>files"]
-  n0 -->|"Renders the page"| n1
-  n1 -->|"Confirms heading"| n3
-  n2 -->|"Scans and types"| n3
+  n0["Browser request"]
+  n1["Path and header<br/>checks"]
+  n2["Upstream request<br/>builder"]
+  n3["Internal backend"]
+  n4["Streamed reply"]
+  n0 -->|"Arrives at site"| n1
+  n1 -->|"Allowed paths<br/>only"| n2
+  n2 -->|"Sends allowed<br/>headers"| n3
+  n3 -->|"Streams response"| n4
 ```
 
 <details>
@@ -76,16 +85,74 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 
-- **F0008**: A Vitest test renders the Home component in jsdom and asserts a level-1 heading with the text 'Evidence-first answers, built for inspection.', providing the only observed automated check of the page's rendered output. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/src/app/page.test.tsx#L1-L14">frontend/src/app/page.test.tsx:1-14</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>)
-- **F0009**: The test toolchain is configured with the Vite React plugin and jsdom environment, so component tests run in a simulated browser DOM rather than a real one. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/vitest.config.ts#L1-L7">frontend/vitest.config.ts:1-7</a>)
-- **F0010**: eslint.config.mjs applies Next.js core-web-vitals and TypeScript rule sets and ignores build/coverage outputs; this gates source quality but is a development-time concern, not runtime behavior. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/eslint.config.mjs#L1-L9">frontend/eslint.config.mjs:1-9</a>)
-- **F0011**: The lint, format, typecheck, and test scripts (eslint --max-warnings=0, prettier, tsc --noEmit, vitest run) define static quality gates over the sources without executing application logic. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/package.json#L1-L39">frontend/package.json:1-39</a>)
-- **F0012**: tsconfig.json establishes strict TypeScript compilation for ES2022 with no emission, React JSX transform, bundler module resolution, and a '@/…' path alias mapping to './src/*'. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/frontend/tsconfig.json#L1-L33">frontend/tsconfig.json:1-33</a>)
+- **F0002**: The proxy builds its upstream URL from process.env.API_INTERNAL_URL (defaulting to http://127.0.0.1:8000) plus the sanitized path, and forwards request.method, selected headers, and the request body (with duplex: "half" for non-GET/HEAD methods), so browser clients reach the backend API through the same origin. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+- **F0001**: The web app exposes a catch-all API route handler (forward, exported as GET/POST/PATCH/PUT/DELETE) under /api/[...path] that acts as a fixed reverse proxy: it only permits paths whose first segment is "v1" and whose segments match /^[a-zA-Z0-9_-]+$/, returning a 404 not_found JSON error otherwise. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>)
+- **F0003**: Only an allowlist of request headers is forwarded upstream — content-type, accept, x-demo-user-id, idempotency-key, last-event-id — so cookies and authorization headers are intentionally stripped (the backend, not this proxy, owns authorization). (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+- **F0004**: The proxy streams upstream responses rather than buffering: it pipes response.body through a ReadableStream reader, forwards content-type, content-disposition, and x-request-id, and always sets Cache-Control: no-store and X-Accel-Buffering: no, which supports live server-sent-event answer streams. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+
+## Stopping or losing a connection
+
+If a person stops an answer or the connection drops, the site cancels the upstream request, clears the partial draft and citations, and shows a safe message rather than an invented answer.
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Stop action"]
+  n1["Cancellation<br/>relay"]
+  n2["Upstream answer<br/>request"]
+  n3["Draft cleared<br/>safely"]
+  n0 -->|"Asks to stop"| n1
+  n1 -->|"Aborts request"| n2
+  n2 -->|"Failure message<br/>shown"| n3
+```
+
+<details>
+<summary>PNG fallback</summary>
+
+![Diagram](diagram-03.png)
+
+</details>
+
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+### Source evidence
+
+- **F0010**: While an answer is streaming the UI offers a "Stop" action that aborts the in-flight stream request (the fetch signal is marked aborted) and clears both the draft and any citations, showing "You stopped this answer" instead. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+- **F0005**: Cancellation is propagated end-to-end: the incoming request.signal is linked to a local AbortController that aborts the upstream fetch, and cancelling the downstream ReadableStream (cancel handler) or a read error aborts the upstream request and releases the reader. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.ts#L1-L104">frontend/src/app/api/[...path]/route.ts:1-104</a>, <a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/api/%5B...path%5D/route.test.ts#L1-L97">frontend/src/app/api/[...path]/route.test.ts:1-97</a>)
+- **F0009**: Failed or interrupted answer streams clear the in-progress draft and surface a safe message (e.g., "Connection interrupted" or the server-provided message such as "The answer could not be verified."); a new request is only started on explicit manual retry ("Retry question"), not automatically. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
+
+## How a person switches identity
+
+Changing the simulated demo identity reloads workspace, collection, and capability choices, clears saved answers, open sources, and manager controls, and shows a read-only notice for view-only identities.
+
+```mermaid
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Identity<br/>selector"]
+  n1["Data reloaded"]
+  n2["Previous views<br/>cleared"]
+  n3["Read-only notice"]
+  n0 -->|"New identity<br/>picked"| n1
+  n1 -->|"Drops old<br/>answers"| n2
+  n2 -->|"Shows notice if<br/>limited"| n3
+```
+
+<details>
+<summary>PNG fallback</summary>
+
+![Diagram](diagram-04.png)
+
+</details>
+
+Read from top to bottom; arrows show what happens next or what is passed along.
+
+### Source evidence
+
+- **F0012**: Switching the simulated demo identity reloads workspace/collection/capability data for the new identity and explicitly clears previously loaded answers, open source context (e.g., notes.txt), and manager-only controls like "Permissions"; a read-only identity instead sees a read-only notice about the collection. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/frontend/src/app/page.test.tsx#L1-L321">frontend/src/app/page.test.tsx:1-321</a>)
 
 ## Uncertainties and untraced areas
 
-- No calls to any answer service, document storage, or search system appear in the web sources, so how this site would reach those systems is unconfirmed.
-- The landing page has no input fields, controls, or state, so the intended search workspace behavior is not shown.
-- The web server configuration declares no forwarding or routing rules, leaving any path from this site to backend services unspecified.
-- The container starts the development server rather than a production build, so production serving behavior is not demonstrated.
-- No evidence shows the answer, storage, or search systems calling back toward this website, so any inbound contract is unverified.
+- The forwarding destination is read from an environment setting; how that setting is populated in any deployed environment is not shown.
+- Only the frontend area was examined, so the shape of upstream responses and error payloads is taken on trust from this side.
+- The upload flow is described as reachable with accepted file types and a size limit, but the path from chosen file to stored document is not shown in these findings.
+- Direct-link parameters for workspace, answer, and source are honored, but how those links are generated for sharing is not shown.

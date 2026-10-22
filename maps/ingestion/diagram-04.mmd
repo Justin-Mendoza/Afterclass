@@ -1,12 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunk settings"]
-  n1["Settings version<br/>digest"]
-  n2["Document<br/>identifier"]
-  n3["Shared stable<br/>digest"]
-  n4["Piece identifier"]
-  n0 -->|"Canonical form<br/>hashed"| n1
-  n3 -->|"Length-prefixed<br/>hashing"| n1
-  n3 -->|"Hash owner and<br/>content"| n2
-  n1 -->|"Included in<br/>identity"| n4
-  n2 -->|"Included in<br/>identity"| n4
+  n0["Checkpoint<br/>payload value"]
+  n1["Stable byte form"]
+  n2["Reference three<br/>fields"]
+  n3["Reject extra or<br/>missing"]
+  n0 -->|"Sorted, compact<br/>form"| n1
+  n1 -->|"Stored with<br/>reference"| n2
+  n2 -->|"Exactly three<br/>fields"| n3

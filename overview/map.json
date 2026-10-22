@@ -3,61 +3,68 @@
     "summary": "The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.",
     "diagrams": [
       {
-        "title": "answers: How a prompt becomes an answer",
-        "description": "A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.",
+        "title": "answers: How a question becomes a saved answer",
+        "description": "Someone asks a question; the system finds their permitted passages, the model writes a checked answer streamed live, and the finished answer is saved for that person.",
         "nodes": [
           {
-            "id": "req",
-            "label": "Validated prompt",
+            "id": "ask",
+            "label": "Question asked",
             "finding_ids": []
           },
           {
-            "id": "provider",
-            "label": "Answer provider",
+            "id": "find",
+            "label": "Find permitted passages",
             "finding_ids": []
           },
           {
-            "id": "svc",
-            "label": "Model service",
+            "id": "gen",
+            "label": "Write grounded answer",
             "finding_ids": []
           },
           {
             "id": "check",
-            "label": "Reply checked",
+            "label": "Check answer and citations",
             "finding_ids": []
           },
           {
-            "id": "result",
-            "label": "Answer and usage",
+            "id": "save",
+            "label": "Save private answer",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "req",
-            "to": "provider",
-            "label": "Messages and limit",
+            "from": "ask",
+            "to": "find",
+            "label": "Question text",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "provider",
-            "to": "svc",
-            "label": "One chat request",
+            "from": "find",
+            "to": "gen",
+            "label": "Allowed passages",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "svc",
+            "from": "gen",
             "to": "check",
-            "label": "Raw reply text",
+            "label": "Draft text and sources",
             "finding_ids": [],
             "uncertain": false
           },
           {
             "from": "check",
-            "to": "result",
-            "label": "Accepts answer",
+            "to": "save",
+            "label": "Verified answer",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "save",
+            "to": "ask",
+            "label": "Live text and answer id",
             "finding_ids": [],
             "uncertain": false
           }
@@ -65,11 +72,11 @@
       },
       {
         "title": "evaluation: How a dataset becomes a scored report",
-        "description": "A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.",
+        "description": "A hash-verified test bundle is prepared into its own search index, every test question is searched four ways, results are scored against human relevance labels, and repeatable report files are written.",
         "nodes": [
           {
             "id": "bundle",
-            "label": "Verified dataset bundle",
+            "label": "Verified test bundle",
             "finding_ids": []
           },
           {
@@ -94,7 +101,7 @@
           },
           {
             "id": "report",
-            "label": "Reproducible report files",
+            "label": "Report files written",
             "finding_ids": []
           }
         ],
@@ -144,173 +151,225 @@
         ]
       },
       {
-        "title": "foundation: How an uploaded file becomes a stored document",
-        "description": "A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.",
+        "title": "foundation: How a request becomes a result",
+        "description": "An incoming web request is identified, checked for permission against the caller's tenant and collections, then handled so it either produces a result or a consistent error reply.",
         "nodes": [
           {
-            "id": "upload",
-            "label": "File upload",
+            "id": "request",
+            "label": "Incoming request",
             "finding_ids": []
           },
           {
-            "id": "fp",
-            "label": "Fingerprint and duplicate check",
+            "id": "identity",
+            "label": "Identify caller",
             "finding_ids": []
           },
           {
-            "id": "save",
-            "label": "Save original file",
+            "id": "permission",
+            "label": "Check permission",
             "finding_ids": []
           },
           {
-            "id": "record",
-            "label": "Document record",
+            "id": "handler",
+            "label": "Run request work",
             "finding_ids": []
           },
           {
-            "id": "dupe",
-            "label": "Existing document returned",
+            "id": "result",
+            "label": "Result returned",
+            "finding_ids": []
+          },
+          {
+            "id": "error",
+            "label": "Uniform error reply",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "upload",
-            "to": "fp",
-            "label": "same file before?",
+            "from": "request",
+            "to": "identity",
+            "label": "who is calling",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "fp",
-            "to": "dupe",
-            "label": "already stored",
+            "from": "identity",
+            "to": "permission",
+            "label": "known caller",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "fp",
-            "to": "save",
-            "label": "new content",
+            "from": "permission",
+            "to": "handler",
+            "label": "allowed, scoped",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "save",
-            "to": "record",
-            "label": "bytes written",
+            "from": "handler",
+            "to": "result",
+            "label": "success",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "handler",
+            "to": "error",
+            "label": "failure",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "permission",
+            "to": "error",
+            "label": "denied",
             "finding_ids": [],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "frontend: How a visitor gets the landing page",
-        "description": "A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.",
+        "title": "frontend: How a question becomes a cited answer",
+        "description": "A person picks a collection and identity, asks a question, and watches the answer stream back live. Citations can be opened to view and download the original source document.",
         "nodes": [
           {
-            "id": "visitor",
-            "label": "Site visitor",
+            "id": "user",
+            "label": "Person using the site",
             "finding_ids": []
           },
           {
-            "id": "server",
-            "label": "Web server",
+            "id": "workspace",
+            "label": "Document workspace page",
             "finding_ids": []
           },
           {
-            "id": "shell",
-            "label": "Page shell and styling",
+            "id": "proxy",
+            "label": "Same-origin forwarder",
             "finding_ids": []
           },
           {
-            "id": "landing",
-            "label": "Landing page content",
+            "id": "answer",
+            "label": "Answer service",
+            "finding_ids": []
+          },
+          {
+            "id": "citation",
+            "label": "Opened source view",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "visitor",
-            "to": "server",
-            "label": "Opens the site",
+            "from": "user",
+            "to": "workspace",
+            "label": "Picks scope and asks",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "server",
-            "to": "shell",
-            "label": "Builds the page",
+            "from": "workspace",
+            "to": "proxy",
+            "label": "Sends question",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "shell",
-            "to": "landing",
-            "label": "Shows headings",
+            "from": "proxy",
+            "to": "answer",
+            "label": "Forwards without cookies",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "answer",
+            "to": "workspace",
+            "label": "Streams draft then final",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "user",
+            "to": "citation",
+            "label": "Opens a citation",
+            "finding_ids": [],
+            "uncertain": false
+          },
+          {
+            "from": "proxy",
+            "to": "citation",
+            "label": "Fetches source file",
             "finding_ids": [],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "ingestion: How a parsed document becomes searchable pieces",
-        "description": "A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.",
+        "title": "ingestion: How a document becomes an ingestion job",
+        "description": "A caller submits a tenant, document, and pipeline version. The service saves a job, marks the document as processing, and after the database commit signals that work is ready.",
         "nodes": [
           {
-            "id": "parsed",
-            "label": "Parsed document",
+            "id": "request",
+            "label": "Caller requests ingestion",
             "finding_ids": []
           },
           {
-            "id": "sections",
-            "label": "Split by heading",
+            "id": "validate",
+            "label": "Check identifiers and version",
             "finding_ids": []
           },
           {
-            "id": "packing",
-            "label": "Pack within token budget",
+            "id": "jobrow",
+            "label": "Save durable job record",
             "finding_ids": []
           },
           {
-            "id": "enrich",
-            "label": "Rebuild heading text",
+            "id": "docstate",
+            "label": "Mark document processing",
             "finding_ids": []
           },
           {
-            "id": "pieces",
-            "label": "Identified pieces",
+            "id": "signal",
+            "label": "Publish work hint",
             "finding_ids": []
           }
         ],
         "edges": [
           {
-            "from": "parsed",
-            "to": "sections",
-            "label": "Group blocks by heading",
+            "from": "request",
+            "to": "validate",
+            "label": "Tenant, doc, version",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "sections",
-            "to": "packing",
-            "label": "One section at a time",
+            "from": "validate",
+            "to": "jobrow",
+            "label": "Insert inside transaction",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "packing",
-            "to": "enrich",
-            "label": "Text and heading path",
+            "from": "jobrow",
+            "to": "docstate",
+            "label": "New job only",
             "finding_ids": [],
             "uncertain": false
           },
           {
-            "from": "enrich",
-            "to": "pieces",
-            "label": "Final text and spans",
+            "from": "jobrow",
+            "to": "signal",
+            "label": "After commit",
             "finding_ids": [],
             "uncertain": false
+          },
+          {
+            "from": "docstate",
+            "to": "signal",
+            "label": "Status is queued",
+            "finding_ids": [],
+            "uncertain": true
           }
         ]
       },
@@ -390,7 +449,7 @@
   "findings": {},
   "sources": {},
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:25:53.475115+00:00"
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:21:02.384365+00:00"
   }
 }

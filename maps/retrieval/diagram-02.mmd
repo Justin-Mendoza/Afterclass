@@ -2,8 +2,8 @@
 flowchart TD
   n0["Customer and<br/>filters"]
   n1["Search request"]
-  n2["Requested fields"]
-  n3["Rebuilt passages"]
+  n2["Scope re-check"]
+  n3["Scoped passages"]
   n0 -->|"Limits scope"| n1
-  n1 -->|"Asks for fields"| n2
-  n2 -->|"Rebuilds<br/>passages"| n3
+  n1 -->|"Returned<br/>matching hits"| n2
+  n2 -->|"Confirmed in<br/>scope"| n3

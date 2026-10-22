@@ -1,11 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Delete request"]
-  n1["Mark as deleting"]
-  n2["Remove stored<br/>file"]
-  n3["Marked deleted"]
-  n4["Retryable state"]
-  n0 -->|"record intent"| n1
-  n1 -->|"delete bytes"| n2
-  n2 -->|"success"| n3
-  n2 -->|"removal failed"| n4
+  n0["File upload"]
+  n1["Fingerprint and<br/>duplicate check"]
+  n2["Save original<br/>file"]
+  n3["Document record"]
+  n4["Existing<br/>document<br/>returned"]
+  n0 -->|"same file<br/>before?"| n1
+  n1 -->|"already stored"| n4
+  n1 -->|"new content"| n2
+  n2 -->|"bytes written"| n3

@@ -2,7 +2,7 @@
 
 The overview brings together the analyzed architecture view from each subsystem. Open a subsystem map for its source evidence, detailed flows, and uncertainties.
 
-Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:25:53.475115+00:00
+Commit: `e4abb88a149b365c2838b0f2f0606dff0127b1ab` | Generated: 2026-10-22T15:21:02.384365+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -16,22 +16,23 @@ Source-backed architecture views composed from each subsystem map. See linked su
 
 0 API calls. See coverage.json for budgets, exclusions, and usage.
 
-## answers: How a prompt becomes an answer
+## answers: How a question becomes a saved answer
 
-A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.
+Someone asks a question; the system finds their permitted passages, the model writes a checked answer streamed live, and the finished answer is saved for that person.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Validated prompt"]
-  n1["Answer provider"]
-  n2["Model service"]
-  n3["Reply checked"]
-  n4["Answer and usage"]
-  n0 -->|"Messages and<br/>limit"| n1
-  n1 -->|"One chat request"| n2
-  n2 -->|"Raw reply text"| n3
-  n3 -->|"Accepts answer"| n4
+  n0["Question asked"]
+  n1["Find permitted<br/>passages"]
+  n2["Write grounded<br/>answer"]
+  n3["Check answer and<br/>citations"]
+  n4["Save private<br/>answer"]
+  n0 -->|"Question text"| n1
+  n1 -->|"Allowed passages"| n2
+  n2 -->|"Draft text and<br/>sources"| n3
+  n3 -->|"Verified answer"| n4
+  n4 -->|"Live text and<br/>answer id"| n0
 ```
 
 <details>
@@ -48,17 +49,17 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ## evaluation: How a dataset becomes a scored report
 
-A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.
+A hash-verified test bundle is prepared into its own search index, every test question is searched four ways, results are scored against human relevance labels, and repeatable report files are written.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Verified dataset<br/>bundle"]
+  n0["Verified test<br/>bundle"]
   n1["Prepare search<br/>index"]
   n2["Confirm index<br/>ready"]
   n3["Try each search<br/>style"]
   n4["Score against<br/>labels"]
-  n5["Reproducible<br/>report files"]
+  n5["Report files<br/>written"]
   n0 -->|"Corpus and<br/>questions"| n1
   n1 -->|"Check job<br/>receipts"| n2
   n2 -->|"Index confirmed"| n3
@@ -79,22 +80,25 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 ### Source evidence
 
 
-## foundation: How an uploaded file becomes a stored document
+## foundation: How a request becomes a result
 
-A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.
+An incoming web request is identified, checked for permission against the caller's tenant and collections, then handled so it either produces a result or a consistent error reply.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["File upload"]
-  n1["Fingerprint and<br/>duplicate check"]
-  n2["Save original<br/>file"]
-  n3["Document record"]
-  n4["Existing<br/>document<br/>returned"]
-  n0 -->|"same file<br/>before?"| n1
-  n1 -->|"already stored"| n4
-  n1 -->|"new content"| n2
-  n2 -->|"bytes written"| n3
+  n0["Incoming request"]
+  n1["Identify caller"]
+  n2["Check permission"]
+  n3["Run request work"]
+  n4["Result returned"]
+  n5["Uniform error<br/>reply"]
+  n0 -->|"who is calling"| n1
+  n1 -->|"known caller"| n2
+  n2 -->|"allowed, scoped"| n3
+  n3 -->|"success"| n4
+  n3 -->|"failure"| n5
+  n2 -->|"denied"| n5
 ```
 
 <details>
@@ -109,20 +113,24 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 ### Source evidence
 
 
-## frontend: How a visitor gets the landing page
+## frontend: How a question becomes a cited answer
 
-A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.
+A person picks a collection and identity, asks a question, and watches the answer stream back live. Citations can be opened to view and download the original source document.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Site visitor"]
-  n1["Web server"]
-  n2["Page shell and<br/>styling"]
-  n3["Landing page<br/>content"]
-  n0 -->|"Opens the site"| n1
-  n1 -->|"Builds the page"| n2
-  n2 -->|"Shows headings"| n3
+  n0["Person using the<br/>site"]
+  n1["Document<br/>workspace page"]
+  n2["Same-origin<br/>forwarder"]
+  n3["Answer service"]
+  n4["Opened source<br/>view"]
+  n0 -->|"Picks scope and<br/>asks"| n1
+  n1 -->|"Sends question"| n2
+  n2 -->|"Forwards without<br/>cookies"| n3
+  n3 -->|"Streams draft<br/>then final"| n1
+  n0 -->|"Opens a citation"| n4
+  n2 -->|"Fetches source<br/>file"| n4
 ```
 
 <details>
@@ -137,22 +145,23 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 ### Source evidence
 
 
-## ingestion: How a parsed document becomes searchable pieces
+## ingestion: How a document becomes an ingestion job
 
-A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
+A caller submits a tenant, document, and pipeline version. The service saves a job, marks the document as processing, and after the database commit signals that work is ready.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Split by heading"]
-  n2["Pack within<br/>token budget"]
-  n3["Rebuild heading<br/>text"]
-  n4["Identified<br/>pieces"]
-  n0 -->|"Group blocks by<br/>heading"| n1
-  n1 -->|"One section at a<br/>time"| n2
-  n2 -->|"Text and heading<br/>path"| n3
-  n3 -->|"Final text and<br/>spans"| n4
+  n0["Caller requests<br/>ingestion"]
+  n1["Check<br/>identifiers and<br/>version"]
+  n2["Save durable job<br/>record"]
+  n3["Mark document<br/>processing"]
+  n4["Publish work<br/>hint"]
+  n0 -->|"Tenant, doc,<br/>version"| n1
+  n1 -->|"Insert inside<br/>transaction"| n2
+  n2 -->|"New job only"| n3
+  n2 -->|"After commit"| n4
+  n3 -.->|"Status is queued"| n4
 ```
 
 <details>
@@ -162,7 +171,7 @@ flowchart TD
 
 </details>
 
-Read from top to bottom; arrows show what happens next or what is passed along.
+Read from top to bottom. Dashed arrows show connections that need confirmation.
 
 ### Source evidence
 

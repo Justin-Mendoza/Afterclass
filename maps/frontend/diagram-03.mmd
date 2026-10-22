@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Stop action"]
+  n1["Cancellation<br/>relay"]
+  n2["Upstream answer<br/>request"]
+  n3["Draft cleared<br/>safely"]
+  n0 -->|"Asks to stop"| n1
+  n1 -->|"Aborts request"| n2
+  n2 -->|"Failure message<br/>shown"| n3

@@ -1,29 +1,30 @@
 # Repository map
 
-Source revision: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25`
+Source revision: `e4abb88a149b365c2838b0f2f0606dff0127b1ab`
 
 Browse the Mermaid diagrams below on GitHub. PDFs and PNGs are linked for download.
 
 [Overview PDF](overview/repository-map.pdf) | [Overview details](overview/README.md)
 
-## answers: How a prompt becomes an answer
+## answers: How a question becomes a saved answer
 
-This area defines the app's own contract for asking an AI model to write an answer, plus two implementations: a real Cohere adapter and a fake one used for testing. A caller supplies a validated list of chat messages and a token limit; the result carries the generated text, why it stopped, the model used, and usage/cost details. Live use is opt-in because a configured factory requires an API key. No caller or route choosing an adapter is evidenced.
+This area answers a person's question using their own authorized documents, streaming the answer back live so text appears as it is written. Every claim is checked against the cited passages, and unusable or unverifiable answers are replaced with clear messages instead of invented text. Completed answers are saved privately per user and re-checked on later viewing, so withdrawn source access hides the old answer.
 
-A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.
+Someone asks a question; the system finds their permitted passages, the model writes a checked answer streamed live, and the finished answer is saved for that person.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Validated prompt"]
-  n1["Answer provider"]
-  n2["Model service"]
-  n3["Reply checked"]
-  n4["Answer and usage"]
-  n0 -->|"Messages and<br/>limit"| n1
-  n1 -->|"One chat request"| n2
-  n2 -->|"Raw reply text"| n3
-  n3 -->|"Accepts answer"| n4
+  n0["Question asked"]
+  n1["Find permitted<br/>passages"]
+  n2["Write grounded<br/>answer"]
+  n3["Check answer and<br/>citations"]
+  n4["Save private<br/>answer"]
+  n0 -->|"Question text"| n1
+  n1 -->|"Allowed passages"| n2
+  n2 -->|"Draft text and<br/>sources"| n3
+  n3 -->|"Verified answer"| n4
+  n4 -->|"Live text and<br/>answer id"| n0
 ```
 
 Read from top to bottom; arrows show what happens next or what is passed along.
@@ -32,19 +33,19 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ## evaluation: How a dataset becomes a scored report
 
-This area builds and runs retrieval-quality tests for the search service. It loads versioned dataset bundles whose files are checked by hash, prepares an isolated search index for each dataset, runs four search styles over every test question, scores how well the results match human relevance labels, and saves reproducible JSON and readable Markdown reports. A local-only debug endpoint and a SciFact dataset builder support this work.
+This area measures how good the search is. It loads versioned test bundles whose files are hash-checked, prepares each bundle into its own isolated search index, asks every test question in four search styles, compares the ranked results against human relevance labels, and writes repeatable JSON and Markdown reports. A command-line tool builds the SciFact test set. It is a command-line tool, not a service; the old debug web route is retired, and database tables for runs exist but nothing yet moves a run beyond 'queued'.
 
-A verified dataset bundle is prepared into its own search index, every test question is searched in four ways, results are scored against human relevance labels, and a repeatable report is written.
+A hash-verified test bundle is prepared into its own search index, every test question is searched four ways, results are scored against human relevance labels, and repeatable report files are written.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Verified dataset<br/>bundle"]
+  n0["Verified test<br/>bundle"]
   n1["Prepare search<br/>index"]
   n2["Confirm index<br/>ready"]
   n3["Try each search<br/>style"]
   n4["Score against<br/>labels"]
-  n5["Reproducible<br/>report files"]
+  n5["Report files<br/>written"]
   n0 -->|"Corpus and<br/>questions"| n1
   n1 -->|"Check job<br/>receipts"| n2
   n2 -->|"Index confirmed"| n3
@@ -57,73 +58,81 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 [More about this area and its source evidence](maps/evaluation/README.md)
 
-## foundation: How an uploaded file becomes a stored document
+## foundation: How a request becomes a result
 
-This area is the shared foundation of a multi-tenant document search service. It starts the web application (health and readiness checks), stores documents people upload, deduplicates identical files, and keeps tenants, collections, and upload records separated in PostgreSQL. The main input is an uploaded file plus an already-approved tenant and collection; the useful result is a stored, deduplicated document record with a status, plus database schema and setup commands for local development.
+This area is the shared foundation of a multi-tenant document search service. It starts the web application with health and readiness checks, handles errors and request tracking uniformly, decides who may do what using a demo-identity login scheme backed by real database permissions, and stores uploaded documents with duplicate detection and safe deletion. The main inputs are incoming web requests plus an uploaded file; the useful results are authorized access, a stored document record with a status, and database schema helper commands for local development.
 
-A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.
+An incoming web request is identified, checked for permission against the caller's tenant and collections, then handled so it either produces a result or a consistent error reply.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["File upload"]
-  n1["Fingerprint and<br/>duplicate check"]
-  n2["Save original<br/>file"]
-  n3["Document record"]
-  n4["Existing<br/>document<br/>returned"]
-  n0 -->|"same file<br/>before?"| n1
-  n1 -->|"already stored"| n4
-  n1 -->|"new content"| n2
-  n2 -->|"bytes written"| n3
+  n0["Incoming request"]
+  n1["Identify caller"]
+  n2["Check permission"]
+  n3["Run request work"]
+  n4["Result returned"]
+  n5["Uniform error<br/>reply"]
+  n0 -->|"who is calling"| n1
+  n1 -->|"known caller"| n2
+  n2 -->|"allowed, scoped"| n3
+  n3 -->|"success"| n4
+  n3 -->|"failure"| n5
+  n2 -->|"denied"| n5
 ```
 
 Read from top to bottom; arrows show what happens next or what is passed along.
 
 [More about this area and its source evidence](maps/foundation/README.md)
 
-## frontend: How a visitor gets the landing page
+## frontend: How a question becomes a cited answer
 
-This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources.
+This area is the web front door of an evidence-backed document search product. Through their browser, a person picks a demo identity and collection, asks a question, and watches the answer arrive live with citations they can open and download the original source. All backend calls travel through the same website origin, which quietly rewrites paths, strips cookies, and streams results back.
 
-A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.
+A person picks a collection and identity, asks a question, and watches the answer stream back live. Citations can be opened to view and download the original source document.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Site visitor"]
-  n1["Web server"]
-  n2["Page shell and<br/>styling"]
-  n3["Landing page<br/>content"]
-  n0 -->|"Opens the site"| n1
-  n1 -->|"Builds the page"| n2
-  n2 -->|"Shows headings"| n3
+  n0["Person using the<br/>site"]
+  n1["Document<br/>workspace page"]
+  n2["Same-origin<br/>forwarder"]
+  n3["Answer service"]
+  n4["Opened source<br/>view"]
+  n0 -->|"Picks scope and<br/>asks"| n1
+  n1 -->|"Sends question"| n2
+  n2 -->|"Forwards without<br/>cookies"| n3
+  n3 -->|"Streams draft<br/>then final"| n1
+  n0 -->|"Opens a citation"| n4
+  n2 -->|"Fetches source<br/>file"| n4
 ```
 
 Read from top to bottom; arrows show what happens next or what is passed along.
 
 [More about this area and its source evidence](maps/frontend/README.md)
 
-## ingestion: How a parsed document becomes searchable pieces
+## ingestion: How a document becomes an ingestion job
 
-This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown.
+This area lets the system accept a document for processing and keep durable, tamper-evident records of the results. A caller supplies a tenant, document, and pipeline version; the service saves a job record, flips the document to processing, and only then signals that work is ready. Finished artifacts (parsed text, chunks, embeddings) are stored as immutable checksum-verified files under one root, keyed safely per tenant and job, so identical inputs can't produce conflicting or corrupted data.
 
-A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
+A caller submits a tenant, document, and pipeline version. The service saves a job, marks the document as processing, and after the database commit signals that work is ready.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Split by heading"]
-  n2["Pack within<br/>token budget"]
-  n3["Rebuild heading<br/>text"]
-  n4["Identified<br/>pieces"]
-  n0 -->|"Group blocks by<br/>heading"| n1
-  n1 -->|"One section at a<br/>time"| n2
-  n2 -->|"Text and heading<br/>path"| n3
-  n3 -->|"Final text and<br/>spans"| n4
+  n0["Caller requests<br/>ingestion"]
+  n1["Check<br/>identifiers and<br/>version"]
+  n2["Save durable job<br/>record"]
+  n3["Mark document<br/>processing"]
+  n4["Publish work<br/>hint"]
+  n0 -->|"Tenant, doc,<br/>version"| n1
+  n1 -->|"Insert inside<br/>transaction"| n2
+  n2 -->|"New job only"| n3
+  n2 -->|"After commit"| n4
+  n3 -.->|"Status is queued"| n4
 ```
 
-Read from top to bottom; arrows show what happens next or what is passed along.
+Read from top to bottom. Dashed arrows show connections that need confirmation.
 
 [More about this area and its source evidence](maps/ingestion/README.md)
 
@@ -156,12 +165,12 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 | Map | Summary | Views | Last analyzed source |
 | --- | --- | --- | --- |
-| [answers](maps/answers/README.md) | This area defines the app's own contract for asking an AI model to write an answer, plus two implementations: a real Cohere adapter and a fake one used for testing. A caller supplies a validated list of chat messages and a token limit; the result carries the generated text, why it stopped, the model used, and usage/cost details. Live use is opt-in because a configured factory requires an API key. No caller or route choosing an adapter is evidenced. | [PDF](maps/answers/repository-map.pdf) · [JSON](maps/answers/map.json) | `3537e913c1ee` |
-| [evaluation](maps/evaluation/README.md) | This area builds and runs retrieval-quality tests for the search service. It loads versioned dataset bundles whose files are checked by hash, prepares an isolated search index for each dataset, runs four search styles over every test question, scores how well the results match human relevance labels, and saves reproducible JSON and readable Markdown reports. A local-only debug endpoint and a SciFact dataset builder support this work. | [PDF](maps/evaluation/repository-map.pdf) · [JSON](maps/evaluation/map.json) | `3537e913c1ee` |
-| [foundation](maps/foundation/README.md) | This area is the shared foundation of a multi-tenant document search service. It starts the web application (health and readiness checks), stores documents people upload, deduplicates identical files, and keeps tenants, collections, and upload records separated in PostgreSQL. The main input is an uploaded file plus an already-approved tenant and collection; the useful result is a stored, deduplicated document record with a status, plus database schema and setup commands for local development. | [PDF](maps/foundation/repository-map.pdf) · [JSON](maps/foundation/map.json) | `3537e913c1ee` |
-| [frontend](maps/frontend/README.md) | This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources. | [PDF](maps/frontend/repository-map.pdf) · [JSON](maps/frontend/map.json) | `3537e913c1ee` |
-| [ingestion](maps/ingestion/README.md) | This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown. | [PDF](maps/ingestion/repository-map.pdf) · [JSON](maps/ingestion/map.json) | `3537e913c1ee` |
-| [retrieval](maps/retrieval/README.md) | This area turns a person's search text into likely matching document passages. The text is cleaned, turned into a numeric fingerprint by an outside service, then used to ask a search index for the closest passages, scoped so one customer only sees their own material. It returns those passages plus separate diagnostic details, and is currently runnable only through a developer test command. Blank text is handled without contacting anything. | [PDF](maps/retrieval/repository-map.pdf) · [JSON](maps/retrieval/map.json) | `3537e913c1ee` |
+| [answers](maps/answers/README.md) | This area answers a person's question using their own authorized documents, streaming the answer back live so text appears as it is written. Every claim is checked against the cited passages, and unusable or unverifiable answers are replaced with clear messages instead of invented text. Completed answers are saved privately per user and re-checked on later viewing, so withdrawn source access hides the old answer. | [PDF](maps/answers/repository-map.pdf) · [JSON](maps/answers/map.json) | `e4abb88a149b` |
+| [evaluation](maps/evaluation/README.md) | This area measures how good the search is. It loads versioned test bundles whose files are hash-checked, prepares each bundle into its own isolated search index, asks every test question in four search styles, compares the ranked results against human relevance labels, and writes repeatable JSON and Markdown reports. A command-line tool builds the SciFact test set. It is a command-line tool, not a service; the old debug web route is retired, and database tables for runs exist but nothing yet moves a run beyond 'queued'. | [PDF](maps/evaluation/repository-map.pdf) · [JSON](maps/evaluation/map.json) | `e4abb88a149b` |
+| [foundation](maps/foundation/README.md) | This area is the shared foundation of a multi-tenant document search service. It starts the web application with health and readiness checks, handles errors and request tracking uniformly, decides who may do what using a demo-identity login scheme backed by real database permissions, and stores uploaded documents with duplicate detection and safe deletion. The main inputs are incoming web requests plus an uploaded file; the useful results are authorized access, a stored document record with a status, and database schema helper commands for local development. | [PDF](maps/foundation/repository-map.pdf) · [JSON](maps/foundation/map.json) | `e4abb88a149b` |
+| [frontend](maps/frontend/README.md) | This area is the web front door of an evidence-backed document search product. Through their browser, a person picks a demo identity and collection, asks a question, and watches the answer arrive live with citations they can open and download the original source. All backend calls travel through the same website origin, which quietly rewrites paths, strips cookies, and streams results back. | [PDF](maps/frontend/repository-map.pdf) · [JSON](maps/frontend/map.json) | `e4abb88a149b` |
+| [ingestion](maps/ingestion/README.md) | This area lets the system accept a document for processing and keep durable, tamper-evident records of the results. A caller supplies a tenant, document, and pipeline version; the service saves a job record, flips the document to processing, and only then signals that work is ready. Finished artifacts (parsed text, chunks, embeddings) are stored as immutable checksum-verified files under one root, keyed safely per tenant and job, so identical inputs can't produce conflicting or corrupted data. | [PDF](maps/ingestion/repository-map.pdf) · [JSON](maps/ingestion/map.json) | `e4abb88a149b` |
+| [retrieval](maps/retrieval/README.md) | This area turns a person's search text into likely matching document passages. The text is cleaned, turned into a numeric fingerprint by an outside service, then used to ask a search index for the closest passages, scoped so one customer only sees their own material. It returns those passages plus separate diagnostic details, and is currently runnable only through a developer test command. Blank text is handled without contacting anything. | [PDF](maps/retrieval/repository-map.pdf) · [JSON](maps/retrieval/map.json) | `e4abb88a149b` |
 
 JSON is the source of truth; Mermaid, PNGs, and PDFs are generated views.
 

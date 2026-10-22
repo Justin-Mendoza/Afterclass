@@ -23,7 +23,7 @@
             "id": "clean",
             "label": "Clean up text",
             "finding_ids": [
-              "F0006"
+              "F0008"
             ]
           },
           {
@@ -31,7 +31,7 @@
             "label": "Turn words into numbers",
             "finding_ids": [
               "F0002",
-              "F0007"
+              "F0015"
             ]
           },
           {
@@ -39,6 +39,7 @@
             "label": "Find closest passages",
             "finding_ids": [
               "F0003",
+              "F0006",
               "F0010"
             ]
           },
@@ -47,7 +48,8 @@
             "label": "Matching passages",
             "finding_ids": [
               "F0004",
-              "F0009"
+              "F0005",
+              "F0011"
             ]
           }
         ],
@@ -57,7 +59,8 @@
             "to": "clean",
             "label": "Text to tidy",
             "finding_ids": [
-              "F0006"
+              "F0001",
+              "F0008"
             ],
             "uncertain": false
           },
@@ -76,7 +79,7 @@
             "label": "Numeric fingerprint",
             "finding_ids": [
               "F0002",
-              "F0007"
+              "F0006"
             ],
             "uncertain": false
           },
@@ -86,7 +89,7 @@
             "label": "Closest passages",
             "finding_ids": [
               "F0004",
-              "F0010"
+              "F0005"
             ],
             "uncertain": false
           },
@@ -95,7 +98,7 @@
             "to": "passages",
             "label": "Diagnostic details",
             "finding_ids": [
-              "F0009"
+              "F0011"
             ],
             "uncertain": false
           }
@@ -103,7 +106,7 @@
       },
       {
         "title": "Keeping one customer's material separate",
-        "description": "Customer and filter details are applied inside the search request itself, so only that customer's own passages are considered, and the requested fields are enough to rebuild each passage for callers.",
+        "description": "Customer and filter details are applied inside the search request itself so only that customer's own passages are considered, and the result is checked again afterwards to confirm the scope held.",
         "nodes": [
           {
             "id": "filters",
@@ -120,17 +123,18 @@
             ]
           },
           {
-            "id": "fields",
-            "label": "Requested fields",
+            "id": "recheck",
+            "label": "Scope re-check",
             "finding_ids": [
-              "F0003"
+              "F0004"
             ]
           },
           {
-            "id": "rebuild",
-            "label": "Rebuilt passages",
+            "id": "passages",
+            "label": "Scoped passages",
             "finding_ids": [
-              "F0004"
+              "F0004",
+              "F0009"
             ]
           }
         ],
@@ -146,19 +150,20 @@
           },
           {
             "from": "request",
-            "to": "fields",
-            "label": "Asks for fields",
+            "to": "recheck",
+            "label": "Returned matching hits",
             "finding_ids": [
-              "F0003"
+              "F0004"
             ],
             "uncertain": false
           },
           {
-            "from": "fields",
-            "to": "rebuild",
-            "label": "Rebuilds passages",
+            "from": "recheck",
+            "to": "passages",
+            "label": "Confirmed in scope",
             "finding_ids": [
-              "F0004"
+              "F0004",
+              "F0009"
             ],
             "uncertain": false
           }
@@ -166,27 +171,27 @@
       },
       {
         "title": "What happens with empty or unusable input",
-        "description": "Blank text returns nothing without contacting any outside service, while mismatched or malformed answers from the number service and search index stop the flow with a clear failure reason.",
+        "description": "Blank text or an empty collection list returns nothing without contacting any outside service, while mismatched or malformed answers from the number service and search index stop the flow with a clear failure reason.",
         "nodes": [
           {
             "id": "clean",
             "label": "Clean up text",
             "finding_ids": [
-              "F0005",
-              "F0006"
+              "F0008"
             ]
           },
           {
             "id": "empty",
             "label": "Empty outcome",
             "finding_ids": [
-              "F0005"
+              "F0009"
             ]
           },
           {
             "id": "checks",
             "label": "Answer checks",
             "finding_ids": [
+              "F0002",
               "F0007"
             ]
           },
@@ -194,7 +199,9 @@
             "id": "failure",
             "label": "Failure reason",
             "finding_ids": [
-              "F0008"
+              "F0002",
+              "F0006",
+              "F0007"
             ]
           }
         ],
@@ -204,7 +211,7 @@
             "to": "empty",
             "label": "Nothing left",
             "finding_ids": [
-              "F0005"
+              "F0009"
             ],
             "uncertain": false
           },
@@ -213,7 +220,7 @@
             "to": "checks",
             "label": "Usable text",
             "finding_ids": [
-              "F0007"
+              "F0002"
             ],
             "uncertain": false
           },
@@ -222,7 +229,9 @@
             "to": "failure",
             "label": "Bad answer",
             "finding_ids": [
-              "F0008"
+              "F0002",
+              "F0006",
+              "F0007"
             ],
             "uncertain": false
           }
@@ -230,7 +239,7 @@
       },
       {
         "title": "How a developer runs it today",
-        "description": "A command-line tool takes a search phrase with a required customer identifier and optional collection and size, opens the outside number service, builds the searcher, and prints the outcome with extra explanation switched on.",
+        "description": "A command-line tool takes a search phrase with a required customer identifier plus optional collection and size, opens the outside number service, builds the searcher, and prints the outcome with extra explanation switched on.",
         "nodes": [
           {
             "id": "command",
@@ -243,7 +252,8 @@
             "id": "numberservice",
             "label": "Number service",
             "finding_ids": [
-              "F0013"
+              "F0013",
+              "F0015"
             ]
           },
           {
@@ -268,7 +278,8 @@
             "to": "numberservice",
             "label": "Opens service",
             "finding_ids": [
-              "F0013"
+              "F0014",
+              "F0015"
             ],
             "uncertain": false
           },
@@ -298,112 +309,112 @@
   },
   "findings": {
     "F0001": {
-      "statement": "OpenSearchDenseRetriever.search is the core dense retrieval path: it accepts a query string with required tenant_id UUID and optional collection, source_type, author, source_date_from/to, limit, and debug, returning a DenseRetrievalResponse containing results tuple and a trace.",
+      "statement": "OpenSearchDenseRetriever.search is the primary entry point of this module: given a query string and a required tenant UUID, it normalizes the text, embeds it as a QUERY-purpose vector, and runs a filtered k-NN search over the configured OpenSearch read alias, returning a DenseRetrievalResponse containing results and a trace.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "search normalizes and embeds the query through an injected EmbeddingProvider (embed(EmbeddingRequest((normalized_query,), EmbeddingPurpose.QUERY))) and issues a POST to the OpenSearch read alias _search endpoint within a 10-second httpx AsyncClient timeout.",
+      "statement": "The query embedding is produced by an injected EmbeddingProvider via embed(EmbeddingRequest((normalized_query,), EmbeddingPurpose.QUERY)); the returned vector is validated for purpose, count, model name, dimensions, and finite numeric values before use, raising RetrievalError on mismatch (embedding_model_mismatch, query_vector_dimensions_mismatch, embedding_invalid_response).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "Tenant and metadata scoping is pushed into the OpenSearch k-NN query as a bool filter built from RetrievalFilters rather than post-filtering, and the requested _source fields (chunk_id, tenant_id, content_text, source_spans, etc.) are those needed to rebuild the shared RetrievalResult contract.",
+      "statement": "The k-NN request body (_search_body) sends size=candidate_limit, track_total_hits=True, explain set from the debug flag, an explicit _source field list (chunk_id, tenant_id, collection_id, document_id, document_content_id, content_text, source_spans, generation_id, pipeline_version, source_metadata), and a knn query over the 'embedding' field with k equal to candidate_limit and a bool filter built from RetrievalFilters.clauses().",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "Result hits are converted to shared RetrievalResult objects by reusing OpenSearchBM25Retriever._result_from_hit and _candidate_count, so dense evidence shares the same normalized shape as lexical retrieval.",
+      "statement": "Tenant scoping and filter enforcement happen inside the OpenSearch kNN filter (from RetrievalFilters) and are re-verified after retrieval: any result whose tenant_id differs, whose collection_id mismatches a requested collection, whose document_id is in excluded_document_ids, or whose collection_id is not in collection_ids raises RetrievalError('retrieval_scope_violation').",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0005": {
-      "statement": "A blank normalized query short-circuits: search returns an empty results tuple and a trace with zero counts and zero elapsed times without making any embedding or OpenSearch call.",
+      "statement": "Raw OpenSearch hits are converted to shared RetrievalResult values by reusing OpenSearchBM25Retriever._result_from_hit and _candidate_count, so dense retrieval emits the same normalized result contract as lexical BM25 retrieval.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0006": {
-      "statement": "Query normalization (normalize_dense_query) trims outer whitespace and collapses internal whitespace via ' '.join(query_text.split()) without otherwise rewriting text; non-string input raises ValueError.",
+      "statement": "The HTTP call to OpenSearch is made through OpenSearchDenseRetriever._request using httpx.AsyncClient with a 10-second timeout; httpx.HTTPError becomes RetrievalError('opensearch_unavailable', retryable=True), and error responses become the same error with retryable true for status >= 500 or in (408, 429), otherwise retryable false.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0007": {
-      "statement": "Embedding responses are validated before search: purpose must be QUERY, exactly one vector must be returned, model and dimensions must match configured embedding_model/embedding_dimensions, the vector length must match configured dimensions, and every element must be a finite non-boolean number.",
+      "statement": "Malformed OpenSearch responses (payload not a dict, hits not a dict, or hits.hits not a list) raise RetrievalError('opensearch_invalid_response', retryable=False).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0008": {
-      "statement": "RetrievalFailures are raised with distinct codes for embedding_invalid_response, embedding_model_mismatch, query_vector_dimensions_mismatch, and opensearch_invalid_response (non-retryable) versus opensearch_unavailable (marked retryable based on HTTPError or 5xx/408/429 status).",
+      "statement": "normalize_dense_query trims outer whitespace and collapses internal whitespace without rewriting text, and rejects non-string input with ValueError.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0009": {
-      "statement": "Diagnostics (normalized query, embedding model/dimensions, adapter, schema version, read alias, candidate limit/count, per-stage elapsed milliseconds, tenant/collection, filter values) are kept in a separate DenseRetrievalTrace attached to the response rather than merged into evidence results.",
+      "statement": "Empty/blank normalized query text, or an explicitly empty collection_ids tuple on the filter, short-circuits to an empty DenseRetrievalResponse with zero counts and zero elapsed times, without calling the embedding provider or OpenSearch.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "The effective candidate limit defaults to DenseRetrievalConfig.candidate_limit (20) and any provided limit is capped at that maximum (min(limit, candidate_limit)); non-positive or boolean limits raise ValueError.",
+      "statement": "DenseRetrievalConfig defines the query-model/index pairing (default model embed-english-light-v3.0, 384 dimensions, schema version chunks-v3, candidate_limit 20), validates types and positivity, and calls physical_index_name(index_schema_version, 'dense-query') to enforce the schema-version naming contract without issuing a mapping request per query; from_settings pulls these from Settings fields (cohere_embed_model, cohere_embed_dimensions, opensearch_index_schema_version, opensearch_dense_candidate_limit).",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0011": {
-      "statement": "DenseRetrievalConfig binds a query embedding model (default embed-english-light-v3.0, 384 dims) to an index schema version (default chunks-v3) and validates these at construction; from_settings derives these from Settings fields (cohere_embed_model, cohere_embed_dimensions, opensearch_index_schema_version, opensearch_dense_candidate_limit).",
+      "statement": "Dense retrieval diagnostics are kept separate from evidence: DenseRetrievalTrace carries normalized_query, embedding model/dimensions/adapter, index_schema_version, read_alias, candidate_limit, candidate_count, embedding and opensearch elapsed milliseconds, tenant_id, collection_id, and filter trace values; results are returned via the shared RetrievalResult tuple inside DenseRetrievalResponse.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "DenseRetrievalConfig.__post_init__ invokes physical_index_name(index_schema_version, 'dense-query') only as a validation sanity check of the schema-version naming contract; the code explicitly does not issue a mapping request per query.",
+      "statement": "The effective candidate limit is min(requested limit, configured candidate_limit) when a limit is supplied; a supplied limit that is not a positive non-boolean integer raises ValueError, and no limit defaults to the configured candidate_limit.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "The debug request path (_debug_query) opens a configured Cohere embeddings provider via configured_cohere_embeddings(settings), builds the retriever via OpenSearchDenseRetriever.from_settings, and always runs search with debug=True (which sets explain:true on the OpenSearch body).",
+      "statement": "OpenSearchDenseRetriever.__init__ validates base_url and read_alias as nonblank strings and requires the embedding provider to expose an 'embed' attribute, raising ValueError otherwise; an optional httpx.AsyncBaseTransport can be injected for testing.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "The only local entry point is a CLI main(): positional query plus --tenant (required UUID), --collection (UUID), and --limit (int) are parsed, then asyncio.run(_debug_query(get_settings(), args)) is printed. No public search API is exposed here.",
+      "statement": "The only user-facing entry point in this file is the developer CLI main(): it parses a positional query plus required --tenant UUID, optional --collection UUID and --limit, opens configured_cohere_embeddings(settings) as the provider, builds OpenSearchDenseRetriever.from_settings, runs search with debug=True, and prints the response. Its docstring states it runs a local dense debug query without exposing a public search API yet.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "Required type/shape validation is defensive at boundaries: tenant_id must be a UUID, collection_id must be UUID or None, debug must be boolean, base_url and read_alias must be nonblank strings, and the embedding provider must expose an 'embed' attribute.",
+      "statement": "External systems used by this module are the configurable embedding service (reached only via the injected EmbeddingProvider; the CLI wires the Cohere-configured provider) and the OpenSearch HTTP API reached at base_url/{read_alias}/_search.",
       "sources": [
         "S0001"
       ],
       "uncertain": false
     },
     "F0016": {
-      "statement": "Dense retrieval runs an HTTP call out to OpenSearch per query and (via the provider) out to an embedding service; orchestration that composes it with lexical/hybrid ranking or exposes it as a service is not present in this excerpt.",
+      "statement": "Import references to hybrid_retrieval, search.py, and reranked_retrieval appear in the changed-file context but no runtime orchestration from those modules into this dense retriever is shown in the supplied excerpt, so how dense retrieval combines with lexical or reranked paths remains unconfirmed.",
       "sources": [
         "S0001"
       ],
@@ -415,12 +426,12 @@
       "id": "S0001",
       "path": "backend/src/hybrid_rag_search/dense_retrieval.py",
       "start": 1,
-      "end": 364
+      "end": 379
     }
   },
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:25:53.220315+00:00",
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:21:02.116607+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {
@@ -545,6 +556,6 @@
       }
     ],
     "local_changes": false,
-    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+    "repository_url": "https://github.com/Justin-Mendoza/Afterclass"
   }
 }

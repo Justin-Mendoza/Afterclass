@@ -1,7 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Heading plus one<br/>token"]
-  n1["Chunk token<br/>limit"]
-  n2["Stop with error"]
-  n0 -->|"Compare against<br/>limit"| n1
-  n1 -->|"Cannot fit"| n2
+  n0["Artifact<br/>reference"]
+  n1["Read stored<br/>bytes"]
+  n2["Check size and<br/>checksum"]
+  n3["Verified<br/>artifact bytes"]
+  n4["Report integrity<br/>error"]
+  n0 -->|"Key, size,<br/>checksum"| n1
+  n1 -->|"Bytes read"| n2
+  n2 -->|"Matches<br/>reference"| n3
+  n2 -->|"Mismatch found"| n4

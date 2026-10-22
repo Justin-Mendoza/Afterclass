@@ -1,58 +1,168 @@
 {
   "map": {
-    "summary": "This area is the shared foundation of a multi-tenant document search service. It starts the web application (health and readiness checks), stores documents people upload, deduplicates identical files, and keeps tenants, collections, and upload records separated in PostgreSQL. The main input is an uploaded file plus an already-approved tenant and collection; the useful result is a stored, deduplicated document record with a status, plus database schema and setup commands for local development.",
+    "summary": "This area is the shared foundation of a multi-tenant document search service. It starts the web application with health and readiness checks, handles errors and request tracking uniformly, decides who may do what using a demo-identity login scheme backed by real database permissions, and stores uploaded documents with duplicate detection and safe deletion. The main inputs are incoming web requests plus an uploaded file; the useful results are authorized access, a stored document record with a status, and database schema helper commands for local development.",
     "unknowns": [
-      "No web page or HTTP route for uploading, fetching, or deleting documents is shown; only tests call the document service directly (F0096).",
-      "Nothing shows who advances a document from pending or who creates and processes upload job records at runtime (F0032, F0063, F0064).",
-      "It is not clear which file storage implementation the running service actually uses (F0080, F0094).",
-      "How background workers are started and how queue service and job leases connect to real upload work is not shown (F0090).",
-      "Who writes search traces, evaluation labels, and audit entries, and how those records are later used, is not evidenced (F0080).",
-      "Whether the stored database schema or the code models are the authoritative structure is not directly evidenced (F0032)."
+      "The search API, answer streaming, and management routers are mounted by the application factory, but their internal behavior is not shown here (F0001).",
+      "No HTTP route for upload, deletion, or listing documents is evidenced; only direct service calls and a content-download route appear (F0012).",
+      "Nothing shows who advances a document from its pending status or who processes upload job records at runtime (F0027, F0028).",
+      "The actual behavior of the operational and evaluation commands listed in the Makefile is not shown (F0015, F0016).",
+      "How the per-request database connections are sized or pooled in practice, and whether that scales, is not evidenced (F0008).",
+      "Only demo identities from a seeded set are accepted for login, so how real user identity would be supplied is not shown (F0007, F0017)."
     ],
     "diagrams": [
       {
+        "title": "How a request becomes a result",
+        "description": "An incoming web request is identified, checked for permission against the caller's tenant and collections, then handled so it either produces a result or a consistent error reply.",
+        "nodes": [
+          {
+            "id": "request",
+            "label": "Incoming request",
+            "finding_ids": [
+              "F0001",
+              "F0004"
+            ]
+          },
+          {
+            "id": "identity",
+            "label": "Identify caller",
+            "finding_ids": [
+              "F0007",
+              "F0017"
+            ]
+          },
+          {
+            "id": "permission",
+            "label": "Check permission",
+            "finding_ids": [
+              "F0019",
+              "F0022"
+            ]
+          },
+          {
+            "id": "handler",
+            "label": "Run request work",
+            "finding_ids": [
+              "F0001",
+              "F0010"
+            ]
+          },
+          {
+            "id": "result",
+            "label": "Result returned",
+            "finding_ids": [
+              "F0010",
+              "F0004"
+            ]
+          },
+          {
+            "id": "error",
+            "label": "Uniform error reply",
+            "finding_ids": [
+              "F0004",
+              "F0006"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "request",
+            "to": "identity",
+            "label": "who is calling",
+            "finding_ids": [
+              "F0004",
+              "F0007"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "identity",
+            "to": "permission",
+            "label": "known caller",
+            "finding_ids": [
+              "F0017",
+              "F0019"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "permission",
+            "to": "handler",
+            "label": "allowed, scoped",
+            "finding_ids": [
+              "F0019",
+              "F0022"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "handler",
+            "to": "result",
+            "label": "success",
+            "finding_ids": [
+              "F0010"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "handler",
+            "to": "error",
+            "label": "failure",
+            "finding_ids": [
+              "F0004",
+              "F0006"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "permission",
+            "to": "error",
+            "label": "denied",
+            "finding_ids": [
+              "F0005",
+              "F0021"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
         "title": "How an uploaded file becomes a stored document",
-        "description": "A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file, and records its status.",
+        "description": "A caller supplies an authorized tenant and collection scope with file bytes. The service fingerprint-checks for duplicates, saves the file off the request loop, and records document status.",
         "nodes": [
           {
             "id": "upload",
             "label": "File upload",
             "finding_ids": [
-              "F0051",
-              "F0052"
+              "F0027"
             ]
           },
           {
             "id": "fp",
             "label": "Fingerprint and duplicate check",
             "finding_ids": [
-              "F0052",
-              "F0091"
+              "F0027"
             ]
           },
           {
             "id": "save",
             "label": "Save original file",
             "finding_ids": [
-              "F0053",
-              "F0074",
-              "F0075"
+              "F0028"
             ]
           },
           {
             "id": "record",
             "label": "Document record",
             "finding_ids": [
-              "F0053",
-              "F0091"
+              "F0028",
+              "F0029"
             ]
           },
           {
             "id": "dupe",
             "label": "Existing document returned",
             "finding_ids": [
-              "F0052",
-              "F0091"
+              "F0027"
             ]
           }
         ],
@@ -62,7 +172,7 @@
             "to": "fp",
             "label": "same file before?",
             "finding_ids": [
-              "F0052"
+              "F0027"
             ],
             "uncertain": false
           },
@@ -71,8 +181,7 @@
             "to": "dupe",
             "label": "already stored",
             "finding_ids": [
-              "F0052",
-              "F0091"
+              "F0027"
             ],
             "uncertain": false
           },
@@ -81,8 +190,8 @@
             "to": "save",
             "label": "new content",
             "finding_ids": [
-              "F0053",
-              "F0091"
+              "F0027",
+              "F0028"
             ],
             "uncertain": false
           },
@@ -91,65 +200,88 @@
             "to": "record",
             "label": "bytes written",
             "finding_ids": [
-              "F0053",
-              "F0094"
+              "F0028"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "How a document is removed",
-        "description": "Deletion is two steps: first the intent is saved, then the stored file is removed and the record marked deleted. If removal fails, the document stays unavailable and can be retried.",
+        "title": "How a document is fetched or removed (1/2)",
+        "description": "Fetching returns stored bytes only for available documents. Deletion is two steps: first the intent is saved, then the file is removed and the record marked deleted; failure leaves a retryable state.",
         "nodes": [
           {
-            "id": "del",
-            "label": "Delete request",
+            "id": "docreq",
+            "label": "Document request",
             "finding_ids": [
-              "F0055",
-              "F0093"
+              "F0012",
+              "F0032"
+            ]
+          },
+          {
+            "id": "scope",
+            "label": "Check document permission",
+            "finding_ids": [
+              "F0012",
+              "F0021"
+            ]
+          },
+          {
+            "id": "fetch",
+            "label": "Fetch stored bytes",
+            "finding_ids": [
+              "F0012",
+              "F0032"
             ]
           },
           {
             "id": "intent",
             "label": "Mark as deleting",
             "finding_ids": [
-              "F0055",
-              "F0093"
+              "F0031"
             ]
           },
           {
             "id": "remove",
             "label": "Remove stored file",
             "finding_ids": [
-              "F0055",
-              "F0093"
+              "F0031"
             ]
           },
           {
             "id": "done",
             "label": "Marked deleted",
             "finding_ids": [
-              "F0055",
-              "F0093"
-            ]
-          },
-          {
-            "id": "retry",
-            "label": "Retryable state",
-            "finding_ids": [
-              "F0055",
-              "F0093"
+              "F0031"
             ]
           }
         ],
         "edges": [
           {
-            "from": "del",
-            "to": "intent",
-            "label": "record intent",
+            "from": "docreq",
+            "to": "scope",
+            "label": "who may access",
             "finding_ids": [
-              "F0055"
+              "F0012",
+              "F0021"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "scope",
+            "to": "fetch",
+            "label": "allowed",
+            "finding_ids": [
+              "F0012"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "scope",
+            "to": "intent",
+            "label": "delete request",
+            "finding_ids": [
+              "F0031"
             ],
             "uncertain": false
           },
@@ -158,7 +290,7 @@
             "to": "remove",
             "label": "delete bytes",
             "finding_ids": [
-              "F0055"
+              "F0031"
             ],
             "uncertain": false
           },
@@ -167,1008 +299,384 @@
             "to": "done",
             "label": "success",
             "finding_ids": [
-              "F0055",
-              "F0093"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "remove",
-            "to": "retry",
-            "label": "removal failed",
-            "finding_ids": [
-              "F0055",
-              "F0093"
+              "F0031"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "How readiness is answered",
-        "description": "The readiness check probes three external services at once and reports ready only when every probe succeeds, otherwise it answers unavailable.",
+        "title": "How a document is fetched or removed (2/2)",
+        "description": "Fetching returns stored bytes only for available documents. Deletion is two steps: first the intent is saved, then the file is removed and the record marked deleted; failure leaves a retryable state.",
         "nodes": [
           {
-            "id": "ask",
-            "label": "Readiness request",
+            "id": "remove",
+            "label": "Remove stored file",
             "finding_ids": [
-              "F0003",
-              "F0095"
+              "F0031"
             ]
           },
           {
-            "id": "status",
-            "label": "Run all probes",
+            "id": "retry",
+            "label": "Retryable state",
             "finding_ids": [
-              "F0058",
-              "F0089"
+              "F0031"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "remove",
+            "to": "retry",
+            "label": "removal failed",
+            "finding_ids": [
+              "F0031"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "How the service reports its health",
+        "description": "Liveness answers whether the process is running. Readiness asks each configured dependency whether it is reachable and reports ready only when all reply true.",
+        "nodes": [
+          {
+            "id": "probe",
+            "label": "Health check request",
+            "finding_ids": [
+              "F0002",
+              "F0003"
             ]
           },
           {
-            "id": "ext",
-            "label": "Postgres, Redis, OpenSearch",
+            "id": "live",
+            "label": "Process is running",
             "finding_ids": [
-              "F0057",
-              "F0088"
+              "F0002"
+            ]
+          },
+          {
+            "id": "ready",
+            "label": "Check dependencies",
+            "finding_ids": [
+              "F0003"
             ]
           },
           {
             "id": "answer",
             "label": "Ready or unavailable",
             "finding_ids": [
-              "F0003",
-              "F0095"
+              "F0003"
             ]
           }
         ],
         "edges": [
           {
-            "from": "ask",
-            "to": "status",
-            "label": "check dependencies",
+            "from": "probe",
+            "to": "live",
+            "label": "liveness only",
+            "finding_ids": [
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "probe",
+            "to": "ready",
+            "label": "readiness",
             "finding_ids": [
               "F0003"
             ],
             "uncertain": false
           },
           {
-            "from": "status",
-            "to": "ext",
-            "label": "concurrent probes",
-            "finding_ids": [
-              "F0058",
-              "F0088"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "ext",
-            "to": "status",
-            "label": "true or false each",
-            "finding_ids": [
-              "F0057",
-              "F0087"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "status",
+            "from": "ready",
             "to": "answer",
-            "label": "all true?",
+            "label": "all reachable?",
             "finding_ids": [
-              "F0003",
-              "F0095"
+              "F0003"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "How the stored structure stays consistent",
-        "description": "Database migrations create the tables that hold tenants, collections, documents, upload jobs, retrieval settings, evaluation labels, and audit entries. Database rules keep tenant boundaries and append-only records enforced.",
+        "title": "How the stored structure is shaped",
+        "description": "Database migrations create the tables behind uploads and stored answers, keeping rows tenant-scoped and adding uniqueness rules that prevent duplicate records.",
         "nodes": [
           {
             "id": "mig",
             "label": "Schema changes",
             "finding_ids": [
-              "F0004",
-              "F0031"
+              "F0013",
+              "F0014"
             ]
           },
           {
-            "id": "identity",
-            "label": "People and tenants",
+            "id": "uploads",
+            "label": "Upload receipt records",
             "finding_ids": [
-              "F0017",
-              "F0018",
-              "F0068"
+              "F0013"
             ]
           },
           {
-            "id": "content",
-            "label": "Collections and documents",
+            "id": "answers",
+            "label": "Saved answer records",
             "finding_ids": [
-              "F0021",
-              "F0023",
-              "F0061"
-            ]
-          },
-          {
-            "id": "jobs",
-            "label": "Upload job records",
-            "finding_ids": [
-              "F0025",
-              "F0039",
-              "F0040"
-            ]
-          },
-          {
-            "id": "retrieval",
-            "label": "Search settings and traces",
-            "finding_ids": [
-              "F0026",
-              "F0027",
-              "F0028"
-            ]
-          },
-          {
-            "id": "eval",
-            "label": "Evaluation and audit records",
-            "finding_ids": [
-              "F0033",
-              "F0036",
-              "F0037"
+              "F0014"
             ]
           }
         ],
         "edges": [
           {
             "from": "mig",
-            "to": "identity",
-            "label": "creates tables",
+            "to": "uploads",
+            "label": "adds table and rules",
             "finding_ids": [
-              "F0017"
+              "F0013"
             ],
             "uncertain": false
           },
           {
-            "from": "identity",
-            "to": "content",
-            "label": "tenant-scoped rows",
+            "from": "mig",
+            "to": "answers",
+            "label": "adds table and rules",
             "finding_ids": [
-              "F0021",
-              "F0061"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "content",
-            "to": "jobs",
-            "label": "upload work",
-            "finding_ids": [
-              "F0025"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "content",
-            "to": "retrieval",
-            "label": "searched material",
-            "finding_ids": [
-              "F0028"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "retrieval",
-            "to": "eval",
-            "label": "runs and records",
-            "finding_ids": [
-              "F0036",
-              "F0077"
-            ],
-            "uncertain": true
-          }
-        ]
-      },
-      {
-        "title": "How developers run and check the service",
-        "description": "Commands start the web server, prepare the database, load demo data, and run checks. Local orchestration starts the supporting services the application expects.",
-        "nodes": [
-          {
-            "id": "dev",
-            "label": "Developer commands",
-            "finding_ids": [
-              "F0005",
-              "F0016"
-            ]
-          },
-          {
-            "id": "server",
-            "label": "Web server started",
-            "finding_ids": [
-              "F0001"
-            ]
-          },
-          {
-            "id": "db",
-            "label": "Database prepared",
-            "finding_ids": [
-              "F0004",
-              "F0005"
-            ]
-          },
-          {
-            "id": "seed",
-            "label": "Demo data loaded",
-            "finding_ids": [
-              "F0006",
-              "F0072"
-            ]
-          },
-          {
-            "id": "checks",
-            "label": "Tests and checks run",
-            "finding_ids": [
-              "F0007",
-              "F0012"
-            ]
-          },
-          {
-            "id": "stack",
-            "label": "Local services started",
-            "finding_ids": [
-              "F0011"
-            ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "dev",
-            "to": "server",
-            "label": "start backend",
-            "finding_ids": [
-              "F0001"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "dev",
-            "to": "db",
-            "label": "apply migrations",
-            "finding_ids": [
-              "F0005"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "db",
-            "to": "seed",
-            "label": "after schema",
-            "finding_ids": [
-              "F0006",
-              "F0072"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "dev",
-            "to": "checks",
-            "label": "verify",
-            "finding_ids": [
-              "F0007",
-              "F0016"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "stack",
-            "to": "server",
-            "label": "supports running app",
-            "finding_ids": [
-              "F0011"
+              "F0014"
             ],
             "uncertain": false
           }
         ]
       }
     ],
-    "layout_notes": []
+    "layout_notes": [
+      "Split \"How a document is fetched or removed\" into 2 readable views. Repeated node IDs connect the views; all nodes, arrows, and evidence are retained."
+    ]
   },
   "findings": {
     "F0001": {
-      "statement": "The backend service is started by running the uvicorn ASGI server against the module-level FastAPI instance in hybrid_rag_search.main (module attribute app created by create_app()); the Dockerfile's CMD launches it on 0.0.0.0:8000 with app-dir /app/src, and the Makefile backend-dev does the same with --reload on port 8000.",
-      "sources": [
-        "S0001",
-        "S0004",
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0002": {
-      "statement": "create_app() in main.py builds the HTTP application, reads Settings through get_settings(), mounts the evaluation router from hybrid_rag_search.evaluation.api, and registers two health endpoints ('/health' and '/health/live') that both return a static HealthResponse with status 'ok' and the configured environment name.",
-      "sources": [
-        "S0004"
-      ],
-      "uncertain": false
-    },
-    "F0003": {
-      "statement": "The '/health/ready' route calls dependency_status(settings) to obtain a mapping of dependency name to boolean, treats readiness as all(values), and rewrites the HTTP status to 503 SERVICE_UNAVAILABLE when any dependency is false, returning status 'ready' or 'not_ready' plus the per-dependency booleans.",
-      "sources": [
-        "S0004"
-      ],
-      "uncertain": false
-    },
-    "F0004": {
-      "statement": "Schema management uses Alembic; env.py loads application models so Base.metadata is the migration target, derives the database URL from cached Settings via async_database_url(), and configures Alembic with the application's async engine when not in offline mode.",
-      "sources": [
-        "S0010"
-      ],
-      "uncertain": false
-    },
-    "F0005": {
-      "statement": "Alembic migrations can be driven from the repository root through Makefile targets: db-upgrade (upgrade head), db-downgrade (downgrade -1) and db-current, all using backend/alembic.ini; db-revision requires a MESSAGE argument and autogenerates a revision from the models.",
+      "statement": "The application factory create_app in hybrid_rag_search.main assembles the FastAPI service, installing error handlers, four routers (product/search api, answer streaming answer_stream, answer answer_api, management management_api), and health routes, then module-level `app = create_app()` makes it the ASGI entry point referenced by the Makefile uvicorn command.",
       "sources": [
         "S0002",
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0006": {
-      "statement": "Local development data is seeded by running the module hybrid_rag_search.seed (Makefile db-seed, and twice in CI), described in migrations/README as loading deterministic development records; downgrades may delete data introduced by a reverted revision.",
-      "sources": [
-        "S0002",
-        "S0006",
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0007": {
-      "statement": "Integration testing against real PostgreSQL is gated behind applied migrations: Makefile db-test depends on db-upgrade then runs pytest with marker integration and --no-cov; the pyproject pytest config excludes integration and live markers from the default run and enforces 100% coverage.",
-      "sources": [
-        "S0003",
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0008": {
-      "statement": "The project declares runtime dependencies that name the external systems it depends on: FastAPI/uvicorn for HTTP, SQLAlchemy asyncio with asyncpg and Alembic for PostgreSQL, cohere for model access, redis with dramatiq for the job queue, httpx, OpenSearch-oriented retrieval work, pypdf and markdown-it-py for document handling, and tokenizers.",
-      "sources": [
         "S0003"
       ],
       "uncertain": false
     },
-    "F0009": {
-      "statement": "The Makefile exposes administrative commands that imply runtime pipelines beyond migration: tokenizer-setup (hybrid_rag_search.tokenizer_setup), ingestion-recover (hybrid_rag_search.ingestion_recovery), and index-rebuild-start/promote (hybrid_rag_search.index_rebuild with required BUILD_ID/INDEX values), plus OpenSearch lexical, dense, and hybrid integration test targets and a live-only Cohere smoke test gated by RUN_LIVE_COHERE_TESTS=1.",
+    "F0002": {
+      "statement": "Two liveness routes (/health and /health/live) return a fixed ok status plus the configured environment name; neither probes dependencies, so they only confirm the process is running.",
       "sources": [
-        "S0009"
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "The readiness route /health/ready calls dependency_status(settings); when any dependency reports false the HTTP response status is set to 503 with status 'not_ready', otherwise 'ready' with the per-dependency boolean map.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "install_errors registers a per-request middleware assigning a UUID request id, returning it in the X-Request-ID header, and handlers for AccessDenied, APIError, Starlette HTTPException, RequestValidationError, and SQLAlchemyError that emit a uniform {\"error\": {code, message, request_id}} body.",
+      "sources": [
+        "S0007",
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "Authorization failures are mapped by status code to stable slugs (401 identity_required, 403 access_denied, 404 not_found), and generic HTTP statuses are mapped to slugs such as method_not_allowed, conflict, and dependency_unavailable with an unmatched default of request_failed.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "Database failures surfaced as SQLAlchemyError are converted to a 503 'database_unavailable' response rather than leaking exception details, and validation failures are collapsed to a generic 422 'invalid_request'.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "The /v1 router in hybrid_rag_search.api documents itself as a local demo API using simulated identity selection with real database authorization; a caller supplies identity via the X-Demo-User-ID header (Optional UUID).",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "Each request that needs authorization creates a fresh async SQLAlchemy engine and sessionmaker through the authorization dependency and disposes the engine in a finally block, so connections are per-request rather than pooled across requests.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "GET /v1/demo-users returns the selectable demo identities, and GET /v1/workspaces returns workspaces for the caller's demo identity, converting AccessDenied into an HTTPException.",
+      "sources": [
+        "S0006"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "An evaluation pipeline is invoked through the Makefile: scifact download/validate/subset via hybrid_rag_search.evaluation.scifact, and evaluation-prepare/run via hybrid_rag_search.evaluation.runner with a dataset name, document/query delay knobs, and an output directory under .data/evaluation; evaluation-run passes an explicit cache-state note to the runner.",
+      "statement": "POST /v1/search accepts a SearchRequest (workspace_id, query 1-4096 chars, optional collection_id, mode defaulting to 'hybrid_rerank', debug flag, extra fields forbidden); it resolves an authorization scope via policy.scope, then runs an AuthorizedSearch.search and returns its result dictionary.",
       "sources": [
-        "S0009"
+        "S0006"
       ],
       "uncertain": false
     },
     "F0011": {
-      "statement": "The local stack is orchestrated with docker compose through Makefile targets stack-up (build, start, wait for health), stack-down, stack-status, stack-logs, and stack-reset which refuses to delete volumes unless CONFIRM=1; infra/README states ports bind to 127.0.0.1 and that the pinned services are Python 3.12.14, Node 22, PostgreSQL 17.11, Redis 8.10.1, and OpenSearch 3.6.0 LTS with security disabled only locally.",
+      "statement": "Search translates AccessDenied into the corresponding HTTP status, and RetrievalError or ProviderError from the retrieval/provider layers into a 503 APIError with code 'dependency_unavailable' and message 'Search dependency is unavailable'.",
       "sources": [
-        "S0005",
-        "S0009"
+        "S0006"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "CI for the backend runs static checks and tests on Python 3.12 and 3.13 against service containers for PostgreSQL 17.11 and OpenSearch 3.6.0 (single node, security plugin disabled), applies migrations to head, verifies no pending model changes, downgrades to base, re-applies migrations, runs the seed module twice for idempotency, and then runs the integration-marked test suite without coverage.",
+      "statement": "GET /v1/workspaces/{workspace_id}/documents/{document_id}/content checks document_scope authorization, then uses DocumentService with LocalFileStorage(settings.storage_root) to fetch bytes and return them as an application/octet-stream attachment; missing or unavailable documents become 404 and OSError becomes a 503 storage_unavailable error.",
       "sources": [
         "S0006"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "CI for the frontend installs with npm ci from frontend/package-lock.json on Node 22 and runs format check, lint, typecheck, tests, and build in that directory, evidencing a separate frontend Node/JavaScript codebase under frontend/.",
+      "statement": "Migration 20261013_09 adds a unique constraint on (tenant_id, id) for ingestion_jobs and creates an upload_receipts table keyed by id with a unique (tenant_id, collection_id, membership_id, key) constraint and tenant-scoped foreign keys to collections, memberships, documents, and ingestion_jobs, recording fingerprint, duplicate flag, and creation time.",
       "sources": [
-        "S0006"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "A separate GitHub workflow updates repository maps: it checks out full history, installs graphviz and .repo-map/requirements.txt, prepares state with .repo-map/state.py, calls .repo-map/incremental.py with an LLM API key, base URL, model and optional --full flag, then publishes maps and uploads a repo-map artifact including README.md, manifest.json, update.json, maps/ and overview/.",
+      "statement": "Migration 20261015_10 creates saved_answers holding tenant_id, author_user_id, question text, a JSONB result object, and created_at, constrained so the question is 1-4096 trimmed characters and the result is a JSON object, with a cascade foreign key to memberships and an index ordered by (tenant_id, author_user_id, created_at, id) for per-author history.",
       "sources": [
-        "S0007"
+        "S0005"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "The repo-map workflow is constrained to only run on the default branch, serializes with a concurrency group, and publishes only to a dedicated 'repo-map' branch, per the workflow comment and publish step.",
+      "statement": "The Makefile provides developer commands: setup installs the backend editable with dev extras and frontend dependencies; dev runs uvicorn on the app and the frontend dev server together; database targets apply/downgrade Alembic migrations, seed demo data, and run integration tests; check chains format-check, lint, typecheck, test, and frontend build.",
       "sources": [
-        "S0007"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0016": {
-      "statement": "Developer tooling is wired through pre-commit and Makefile tasks: pre-commit runs local ruff check --fix and ruff format on Python files and a Prettier check on frontend files, and Makefile format/lint/typecheck/test/build/check combine ruff, mypy on backend/src, pytest, and the frontend npm scripts.",
+      "statement": "The Makefile also exposes operational and evaluation entry points invoked as Python modules \u2014 ingestion-recover, tokenizer-setup, index-rebuild start/promote, SciFact download/validate/subset, and evaluation runner prepare/run \u2014 but the modules themselves' behavior is not shown here.",
       "sources": [
-        "S0008",
-        "S0009"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0017": {
-      "statement": "Migration 20260915_01 is the baseline Alembic revision (down_revision None) that creates the identity schema: tenants, users, and memberships tables, confirming a multi-tenant identity foundation whose tenant ownership is expressed structurally.",
+      "statement": "Authorization.user resolves a demo identity and rejects missing, unknown, or non-demo user IDs with a 401 AccessDenied; only IDs in the seeded DEMO_USER_IDS set are accepted.",
       "sources": [
-        "S0011"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0018": {
-      "statement": "The tenants table enforces a non-blank name and a slug format (lowercase alphanumerics with hyphen separators) via check constraints, plus a unique slug; users enforce lowercased/trimmed email and unique email; memberships carry a role restricted to owner/admin/member defaulting to member.",
+      "statement": "Authorization.workspaces lists the tenants a user belongs to along with the user's role, joining Tenant to Membership and ordering by tenant name.",
       "sources": [
-        "S0011"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0019": {
-      "statement": "Memberships link tenants and users with ON DELETE CASCADE foreign keys and a composite unique constraint on (tenant_id, user_id), preventing duplicate membership of the same user in a tenant and removing memberships when their tenant or user is deleted.",
+      "statement": "Authorization.scope builds a per-request AuthorizedScope: it checks membership in the tenant, collects allowed collection IDs, and for 'member' role restricts collections via CollectionGrant with read/write/manage permission.",
       "sources": [
-        "S0011"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0020": {
-      "statement": "A shared SQL function set_updated_at(), installed in revision 01, is attached as a BEFORE UPDATE trigger to each table so updated_at is maintained in PostgreSQL rather than by application code; revision 02 reuses that function for its new tables.",
+      "statement": "Authorization.scope excludes documents in DELETING or DELETED status from the scope and records their IDs in excluded_document_ids so callers can filter them.",
       "sources": [
-        "S0011",
-        "S0012"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0021": {
-      "statement": "Migration 20260915_02 builds on the identity revision and creates content tables: collections, collection_grants, documents, and ingestion_jobs, each carrying tenant_id and timestamp columns.",
+      "statement": "Authorization.document_scope converts a 403 workspace denial into a 404 'Document not found', while preserving 401, so unauthorized users cannot learn a document exists.",
       "sources": [
-        "S0012"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0022": {
-      "statement": "collection_grants assign a permission (read/write/manage) to a membership for a collection, and use composite foreign keys against (tenant_id, collection_id) and (tenant_id, membership_id) with uniqueness on the triple, enforcing that grants cannot cross tenant boundaries.",
+      "statement": "Authorization.require enforces an action level: owners/admins pass unconditionally; a member with a collection-level grant must meet or exceed the requested permission using the read<write<manage ranking, otherwise a 403 is raised.",
       "sources": [
-        "S0012"
+        "S0008"
       ],
       "uncertain": false
     },
     "F0023": {
-      "statement": "documents records per-file metadata (source_key, storage_key, original_filename, media_type, content_hash, size_bytes, JSONB source_metadata), a lifecycle status among pending/processing/ready/failed/deleting/deleted, an index_version, an error_message, and deleted_at; constraints require 64-hex content hashes, non-negative sizes and versions, and that deleted status exactly matches presence of deleted_at.",
+      "statement": "Settings loads runtime configuration from environment variables and an optional .env file, covering database, Redis, OpenSearch, Cohere, upload, and retrieval limits.",
       "sources": [
-        "S0012"
+        "S0009"
       ],
       "uncertain": false
     },
     "F0024": {
-      "statement": "documents is scoped to a collection via a composite tenant foreign key with ON DELETE RESTRICT, uniquely identifies source_key within a collection, and is indexed on content_hash and (tenant_id, status), supporting dedupe-by-hash and status-filtered tenant queries.",
+      "statement": "Settings validates cross-field constraints at startup: embed-english-light-v3.0 requires 384 dimensions, rerank result limit cannot exceed candidate limit, and rerank timeout cannot exceed the retrieval deadline.",
       "sources": [
-        "S0012"
+        "S0009"
       ],
       "uncertain": false
     },
     "F0025": {
-      "statement": "ingestion_jobs track per-document work with status queued/running/succeeded/failed/cancelled, attempt counters bounded by max_attempts (default 3), a JSONB checkpoint, error_code/error_message, and started_at/finished_at timestamps, with a CASCADE link to the owning document and an index on (tenant_id, status).",
+      "statement": "Settings carries a Cohere API key read from COHERE_API_KEY or COHERE_TRIAL_KEY, excluded from repr; the value itself is redacted and not reproduced.",
       "sources": [
-        "S0012"
+        "S0009"
       ],
       "uncertain": false
     },
     "F0026": {
-      "statement": "Migration 20260915_03 creates a prevent_mutation() trigger function that raises an exception, then attaches it to retrieval_configs as an append-only guard blocking UPDATE and DELETE.",
+      "statement": "get_settings is an lru_cache-wrapped accessor so Settings is constructed once per process.",
       "sources": [
-        "S0013"
+        "S0009"
       ],
       "uncertain": false
     },
     "F0027": {
-      "statement": "retrieval_configs store per-tenant named, versioned retrieval settings including JSONB parameters plus embedding_model and optional rerank_model; constraints require a positive version, object-typed parameters, non-blank name and model, and uniqueness on (tenant_id, name, version).",
+      "statement": "DocumentService.upload computes a SHA-256 content hash, locks the target collection row (with_for_update) to serialize duplicate checks, and returns an existing document as duplicate when an active document with the same hash already exists in the collection.",
       "sources": [
-        "S0013"
+        "S0010"
       ],
       "uncertain": false
     },
     "F0028": {
-      "statement": "query_traces record a single retrieval call: tenant, collection, and retrieval_config references (both RESTRICT on delete), an optional query_text gated by a content_captured policy, a 64-hex normalized_query_hash, the selected_path, latency, and JSONB timings/rankings/usage/fallbacks/error.",
+      "statement": "For new content, DocumentService creates a Document row with status PENDING, flushes it, then writes the original bytes to storage via asyncio.to_thread so filesystem work runs off the event loop.",
       "sources": [
-        "S0013"
+        "S0010"
       ],
       "uncertain": false
     },
     "F0029": {
-      "statement": "The query_traces constraint content_captured OR query_text IS NULL, combined with the normalized_query_hash requirement, implements a query-privacy policy where raw query text may be omitted while a hash is always retained.",
+      "statement": "DocumentService runs inside caller-supplied transactions (upload_in_session) so document creation can commit together with a caller's upload receipt/job, and it requires an already-authorized tenant/collection scope.",
       "sources": [
-        "S0013"
+        "S0010"
       ],
       "uncertain": false
     },
     "F0030": {
-      "statement": "query_traces has only created_at and no updated_at column and no updated_at trigger, consistent with it being an append-only trace record rather than a mutating table, though no explicit mutation-prevention trigger is defined on it in these sources.",
+      "statement": "DocumentService._document verifies the stored storage_key matches the expected storage_key(tenant_id, document_id), rejecting corrupted or cross-tenant pointers.",
       "sources": [
-        "S0013"
+        "S0010"
       ],
-      "uncertain": true
+      "uncertain": false
     },
     "F0031": {
-      "statement": "The three migrations form a linear Alembic chain (01 then 02 then 03) whose downgrade functions drop the created tables and the introduced functions/triggers in reverse dependency order, providing a supported rollback path.",
+      "statement": "DocumentService.delete is two-phase: first commit status DELETING, then remove the stored file and mark DELETED with a timestamp; an I/O failure leaves a durable DELETING state that can be retried.",
       "sources": [
-        "S0011",
-        "S0012",
-        "S0013"
+        "S0010"
       ],
       "uncertain": false
     },
     "F0032": {
-      "statement": "These sources only define schema and database-side invariants; no application code that inserts, reads, or transitions documents, ingestion_jobs, retrieval_configs, or query_traces is present, so the runtime producers and consumers of this schema are not evidenced here.",
+      "statement": "DocumentService.fetch raises DocumentUnavailable for documents in DELETING or DELETED status and returns the stored bytes otherwise.",
       "sources": [
-        "S0011",
-        "S0012",
-        "S0013"
-      ],
-      "uncertain": true
-    },
-    "F0033": {
-      "statement": "Migration 20260915_04 (down_revision 20260915_03) creates four application tables: evaluation_datasets, judgments, evaluation_runs, and audit_events.",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0034": {
-      "statement": "evaluation_datasets stores tenant-scoped evaluation corpora with a SHA-256 content hash (64 hex chars), version integer, JSONB dataset_metadata object, non-blank name, and unique (tenant_id, name, version); it cascades from tenants.",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0035": {
-      "statement": "judgments stores per-query relevance labels within a dataset: query_key, query_text, target_type restricted to 'document' or 'chunk', target_id, relevance_grade 0-3, optional expected_answer, key_facts JSONB array, metadata_filters JSONB object; unique per (tenant_id, dataset_id, query_key, target_type, target_id).",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0036": {
-      "statement": "evaluation_runs records an evaluation execution against an evaluation dataset and a retrieval_config: status defaults 'queued' with allowed values queued/running/succeeded/failed/cancelled, non-negative seed, JSONB metrics, error_message, and started/finished timestamps; datasets and retrieval configs are RESTRICT-deleted to preserve run history.",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0037": {
-      "statement": "audit_events is an append-only record of tenant activity: namespaced action matching 'domain.event', entity_type/entity_id, JSONB details, occurred_at, and an optional actor_membership_id that is RESTRICT-bound to a tenant-scoped membership.",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0038": {
-      "statement": "Immutability triggers prevent_mutation() are created on evaluation_datasets, judgments, and audit_events so those rows cannot be updated or deleted, while evaluation_runs gets a set_updated_at() trigger on UPDATE.",
-      "sources": [
-        "S0014"
-      ],
-      "uncertain": false
-    },
-    "F0039": {
-      "statement": "Migration 20260918_05 adds a stage column to ingestion_jobs (default 'parse'), backfills 'complete' for already-succeeded jobs, and constrains stage to parse/chunk/embed/index/complete plus a consistency check that status='succeeded' if and only if stage='complete'.",
-      "sources": [
-        "S0015"
-      ],
-      "uncertain": false
-    },
-    "F0040": {
-      "statement": "Migration 20260918_06 adds content_hash and pipeline_version to ingestion_jobs, backfills content_hash from the linked documents row, assigns legacy jobs a unique synthetic pipeline_version derived from their own id, then makes both NOT NULL with format checks (SHA-256 for content_hash, 'pipe_'+64 hex for pipeline_version) and adds a unique (tenant_id, document_id, content_hash, pipeline_version) constraint.",
-      "sources": [
-        "S0016"
-      ],
-      "uncertain": false
-    },
-    "F0041": {
-      "statement": "The unique ingestion identity constraint means at most one ingestion job exists per tenant/document/content-hash/pipeline-version recipe, making re-ingestion of identical content under the same pipeline a database-level dedupe boundary.",
-      "sources": [
-        "S0016"
-      ],
-      "uncertain": true
-    },
-    "F0042": {
-      "statement": "Migration 20260918_07 adds lease_token and lease_expires_at to ingestion_jobs, requeues any pre-existing 'running' rows that have no verifiable owner, and enforces (status='running') = (lease_token IS NOT NULL AND lease_expires_at IS NOT NULL) with an index on (status, lease_expires_at) for lease expiry scanning.",
-      "sources": [
-        "S0017"
-      ],
-      "uncertain": false
-    },
-    "F0043": {
-      "statement": "Migration 20260918_08 adds next_attempt_at to ingestion_jobs, constrains it to be NULL unless status='queued', and indexes (status, next_attempt_at) to support retry scheduling.",
-      "sources": [
-        "S0018"
-      ],
-      "uncertain": false
-    },
-    "F0044": {
-      "statement": "Settings is a pydantic BaseSettings loaded from environment variables and an optional .env file (extra='ignore'), holding app_env, log_level, database_url, redis_url, OpenSearch URLs/aliases, and an index schema version 'chunks-v3'.",
-      "sources": [
-        "S0020"
-      ],
-      "uncertain": false
-    },
-    "F0045": {
-      "statement": "Settings exposes retrieval tuning limits\u2014BM25 field boosts (content 1.0, heading 1.5, phrase 3.0, identifier 5.0), BM25 and dense candidate limits of 20, rerank candidate limit 20, rerank result limit 10, and an 8-second retrieval deadline\u2014plus local storage and tokenizer roots and an ingestion artifact root.",
-      "sources": [
-        "S0020"
-      ],
-      "uncertain": false
-    },
-    "F0046": {
-      "statement": "Settings defines Cohere integration parameters: an API key resolved from COHERE_API_KEY or COHERE_TRIAL_KEY (optional, hidden from repr), embedding model embed-english-light-v3.0 at 384 dimensions, rerank model rerank-v4.0-fast, generation model command-r7b-12-2024 with temperature 0.0, per-call timeouts, and optional/derived per-token and per-search-unit cost fields used for cost accounting.",
-      "sources": [
-        "S0020"
-      ],
-      "uncertain": false
-    },
-    "F0047": {
-      "statement": "A startup cross-field validator rejects embed-english-light-v3.0 with dimensions other than 384, a rerank result limit exceeding the candidate limit, and a Cohere rerank timeout exceeding the retrieval deadline; get_settings() is lru_cache'd so settings are parsed once per process.",
-      "sources": [
-        "S0020"
-      ],
-      "uncertain": false
-    },
-    "F0048": {
-      "statement": "The hybrid_rag_search package docstring identifies the package as the Hybrid RAG Search API, but this batch shows no route, service, or orchestration code inside it beyond Settings configuration.",
-      "sources": [
-        "S0019",
-        "S0020"
-      ],
-      "uncertain": true
-    },
-    "F0049": {
-      "statement": "Base is the declarative SQLAlchemy ORM base shared by application models and Alembic migrations; it centralizes NAMING_CONVENTION so generated index, unique, check, foreign-key, and primary-key names follow one deterministic scheme.",
-      "sources": [
-        "S0021"
-      ],
-      "uncertain": false
-    },
-    "F0050": {
-      "statement": "async_database_url rewrites a plain postgresql:// SQLAlchemy URL to the postgresql+asyncpg driver, and passes any other URL through unchanged, so async engine creation uses the project's async PostgreSQL driver.",
-      "sources": [
-        "S0021"
-      ],
-      "uncertain": false
-    },
-    "F0051": {
-      "statement": "DocumentService owns the original-file lifecycle for documents. Starting actor is an external caller that must already have supplied an authorized tenant/collection scope; the service itself performs no authorization.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0052": {
-      "statement": "DocumentService.upload hashes file content with SHA-256, locks the target collection row with FOR UPDATE to serialize duplicate checks across concurrent uploads, verifies the collection exists within the tenant, and returns an existing non-deleted document with the same content hash as a duplicate instead of creating a new row.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0053": {
-      "statement": "On a non-duplicate upload, DocumentService inserts a Document row (status PENDING, storage_key derived from tenant and document id, content_hash, size_bytes) and then writes the bytes to FileStorage via asyncio.to_thread, so filesystem I/O runs off the event loop; a crash or commit failure may leave an orphan file but never deletes a possibly committed original.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0054": {
-      "statement": "DocumentService.fetch locks the document row, rejects documents in DELETING or DELETED status with DocumentUnavailable, verifies the storage key matches the tenant/document identity, and reads bytes through the FileStorage abstraction off the event loop.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0055": {
-      "statement": "DocumentService.delete commits the DELETING intent in one transaction, then in a second transaction removes the stored file and sets status DELETED with deleted_at and cleared error_message; this two-phase design makes an I/O failure leave a durable retryable state. Deleting an already DELETED document is a no-op.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0056": {
-      "statement": "DocumentNotFound is raised when a requested document or collection is absent inside the caller's tenant scope; DocumentUnavailable is raised when a document is being deleted or already deleted; UploadResult carries the document id plus a duplicate flag.",
-      "sources": [
-        "S0022"
-      ],
-      "uncertain": false
-    },
-    "F0057": {
-      "statement": "health.py probes three external dependencies from Settings: check_postgres opens an asyncpg connection with a 2s timeout and runs SELECT 1, check_redis pings a Redis client built from settings.redis_url, and check_opensearch GETs {opensearch_url}/_cluster/health with a 2s httpx timeout and raises on non-2xx.",
-      "sources": [
-        "S0023"
-      ],
-      "uncertain": false
-    },
-    "F0058": {
-      "statement": "run_check converts any exception from a probe into a False result rather than propagating it, and dependency_status runs the three probes concurrently via asyncio.gather and returns a dict keyed postgres, redis, opensearch with their boolean outcomes.",
-      "sources": [
-        "S0023"
-      ],
-      "uncertain": false
-    },
-    "F0059": {
-      "statement": "models/__init__.py re-exports the ORM model surface: content models (Collection, CollectionGrant, Document, DocumentStatus, IngestionJob and its statuses/stages), evaluation models (AuditEvent, EvaluationDataset, EvaluationRun, Judgment), identity models (Tenant, User, Membership, MembershipRole), and retrieval models (QueryTrace, RetrievalConfig). This indicates the intended domain boundaries of the data layer.",
-      "sources": [
-        "S0024"
-      ],
-      "uncertain": false
-    },
-    "F0060": {
-      "statement": "Enum types encode document lifecycle (PENDING, PROCESSING, READY, FAILED, DELETING, DELETED), ingestion job lifecycle (QUEUED, RUNNING, SUCCEEDED, FAILED, CANCELLED), ingestion pipeline stages (PARSE, CHUNK, EMBED, INDEX, COMPLETE), and collection permissions (READ, WRITE, MANAGE).",
-      "sources": [
-        "S0025"
-      ],
-      "uncertain": false
-    },
-    "F0061": {
-      "statement": "Collection, Document, and IngestionJob use composite tenant-scoped foreign keys and unique constraints (e.g. collections(tenant_id, id), documents(tenant_id, collection_id, source_key), ingestion_jobs(tenant_id, document_id, content_hash, pipeline_version)) so PostgreSQL itself rejects cross-tenant references. CollectionGrant links collections to memberships within a tenant with a permission check constraint.",
-      "sources": [
-        "S0025"
-      ],
-      "uncertain": false
-    },
-    "F0062": {
-      "statement": "Database check constraints push business rules into persistence: non-blank names/keys, slug format, SHA-256 content-hash format, nonnegative size and index_version, allowed status strings, and consistency rules such as (status='deleted') = (deleted_at IS NOT NULL), (status='succeeded') = (stage='complete'), and (status='running') = (lease_token IS NOT NULL AND lease_expires_at IS NOT NULL).",
-      "sources": [
-        "S0025"
-      ],
-      "uncertain": false
-    },
-    "F0063": {
-      "statement": "IngestionJob carries retry and lease fields (attempts, max_attempts, checkpoint JSONB, lease_token, lease_expires_at, next_attempt_at) with indexes on (tenant_id, status), (status, lease_expires_at), and (status, next_attempt_at), supporting worker lease/retry scheduling. The worker code that claims and updates these jobs is not in this batch.",
-      "sources": [
-        "S0025"
-      ],
-      "uncertain": false
-    },
-    "F0064": {
-      "statement": "Document rows separate source identity (source_key, original_filename, media_type, content_hash with an index) from physical placement (storage_key), and track index_version, error_message, and deleted_at, so ingestion/index state is observable per document. The runtime code that advances status beyond PENDING is not present here.",
-      "sources": [
-        "S0025"
-      ],
-      "uncertain": false
-    },
-    "F0065": {
-      "statement": "The schema models multi-tenant evaluation: EvaluationDataset stores per-tenant named, versioned test corpora pinned to a corpus_hash SHA-256 (check constraint corpus_hash_sha256), with JSONB dataset_metadata. Judgment rows attach per-query relevance labels (relevance_grade 0-3) to either a document or chunk target (JudgmentTarget enum, target_type_allowed check), carrying expected_answer, key_facts JSONB array, and metadata_filters; a dataset cascade-deletes its judgments.",
-      "sources": [
-        "S0026"
-      ],
-      "uncertain": false
-    },
-    "F0066": {
-      "statement": "EvaluationRun records the execution of a dataset against a RetrievalConfig with a lifecycle status enum (EvaluationRunStatus: queued/running/succeeded/failed/cancelled), a seed, JSONB metrics, error_message, and started/finished timestamps. Its composite foreign keys are RESTRICT for both dataset and retrieval_config, so a config or dataset cannot be deleted while a run references it.",
-      "sources": [
-        "S0026"
-      ],
-      "uncertain": false
-    },
-    "F0067": {
-      "statement": "Audit trails are modeled by AuditEvent, which requires a namespaced action matching ^[a-z][a-z0-9_]*\\.[a-z][a-z0-9_]*$ (action_namespaced), an entity type, entity id, JSONB details, and an optional actor_membership_id linked to memberships with RESTRICT on delete. This constrains auditing to a controlled vocabulary of two-part action names.",
-      "sources": [
-        "S0026"
-      ],
-      "uncertain": false
-    },
-    "F0068": {
-      "statement": "Identity is modeled as Tenant (unique slug constrained to a lowercase-hyphen format), User (globally unique email required to be already normalized to lower/trimmed), and Membership joining user to tenant with one of three roles (MembershipRole: owner/admin/member). A (tenant_id, user_id) uniqueness constraint means a user has at most one membership per tenant, and each membership row is unique per (tenant_id, id) to support composite tenant-scoped reference from other tables.",
-      "sources": [
-        "S0027"
-      ],
-      "uncertain": false
-    },
-    "F0069": {
-      "statement": "RetrievalConfig is a per-tenant, versioned, named configuration with a JSONB parameters blob, an embedding_model (required non-blank), and an optional rerank_model. Its version must be positive and it is unique per (tenant_id, name, version), so configurations are versioned rather than mutated.",
-      "sources": [
-        "S0028"
-      ],
-      "uncertain": false
-    },
-    "F0070": {
-      "statement": "QueryTrace persists per-query retrieval diagnostics: query_text (nullable), normalized_query_hash, content_captured flag, selected_path, total_latency_ms, and JSONB timings, rankings, usage, fallbacks, and error. It references a collection and a retrieval config with RESTRICT on delete, indicating traces are retained and cannot lose their referenced collection or config.",
-      "sources": [
-        "S0028"
-      ],
-      "uncertain": false
-    },
-    "F0071": {
-      "statement": "QueryTraces enforce a capture policy: the normalized_query_hash must be a 64-hex-character SHA-256, and a check constraint requires that when content_captured is false, query_text must be NULL, so raw query text is only stored when content capture is explicitly permitted.",
-      "sources": [
-        "S0028"
-      ],
-      "uncertain": true
-    },
-    "F0072": {
-      "statement": "The seed CLI (seed.py) idempotently inserts a demo tenant, owner user, membership, collection, and manage grant using deterministic UUIDs and PostgreSQL ON CONFLICT DO UPDATE on primary key. seed_database builds an async engine from a database URL, executes all statements in one engine.begin() transaction, then disposes the engine; main runs it via asyncio.run and prints a confirmation.",
-      "sources": [
-        "S0029"
-      ],
-      "uncertain": false
-    },
-    "F0073": {
-      "statement": "Seed data lives in a demo tenant 'Acme Demo' with owner admin@acme.test, a 'Company Handbook' collection, and a manage-level CollectionGrant linking the owner membership to that collection, providing a reproducible multi-tenant local-development dataset rather than production data.",
-      "sources": [
-        "S0029"
-      ],
-      "uncertain": false
-    },
-    "F0074": {
-      "statement": "File storage is abstracted behind a small FileStorage Protocol (save/fetch/delete) with storage_key(tenant_id, document_id) returning 'tenant_uuid/document_uuid', so original uploads are addressed by tenant/document identity and never by any upload filename.",
-      "sources": [
-        "S0030"
-      ],
-      "uncertain": false
-    },
-    "F0075": {
-      "statement": "LocalFileStorage writes atomically and create-only: it resolves the root, validates keys against a canonical-UUID pattern, rejects symlink components, and in save() writes to a NamedTemporaryFile, fsyncs it, then hard-links it to the destination, which fails if an original already exists and ensures only complete files are published. fetch() reads bytes and delete() uses unlink(missing_ok=True).",
-      "sources": [
-        "S0030"
-      ],
-      "uncertain": false
-    },
-    "F0076": {
-      "statement": "LocalFileStorage declares a security boundary in its docstring: the root and its ancestors must not be writable by untrusted local processes, and it warns that this must hold including during save() calls; it is a deliberately limited, trusted-directory storage rather than an arbitrary-path store.",
-      "sources": [
-        "S0030"
-      ],
-      "uncertain": false
-    },
-    "F0077": {
-      "statement": "Evaluation and audit tables define a foreign-key chain across subsystems: EvaluationRun requires both an EvaluationDataset and a RetrievalConfig (both RESTRICT), and QueryTrace and EvaluationRun reference tenant-scoped collections/configs, so evaluation execution ties retrieval configuration to a labeled dataset with no orphaned references.",
-      "sources": [
-        "S0026",
-        "S0028"
-      ],
-      "uncertain": true
-    },
-    "F0078": {
-      "statement": "Across the identity, retrieval, and evaluation models, tenant isolation is enforced at the schema level via composite (tenant_id, id) foreign keys and uniqueness (e.g., memberships' unique(tenant_id, id), evaluation_datasets' unique(tenant_id, id), query_traces and evaluation_runs' composite FKs), making tenant scoping structural rather than purely application-enforced.",
-      "sources": [
-        "S0026",
-        "S0027",
-        "S0028"
-      ],
-      "uncertain": false
-    },
-    "F0079": {
-      "statement": "The models map to PostgreSQL-specific types and features (JSONB, UUID, regex CHECK constraints, server_default func.now()), so the schema is exclusive to Postgres and cannot run on engines lacking JSONB or regex check support.",
-      "sources": [
-        "S0026",
-        "S0027",
-        "S0028"
-      ],
-      "uncertain": false
-    },
-    "F0080": {
-      "statement": "No runtime consumer of Judgment targets (document/chunk), QueryTrace rankings/timings population, or AuditEvent action emission is shown in this batch; these sources only declare the persistence schemas and a demo seed, leaving who populates them and how results are produced untraced.",
-      "sources": [
-        "S0026",
-        "S0028",
-        "S0029"
-      ],
-      "uncertain": true
-    },
-    "F0081": {
-      "statement": "The ORM Base exposes a stable naming convention (\"pk_%(table_name)s\" for primary keys, foreign keys prefixed \"fk_%(table_name)s\") applied to all model metadata, giving predictable database constraint and index names.",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0082": {
-      "statement": "async_database_url normalizes a PostgreSQL connection URL to the postgresql+asyncpg driver, and passes through an already-asyncpg URL unchanged, so application and migration code share one async database dialect choice.",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0083": {
-      "statement": "The data model covers identity (Tenant, User, Membership with roles owner/admin/member), content (Collection, CollectionGrant, Document, IngestionJob), retrieval (RetrievalConfig, QueryTrace), and evaluation/audit (EvaluationDataset, Judgment, EvaluationRun, AuditEvent), all registered on shared metadata.",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0084": {
-      "statement": "Document lifecycle is modeled as explicit statuses pending, processing, ready, failed, deleting, and deleted, with content-hash and size columns used for dedupe.",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0085": {
-      "statement": "Ingestion is modeled as jobs with statuses queued, running, succeeded, failed, cancelled and stages parse, chunk, embed, index, complete. The stage column defaults to \"parse\", and database-level check constraints enforce allowed stage values, completion proof matching status, SHA-256 content hash format, pipeline version format, document/recipe uniqueness, lease only when running, and retry time only when queued, plus indexes on status/lease and status/retry. This pushes ingestion scheduling invariants into PostgreSQL rather than application code.",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0086": {
-      "statement": "Evaluation runs carry the same queued/running/succeeded/failed/cancelled status set, and judgments target either a document or a chunk. These are parallel lifecycle enums used by the evaluation subsystem (whose execution code is outside this batch).",
-      "sources": [
-        "S0031"
-      ],
-      "uncertain": false
-    },
-    "F0087": {
-      "statement": "health.run_check wraps an async probe and converts any raised exception into False, isolating dependency failures instead of propagating them.",
-      "sources": [
-        "S0032"
-      ],
-      "uncertain": false
-    },
-    "F0088": {
-      "statement": "check_postgres opens an asyncpg connection from Settings, executes \"SELECT 1\", and closes the connection. check_redis builds a Redis client from the configured URL, pings it, and closes it, raising ConnectionError when the ping returns false. check_opensearch issues GET http://localhost:9200/_cluster/health and calls raise_for_status. These three probes therefore exercise the same Postgres, Redis, and OpenSearch services the rest of the system expects.",
-      "sources": [
-        "S0032"
-      ],
-      "uncertain": false
-    },
-    "F0089": {
-      "statement": "dependency_status runs the three probes and returns a named boolean map keyed postgres, redis, opensearch, so a caller (the readiness route) can decide overall readiness from individual dependency results.",
-      "sources": [
-        "S0032"
-      ],
-      "uncertain": false
-    },
-    "F0090": {
-      "statement": "A Dramatiq worker module provides a heartbeat actor whose fn returns \"ok\", establishing at least an importable background-worker entry point; the sources do not show how workers are started or bound to ingestion jobs.",
-      "sources": [
-        "S0032"
-      ],
-      "uncertain": true
-    },
-    "F0091": {
-      "statement": "DocumentService.upload validates the filename, computes a SHA-256 content hash, and performs a dedupe lookup; on a first upload it creates a Document row with size, media type, original filename, PENDING status, and a tenant/document-derived storage_key and saves bytes through storage. On an existing content match it returns the prior document id with duplicate=true without a second insert.",
-      "sources": [
-        "S0033",
-        "S0034"
-      ],
-      "uncertain": false
-    },
-    "F0092": {
-      "statement": "Dedupe and lookup are tenant- and collection-scoped: uploading identical bytes under a different tenant or different collection yields a distinct document and not a duplicate, and fetching/deleting a document under another tenant raises DocumentNotFound. Authorization is enforced at the query level rather than by callers.",
-      "sources": [
-        "S0034"
-      ],
-      "uncertain": false
-    },
-    "F0093": {
-      "statement": "DocumentService.delete marks a document DELETING, removes the stored bytes, and on success sets DELETED with deleted_at; if storage deletion raises, the status stays DELETING and subsequent fetch raises DocumentUnavailable, so the document is unavailable until deletion is retried. Deletion is idempotent, and a deleted document's bytes are gone from storage.",
-      "sources": [
-        "S0033",
-        "S0034"
-      ],
-      "uncertain": false
-    },
-    "F0094": {
-      "statement": "Storage failures during upload are transactional: if saving bytes raises (for example disk full), no Document row is persisted, leaving no orphaned database record. Storage is abstracted behind a FileStorage interface with a LocalFileStorage implementation used in tests, and a storage_key that encodes tenant identity is validated so a mismatched key raises an identity error.",
-      "sources": [
-        "S0033",
-        "S0034"
-      ],
-      "uncertain": false
-    },
-    "F0095": {
-      "statement": "The FastAPI app exposes GET /health and /health/live returning 200 with {status: ok, environment: development}, and GET /health/ready returning 200 with {status: ready, dependencies: {...}} when all dependencies report true, or 503 with status not_ready when any dependency is false. Readiness depends on live dependency_status results, so partial dependency failure is surfaced rather than consumed.",
-      "sources": [
-        "S0035"
-      ],
-      "uncertain": false
-    },
-    "F0096": {
-      "statement": "The integration test creates an async engine from the configured database URL, seeds Tenant and Collection rows, runs uploads concurrently, then cleans up by deleting documents, collections, and tenants and disposing the engine. This shows the DocumentService expects tenant and collection rows to already exist (foreign-key prerequisites) and that the tenant/collection scope is supplied by the caller rather than derived internally. Work log: the tests are the only evidenced callers of DocumentService, and no HTTP route that serves document upload/fetch/delete appears in this batch.",
-      "sources": [
-        "S0034"
+        "S0010"
       ],
       "uncertain": false
     }
@@ -1176,218 +684,68 @@
   "sources": {
     "S0001": {
       "id": "S0001",
-      "path": "backend/Dockerfile",
-      "start": 1,
-      "end": 13
-    },
-    "S0002": {
-      "id": "S0002",
-      "path": "backend/migrations/README.md",
-      "start": 1,
-      "end": 5
-    },
-    "S0003": {
-      "id": "S0003",
       "path": "backend/pyproject.toml",
-      "start": 1,
-      "end": 50
-    },
-    "S0004": {
-      "id": "S0004",
-      "path": "backend/src/hybrid_rag_search/main.py",
-      "start": 1,
-      "end": 47
-    },
-    "S0005": {
-      "id": "S0005",
-      "path": "infra/README.md",
-      "start": 1,
-      "end": 12
-    },
-    "S0006": {
-      "id": "S0006",
-      "path": ".github/workflows/ci.yml",
-      "start": 1,
-      "end": 83
-    },
-    "S0007": {
-      "id": "S0007",
-      "path": ".github/workflows/repo-map.yml",
-      "start": 1,
-      "end": 84
-    },
-    "S0008": {
-      "id": "S0008",
-      "path": ".pre-commit-config.yaml",
-      "start": 1,
-      "end": 18
-    },
-    "S0009": {
-      "id": "S0009",
-      "path": "Makefile",
-      "start": 1,
-      "end": 139
-    },
-    "S0010": {
-      "id": "S0010",
-      "path": "backend/migrations/env.py",
-      "start": 1,
-      "end": 60
-    },
-    "S0011": {
-      "id": "S0011",
-      "path": "backend/migrations/versions/20260915_01_identity.py",
-      "start": 1,
-      "end": 102
-    },
-    "S0012": {
-      "id": "S0012",
-      "path": "backend/migrations/versions/20260915_02_content.py",
-      "start": 1,
-      "end": 197
-    },
-    "S0013": {
-      "id": "S0013",
-      "path": "backend/migrations/versions/20260915_03_retrieval.py",
-      "start": 1,
-      "end": 146
-    },
-    "S0014": {
-      "id": "S0014",
-      "path": "backend/migrations/versions/20260915_04_evaluation_audit.py",
-      "start": 1,
-      "end": 213
-    },
-    "S0015": {
-      "id": "S0015",
-      "path": "backend/migrations/versions/20260918_05_ingestion_stage.py",
-      "start": 1,
-      "end": 47
-    },
-    "S0016": {
-      "id": "S0016",
-      "path": "backend/migrations/versions/20260918_06_ingestion_identity.py",
-      "start": 1,
-      "end": 67
-    },
-    "S0017": {
-      "id": "S0017",
-      "path": "backend/migrations/versions/20260918_07_ingestion_lease.py",
       "start": 1,
       "end": 51
     },
-    "S0018": {
-      "id": "S0018",
-      "path": "backend/migrations/versions/20260918_08_ingestion_retry_time.py",
+    "S0002": {
+      "id": "S0002",
+      "path": "backend/src/hybrid_rag_search/main.py",
       "start": 1,
-      "end": 42
+      "end": 55
     },
-    "S0019": {
-      "id": "S0019",
-      "path": "backend/src/hybrid_rag_search/__init__.py",
+    "S0003": {
+      "id": "S0003",
+      "path": "Makefile",
       "start": 1,
-      "end": 1
+      "end": 149
     },
-    "S0020": {
-      "id": "S0020",
+    "S0004": {
+      "id": "S0004",
+      "path": "backend/migrations/versions/20261013_09_upload_receipts.py",
+      "start": 1,
+      "end": 55
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "backend/migrations/versions/20261015_10_answer_history.py",
+      "start": 1,
+      "end": 46
+    },
+    "S0006": {
+      "id": "S0006",
+      "path": "backend/src/hybrid_rag_search/api.py",
+      "start": 1,
+      "end": 94
+    },
+    "S0007": {
+      "id": "S0007",
+      "path": "backend/src/hybrid_rag_search/api_errors.py",
+      "start": 1,
+      "end": 70
+    },
+    "S0008": {
+      "id": "S0008",
+      "path": "backend/src/hybrid_rag_search/authorization.py",
+      "start": 1,
+      "end": 160
+    },
+    "S0009": {
+      "id": "S0009",
       "path": "backend/src/hybrid_rag_search/config.py",
       "start": 1,
-      "end": 85
+      "end": 90
     },
-    "S0021": {
-      "id": "S0021",
-      "path": "backend/src/hybrid_rag_search/database.py",
-      "start": 1,
-      "end": 25
-    },
-    "S0022": {
-      "id": "S0022",
+    "S0010": {
+      "id": "S0010",
       "path": "backend/src/hybrid_rag_search/documents.py",
       "start": 1,
-      "end": 126
-    },
-    "S0023": {
-      "id": "S0023",
-      "path": "backend/src/hybrid_rag_search/health.py",
-      "start": 1,
-      "end": 50
-    },
-    "S0024": {
-      "id": "S0024",
-      "path": "backend/src/hybrid_rag_search/models/__init__.py",
-      "start": 1,
-      "end": 43
-    },
-    "S0025": {
-      "id": "S0025",
-      "path": "backend/src/hybrid_rag_search/models/content.py",
-      "start": 1,
-      "end": 225
-    },
-    "S0026": {
-      "id": "S0026",
-      "path": "backend/src/hybrid_rag_search/models/evaluation.py",
-      "start": 1,
-      "end": 172
-    },
-    "S0027": {
-      "id": "S0027",
-      "path": "backend/src/hybrid_rag_search/models/identity.py",
-      "start": 1,
-      "end": 72
-    },
-    "S0028": {
-      "id": "S0028",
-      "path": "backend/src/hybrid_rag_search/models/retrieval.py",
-      "start": 1,
-      "end": 86
-    },
-    "S0029": {
-      "id": "S0029",
-      "path": "backend/src/hybrid_rag_search/seed.py",
-      "start": 1,
-      "end": 95
-    },
-    "S0030": {
-      "id": "S0030",
-      "path": "backend/src/hybrid_rag_search/storage.py",
-      "start": 1,
-      "end": 58
-    },
-    "S0031": {
-      "id": "S0031",
-      "path": "backend/tests/test_database.py",
-      "start": 1,
-      "end": 119
-    },
-    "S0032": {
-      "id": "S0032",
-      "path": "backend/tests/test_dependency_health.py",
-      "start": 1,
-      "end": 95
-    },
-    "S0033": {
-      "id": "S0033",
-      "path": "backend/tests/test_documents.py",
-      "start": 1,
-      "end": 106
-    },
-    "S0034": {
-      "id": "S0034",
-      "path": "backend/tests/test_documents_integration.py",
-      "start": 1,
-      "end": 121
-    },
-    "S0035": {
-      "id": "S0035",
-      "path": "backend/tests/test_health.py",
-      "start": 1,
-      "end": 48
+      "end": 140
     }
   },
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:24:13.306739+00:00",
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:19:39.874971+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {
@@ -1482,6 +840,6 @@
       }
     ],
     "local_changes": false,
-    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+    "repository_url": "https://github.com/Justin-Mendoza/Afterclass"
   }
 }

@@ -1,8 +1,8 @@
 # Repository map
 
-This area turns a parsed document into ordered, ready-to-search pieces. It keeps each piece inside one heading section, packs text up to a token budget with a little overlap, and rebuilds Markdown headings so context is preserved. Each piece gets a stable identifier derived from its document, settings, and content. It runs as a library step; how it is called or where results go next is not shown.
+This area lets the system accept a document for processing and keep durable, tamper-evident records of the results. A caller supplies a tenant, document, and pipeline version; the service saves a job record, flips the document to processing, and only then signals that work is ready. Finished artifacts (parsed text, chunks, embeddings) are stored as immutable checksum-verified files under one root, keyed safely per tenant and job, so identical inputs can't produce conflicting or corrupted data.
 
-Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:25:15.681194+00:00
+Commit: `e4abb88a149b365c2838b0f2f0606dff0127b1ab` | Generated: 2026-10-22T15:20:38.351186+00:00
 
 [Open PDF](repository-map.pdf)
 
@@ -12,26 +12,27 @@ Commit: `3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25` | Generated: 2026-10-19T00:25
 
 Tracked, eligible text only; bounded excerpts, not exhaustive.
 
-5/80 eligible files analyzed; 143 tracked files excluded by policy.
+2/80 eligible files analyzed; 180 tracked files excluded by policy.
 
 2 API calls. See coverage.json for budgets, exclusions, and usage.
 
-## How a parsed document becomes searchable pieces
+## How a document becomes an ingestion job
 
-A parsed document is split by heading section, packed into token-budgeted pieces with overlap, enriched with reconstructed headings, and given stable identifiers.
+A caller submits a tenant, document, and pipeline version. The service saves a job, marks the document as processing, and after the database commit signals that work is ready.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Parsed document"]
-  n1["Split by heading"]
-  n2["Pack within<br/>token budget"]
-  n3["Rebuild heading<br/>text"]
-  n4["Identified<br/>pieces"]
-  n0 -->|"Group blocks by<br/>heading"| n1
-  n1 -->|"One section at a<br/>time"| n2
-  n2 -->|"Text and heading<br/>path"| n3
-  n3 -->|"Final text and<br/>spans"| n4
+  n0["Caller requests<br/>ingestion"]
+  n1["Check<br/>identifiers and<br/>version"]
+  n2["Save durable job<br/>record"]
+  n3["Mark document<br/>processing"]
+  n4["Publish work<br/>hint"]
+  n0 -->|"Tenant, doc,<br/>version"| n1
+  n1 -->|"Insert inside<br/>transaction"| n2
+  n2 -->|"New job only"| n3
+  n2 -->|"After commit"| n4
+  n3 -.->|"Status is queued"| n4
 ```
 
 <details>
@@ -41,39 +42,33 @@ flowchart TD
 
 </details>
 
-Read from top to bottom; arrows show what happens next or what is passed along.
+Read from top to bottom. Dashed arrows show connections that need confirmation.
 
 ### Source evidence
 
-- **F0001**: chunk_document is the subsystem's entry point: it accepts a document_id, a ParsedDocument, a TextTokenizer, and an optional ChunkingConfig, and returns an ordered tuple of Chunk records. It groups document.blocks by each block's locator.heading_path using groupby, then chunks each section independently so no chunk crosses a heading boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0002**: Chunking is deterministic and structure-aware per the package docstring; the algorithm label is 'structure-aware-v1' (CHUNKING_ALGORITHM) and is stamped into config versioning. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/__init__.py#L1-L1">backend/src/hybrid_rag_search/chunking/__init__.py:1-1</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0003**: _chunk_section greedily packs whole ParsedBlock fragments into a candidate while the candidate's token count stays within config.max_tokens, popping blocks from a pending list and tracking whether a whole block was added. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0004**: When a block does not fit (or the current candidate is heading-only), _largest_fitting_prefix performs a binary search over the fragment's token spans to find the longest prefix whose combined candidate stays within max_tokens; the leftover text becomes a new _Fragment remainder on the pending block. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0006**: After emitting a chunk, _trailing_overlap reconstructs trailing content from the candidate by re-tokenizing the joined content text and taking the last config.overlap_tokens tokens, seeding the next candidate's carry when pending blocks remain. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0007**: _candidate enforces that all fragments share one heading_path ('A chunk cannot cross a heading boundary') and joins fragment text with double newlines to form content_text; it passes content_text, heading_path, and any leading heading block to build_embedding_text, then counts tokens on the embedding text for token_count. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0008**: build_embedding_text reconstructs Markdown headings by joining '# '*level + heading for each level in heading_path, and strips a leading heading block from the body if it duplicates the leaf heading so the heading is not embedded twice; it raises ValueError on invalid inputs or mismatched leading heading. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/embedding_text.py#L1-L33">backend/src/hybrid_rag_search/chunking/embedding_text.py:1-33</a>)
-- **F0009**: A Chunk record carries document_id, config_version, order, content_text, embedding_text, embedding_token_count, and source_spans; validation requires nonblank texts, positive order and token count, a nonempty tuple of SourceSpan, and source spans sorted in source order. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0010**: Chunk.chunk_id is computed by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, producing a prefixed digest ('chk_'); this content-addressed identity is what downstream consumers can use as a stable key. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0011**: SourceSpan captures a half-open character range (start_char, end_char) within one parser block, validated nonnegative start and end greater than start, and canonicalizes to JSON including block_number, page_number, and heading_path from the SourceLocator. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0007**: IngestionJobService.enqueue_document validates tenant/document UUIDs and a pipe_&lt;64 hex&gt; pipeline version, opens a transaction, calls enqueue_in_session, and only publishes a job to the JobPublisher after the transaction commits and the resulting status is QUEUED. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/jobs.py#L1-L108">backend/src/hybrid_rag_search/ingestion/jobs.py:1-108</a>)
+- **F0010** (inferred): The ingestion batch's main input-to-result path is: a caller supplies tenant, document, and pipeline version; the service persists a durable IngestionJob row (and flips the document to PROCESSING) inside a transaction; after commit it emits a Redis-style hint via JobPublisher; the worker later produces artifacts saved as checksum-verified immutable files keyed per job. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/jobs.py#L1-L108">backend/src/hybrid_rag_search/ingestion/jobs.py:1-108</a>)
+- **F0002**: Artifact keys and references are strictly validated: keys must match a fixed UUID/UUID/kind/sha256.json pattern (ArtifactKind, _valid_key), references must carry a 64-char lowercase SHA-256 and nonnegative size (ArtifactRef.__post_init__), and lookup rejects symlinks in the key path (_path) to prevent escaping the storage root. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0008**: enqueue_in_session row-locks the target document, raises DocumentNotFound when absent and DocumentUnavailable when the document is deleting or deleted, then inserts an IngestionJob with content_hash and pipeline_version using on-conflict-do-nothing on the unique document/recipe constraint, treating a returned row as a freshly created job. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/jobs.py#L1-L108">backend/src/hybrid_rag_search/ingestion/jobs.py:1-108</a>)
+- **F0009**: When a job is created the service marks the document PROCESSING and clears any error message; when an existing job already exists it falls back to a select by tenant, document, content_hash, and pipeline_version to recover the existing job id and status, making enqueue idempotent for identical inputs. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/jobs.py#L1-L108">backend/src/hybrid_rag_search/ingestion/jobs.py:1-108</a>)
+- **F0011**: Transactions and publishing are deliberately separated so a job hint is never published before its database row is committed, and callers can create durable work inside their own transaction via enqueue_in_session without triggering a publish. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/jobs.py#L1-L108">backend/src/hybrid_rag_search/ingestion/jobs.py:1-108</a>)
 
-## How oversized blocks are split
+## How artifacts are saved safely
 
-Blocks accumulate while they fit the token budget; a block that will not fit is split at the longest fitting prefix, and leftover text carries into the next piece.
+Finished results become immutable files. Bytes are written to a temporary file, verified, then linked into place under one root so a key can never hold two different payloads.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Growing piece"]
-  n1["Within token<br/>budget?"]
-  n2["Find largest<br/>prefix"]
-  n3["Emit finished<br/>piece"]
-  n4["Overlap carry<br/>and leftover"]
-  n0 -->|"Count tokens"| n1
-  n1 -->|"Whole block fits"| n3
-  n1 -->|"Block too large"| n2
-  n2 -->|"Leftover text"| n4
-  n3 -->|"If work remains"| n4
-  n4 -->|"Seeds next piece"| n0
+  n0["Derive stable<br/>key"]
+  n1["Write temp and<br/>flush"]
+  n2["Link into place"]
+  n3["Immutable stored<br/>artifact"]
+  n4["Reject different<br/>bytes"]
+  n0 -->|"Caller values<br/>hashed"| n1
+  n1 -->|"Flushed to disk"| n2
+  n2 -->|"Existing file<br/>kept"| n3
+  n2 -->|"Existing bytes<br/>differ"| n4
 ```
 
 <details>
@@ -87,23 +82,28 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 
-- **F0003**: _chunk_section greedily packs whole ParsedBlock fragments into a candidate while the candidate's token count stays within config.max_tokens, popping blocks from a pending list and tracking whether a whole block was added. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0004**: When a block does not fit (or the current candidate is heading-only), _largest_fitting_prefix performs a binary search over the fragment's token spans to find the longest prefix whose combined candidate stays within max_tokens; the leftover text becomes a new _Fragment remainder on the pending block. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0006**: After emitting a chunk, _trailing_overlap reconstructs trailing content from the candidate by re-tokenizing the joined content text and taking the last config.overlap_tokens tokens, seeding the next candidate's carry when pending blocks remain. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0007**: _candidate enforces that all fragments share one heading_path ('A chunk cannot cross a heading boundary') and joins fragment text with double newlines to form content_text; it passes content_text, heading_path, and any leading heading block to build_embedding_text, then counts tokens on the embedding text for token_count. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
+- **F0005**: Artifact identity is derived from the artifact kind plus caller-supplied values through stable_digest (artifact_identity), so the key for a given input is deterministic and can be reconstructed without side-channel state. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0002**: Artifact keys and references are strictly validated: keys must match a fixed UUID/UUID/kind/sha256.json pattern (ArtifactKind, _valid_key), references must carry a 64-char lowercase SHA-256 and nonnegative size (ArtifactRef.__post_init__), and lookup rejects symlinks in the key path (_path) to prevent escaping the storage root. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0003**: save writes new artifact bytes atomically via a temporary file plus os.link, fsyncs before linking, and if the target already exists re-reads it; if existing bytes differ in size or SHA-256 it raises ArtifactConflictError, so a deterministic key can never hold two different payloads. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0001**: LocalArtifactStorage stores immutable ingestion checkpoint artifacts (parsed, chunks, embeddings) as files beneath an application-owned root, keyed by tenant UUID, job UUID, artifact kind, and a content identity digest; a path containing path traversal components in the key is rejected and all published files live under one root. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0014**: ArtifactFitMismatch or integrity problems surface as distinct errors: ArtifactConflictError for a key holding different bytes, ArtifactIntegrityError for bytes that no longer match their reference, and ValueError for malformed keys, references, or argument types. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
 
-## What stops the process
+## How artifacts are read back
 
-A piece must always hold its heading plus at least one source token; if that cannot fit the configured budget, chunking stops with an error instead of producing an invalid piece.
+A stored artifact is fetched by its reference and re-checked against the declared size and checksum. Bad bytes or malformed keys are rejected rather than returned.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Heading plus one<br/>token"]
-  n1["Chunk token<br/>limit"]
-  n2["Stop with error"]
-  n0 -->|"Compare against<br/>limit"| n1
-  n1 -->|"Cannot fit"| n2
+  n0["Artifact<br/>reference"]
+  n1["Read stored<br/>bytes"]
+  n2["Check size and<br/>checksum"]
+  n3["Verified<br/>artifact bytes"]
+  n4["Report integrity<br/>error"]
+  n0 -->|"Key, size,<br/>checksum"| n1
+  n1 -->|"Bytes read"| n2
+  n2 -->|"Matches<br/>reference"| n3
+  n2 -->|"Mismatch found"| n4
 ```
 
 <details>
@@ -117,26 +117,25 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 
-- **F0005**: If even a heading-plus-one-token chunk cannot fit, _chunk_section raises ChunkingError with the message 'Heading context and one source token exceed the chunk token limit', making the token budget a hard failure boundary. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/chunker.py#L1-L291">backend/src/hybrid_rag_search/chunking/chunker.py:1-291</a>)
-- **F0015**: The default config uses max_tokens=400, overlap_tokens=50, embedding_limit_tokens=512, and pins the tokenizer to the Cohere embed-english-light-v3 model, revision, and SHA-256, so chunk identity is tied to a specific tokenizer artifact. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0012**: Checkpoint references serialize to and from three fields (key, sha256, size_bytes) via ArtifactRef.checkpoint_value and from_checkpoint, enforcing exact field sets so an untrusted checkpoint cannot smuggle extra or missing keys. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0002**: Artifact keys and references are strictly validated: keys must match a fixed UUID/UUID/kind/sha256.json pattern (ArtifactKind, _valid_key), references must carry a 64-char lowercase SHA-256 and nonnegative size (ArtifactRef.__post_init__), and lookup rejects symlinks in the key path (_path) to prevent escaping the storage root. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0004**: fetch verifies stored bytes against the reference's declared size and SHA-256 and raises ArtifactIntegrityError on mismatch; lookup describes an existing file without a checkpoint reference, returning None if the file is absent; delete removes one artifact and delete_job removes all artifacts for a tenant/job pair. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0014**: ArtifactFitMismatch or integrity problems surface as distinct errors: ArtifactConflictError for a key holding different bytes, ArtifactIntegrityError for bytes that no longer match their reference, and ValueError for malformed keys, references, or argument types. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
 
-## Where stable identifiers come from
+## Where the checkpoint values come from
 
-Settings are validated and turned into a version digest; that version, the document identifier, position, and content are hashed together so identical input always yields the same piece identifier.
+Artifact references and payloads travel through checkpoints in a strict, stable form: only key, checksum, and size fields are allowed, and payload values are serialized deterministically.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Chunk settings"]
-  n1["Settings version<br/>digest"]
-  n2["Document<br/>identifier"]
-  n3["Shared stable<br/>digest"]
-  n4["Piece identifier"]
-  n0 -->|"Canonical form<br/>hashed"| n1
-  n3 -->|"Length-prefixed<br/>hashing"| n1
-  n3 -->|"Hash owner and<br/>content"| n2
-  n1 -->|"Included in<br/>identity"| n4
-  n2 -->|"Included in<br/>identity"| n4
+  n0["Checkpoint<br/>payload value"]
+  n1["Stable byte form"]
+  n2["Reference three<br/>fields"]
+  n3["Reject extra or<br/>missing"]
+  n0 -->|"Sorted, compact<br/>form"| n1
+  n1 -->|"Stored with<br/>reference"| n2
+  n2 -->|"Exactly three<br/>fields"| n3
 ```
 
 <details>
@@ -150,14 +149,12 @@ Read from top to bottom; arrows show what happens next or what is passed along.
 
 ### Source evidence
 
-- **F0014**: ChunkingConfig validates that max_tokens is a positive integer, overlap_tokens is nonnegative and strictly less than max_tokens, embedding_limit_tokens is positive and at least max_tokens, and tokenizer/algorithm fields are nonblank with a valid 64-hex SHA-256 tokenizer hash; its version property yields 'chunkcfg_&lt;digest&gt;' over the canonical JSON of these fields. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0013**: DocumentContentIdentity derives document_id ('doc_&lt;digest&gt;') from tenant_id, collection_id, and content_sha256, so document identity is scoped to authorization boundaries and original file content; chunks then embed this document_id. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>, <a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
-- **F0012**: stable_digest builds a length-prefixed SHA-256 over a versioned namespace ('hybrid-rag-search/&lt;namespace&gt;/v1') followed by each UTF-8 value, yielding collision-resistant deterministic identities reused for document and chunk IDs. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/identity.py#L1-L49">backend/src/hybrid_rag_search/chunking/identity.py:1-49</a>)
-- **F0010**: Chunk.chunk_id is computed by stable_digest over document_id, config_version, order, content_text, embedding_text, and each span's canonical_value, producing a prefixed digest ('chk_'); this content-addressed identity is what downstream consumers can use as a stable key. (<a href="https://github.com/Justin-Mendoza/hybrid-rag-search/blob/3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25/backend/src/hybrid_rag_search/chunking/contracts.py#L1-L162">backend/src/hybrid_rag_search/chunking/contracts.py:1-162</a>)
+- **F0006**: canonical_json_bytes serializes values with sorted keys, compact separators, no NaN, and non-ASCII preserved, providing a stable byte form for hashing or storing checkpoint payloads. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0012**: Checkpoint references serialize to and from three fields (key, sha256, size_bytes) via ArtifactRef.checkpoint_value and from_checkpoint, enforcing exact field sets so an untrusted checkpoint cannot smuggle extra or missing keys. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
+- **F0014**: ArtifactFitMismatch or integrity problems surface as distinct errors: ArtifactConflictError for a key holding different bytes, ArtifactIntegrityError for bytes that no longer match their reference, and ValueError for malformed keys, references, or argument types. (<a href="https://github.com/Justin-Mendoza/Afterclass/blob/e4abb88a149b365c2838b0f2f0606dff0127b1ab/backend/src/hybrid_rag_search/ingestion/artifacts.py#L1-L205">backend/src/hybrid_rag_search/ingestion/artifacts.py:1-205</a>)
 
 ## Uncertainties and untraced areas
 
-- No call site invoking chunk_document is shown; wiring from parsing into chunking and from chunks into embedding, indexing, or storage is inferred from the public contract alone (F0001, F0016).
-- How ParsedDocument and ParsedBlock are produced upstream of this area is not covered by the supplied findings (F0001, F0016).
-- What downstream consumers do with the emitted pieces, including their identifier and embedding text, is outside the supplied evidence (F0010, F0016).
-- Which symbols the package __init__ re-exports is not shown (F0016).
+- Whether the worker actually reads artifacts written by this storage layer, and how indexed artifacts feed search results, is inferred from changed files but not confirmed by the supplied findings (F0015).
+- Local filesystem storage is only one implementation of the storage contract; deployed behavior may use an alternate backend not shown here (F0016).
+- The exact end-to-end path from a published work hint to a running worker is described as inferred and may differ in the real deployment (F0010).

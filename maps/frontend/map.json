@@ -1,110 +1,287 @@
 {
   "map": {
-    "summary": "This area is the web front door for an evidence-first enterprise search product: a Next.js page that currently shows a placeholder landing screen with a heading and a note that a search workspace is coming. It is served by a container that runs the development server on port 3000, and it reads no data, stores nothing, and sends nothing. Search, retrieval, and answering are not implemented or connected here yet; a test checks the heading, and code-quality tools check the sources.",
+    "summary": "This area is the web front door of an evidence-backed document search product. Through their browser, a person picks a demo identity and collection, asks a question, and watches the answer arrive live with citations they can open and download the original source. All backend calls travel through the same website origin, which quietly rewrites paths, strips cookies, and streams results back.",
     "unknowns": [
-      "No calls to any answer service, document storage, or search system appear in the web sources, so how this site would reach those systems is unconfirmed.",
-      "The landing page has no input fields, controls, or state, so the intended search workspace behavior is not shown.",
-      "The web server configuration declares no forwarding or routing rules, leaving any path from this site to backend services unspecified.",
-      "The container starts the development server rather than a production build, so production serving behavior is not demonstrated.",
-      "No evidence shows the answer, storage, or search systems calling back toward this website, so any inbound contract is unverified."
+      "The forwarding destination is read from an environment setting; how that setting is populated in any deployed environment is not shown.",
+      "Only the frontend area was examined, so the shape of upstream responses and error payloads is taken on trust from this side.",
+      "The upload flow is described as reachable with accepted file types and a size limit, but the path from chosen file to stored document is not shown in these findings.",
+      "Direct-link parameters for workspace, answer, and source are honored, but how those links are generated for sharing is not shown."
     ],
     "diagrams": [
       {
-        "title": "How a visitor gets the landing page",
-        "description": "A visitor opens the site, the page shell supplies styling and page title, and the static landing content appears. Nothing is looked up or saved, and no search runs.",
+        "title": "How a question becomes a cited answer",
+        "description": "A person picks a collection and identity, asks a question, and watches the answer stream back live. Citations can be opened to view and download the original source document.",
         "nodes": [
           {
-            "id": "visitor",
-            "label": "Site visitor",
+            "id": "user",
+            "label": "Person using the site",
             "finding_ids": [
-              "F0014"
+              "F0007"
             ]
           },
           {
-            "id": "server",
-            "label": "Web server",
+            "id": "workspace",
+            "label": "Document workspace page",
+            "finding_ids": [
+              "F0007",
+              "F0012"
+            ]
+          },
+          {
+            "id": "proxy",
+            "label": "Same-origin forwarder",
             "finding_ids": [
               "F0001",
               "F0002"
             ]
           },
           {
-            "id": "shell",
-            "label": "Page shell and styling",
+            "id": "answer",
+            "label": "Answer service",
             "finding_ids": [
-              "F0004"
+              "F0008"
             ]
           },
           {
-            "id": "landing",
-            "label": "Landing page content",
+            "id": "citation",
+            "label": "Opened source view",
             "finding_ids": [
-              "F0005",
-              "F0014"
+              "F0011"
             ]
           }
         ],
         "edges": [
           {
-            "from": "visitor",
-            "to": "server",
-            "label": "Opens the site",
+            "from": "user",
+            "to": "workspace",
+            "label": "Picks scope and asks",
             "finding_ids": [
-              "F0001"
+              "F0007"
             ],
             "uncertain": false
           },
           {
-            "from": "server",
-            "to": "shell",
-            "label": "Builds the page",
+            "from": "workspace",
+            "to": "proxy",
+            "label": "Sends question",
             "finding_ids": [
-              "F0004"
+              "F0008",
+              "F0002"
             ],
             "uncertain": false
           },
           {
-            "from": "shell",
-            "to": "landing",
-            "label": "Shows headings",
+            "from": "proxy",
+            "to": "answer",
+            "label": "Forwards without cookies",
+            "finding_ids": [
+              "F0003",
+              "F0002"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "answer",
+            "to": "workspace",
+            "label": "Streams draft then final",
             "finding_ids": [
               "F0004",
-              "F0005"
+              "F0008"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "user",
+            "to": "citation",
+            "label": "Opens a citation",
+            "finding_ids": [
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "proxy",
+            "to": "citation",
+            "label": "Fetches source file",
+            "finding_ids": [
+              "F0011"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "How the page is checked before release",
-        "description": "Automated checks run the landing content in a simulated browser and verify the heading text, while code-quality tools scan the source. These checks do not exercise any search or backend behavior.",
+        "title": "How requests are filtered and forwarded",
+        "description": "A browser request reaches the site forwarder, which rejects anything outside the allowed path shape, strips sensitive headers, and forwards the rest to the internal backend while streaming the reply back.",
         "nodes": [
           {
             "id": "browser",
-            "label": "Simulated browser",
+            "label": "Browser request",
             "finding_ids": [
-              "F0008",
+              "F0002"
+            ]
+          },
+          {
+            "id": "guard",
+            "label": "Path and header checks",
+            "finding_ids": [
+              "F0001",
+              "F0003"
+            ]
+          },
+          {
+            "id": "forwarder",
+            "label": "Upstream request builder",
+            "finding_ids": [
+              "F0002"
+            ]
+          },
+          {
+            "id": "backend",
+            "label": "Internal backend",
+            "finding_ids": [
+              "F0004"
+            ]
+          },
+          {
+            "id": "reply",
+            "label": "Streamed reply",
+            "finding_ids": [
+              "F0004"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "browser",
+            "to": "guard",
+            "label": "Arrives at site",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "guard",
+            "to": "forwarder",
+            "label": "Allowed paths only",
+            "finding_ids": [
+              "F0001"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "forwarder",
+            "to": "backend",
+            "label": "Sends allowed headers",
+            "finding_ids": [
+              "F0003"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "backend",
+            "to": "reply",
+            "label": "Streams response",
+            "finding_ids": [
+              "F0004"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Stopping or losing a connection",
+        "description": "If a person stops an answer or the connection drops, the site cancels the upstream request, clears the partial draft and citations, and shows a safe message rather than an invented answer.",
+        "nodes": [
+          {
+            "id": "stop",
+            "label": "Stop action",
+            "finding_ids": [
+              "F0010"
+            ]
+          },
+          {
+            "id": "cancel",
+            "label": "Cancellation relay",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "upstream",
+            "label": "Upstream answer request",
+            "finding_ids": [
+              "F0005"
+            ]
+          },
+          {
+            "id": "cleanup",
+            "label": "Draft cleared safely",
+            "finding_ids": [
+              "F0009",
+              "F0010"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "stop",
+            "to": "cancel",
+            "label": "Asks to stop",
+            "finding_ids": [
+              "F0010"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "cancel",
+            "to": "upstream",
+            "label": "Aborts request",
+            "finding_ids": [
+              "F0005"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "upstream",
+            "to": "cleanup",
+            "label": "Failure message shown",
+            "finding_ids": [
               "F0009"
-            ]
-          },
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "How a person switches identity",
+        "description": "Changing the simulated demo identity reloads workspace, collection, and capability choices, clears saved answers, open sources, and manager controls, and shows a read-only notice for view-only identities.",
+        "nodes": [
           {
-            "id": "test",
-            "label": "Page content check",
+            "id": "chooser",
+            "label": "Identity selector",
             "finding_ids": [
-              "F0008"
+              "F0012"
             ]
           },
           {
-            "id": "quality",
-            "label": "Source quality checks",
+            "id": "reload",
+            "label": "Data reloaded",
             "finding_ids": [
-              "F0010",
-              "F0011"
+              "F0012"
             ]
           },
           {
-            "id": "code",
-            "label": "Website source files",
+            "id": "clear",
+            "label": "Previous views cleared",
+            "finding_ids": [
+              "F0012"
+            ]
+          },
+          {
+            "id": "viewonly",
+            "label": "Read-only notice",
             "finding_ids": [
               "F0012"
             ]
@@ -112,31 +289,28 @@
         ],
         "edges": [
           {
-            "from": "browser",
-            "to": "test",
-            "label": "Renders the page",
+            "from": "chooser",
+            "to": "reload",
+            "label": "New identity picked",
             "finding_ids": [
-              "F0008",
-              "F0009"
+              "F0012"
             ],
             "uncertain": false
           },
           {
-            "from": "test",
-            "to": "code",
-            "label": "Confirms heading",
+            "from": "reload",
+            "to": "clear",
+            "label": "Drops old answers",
             "finding_ids": [
-              "F0008"
+              "F0012"
             ],
             "uncertain": false
           },
           {
-            "from": "quality",
-            "to": "code",
-            "label": "Scans and types",
+            "from": "clear",
+            "to": "viewonly",
+            "label": "Shows notice if limited",
             "finding_ids": [
-              "F0010",
-              "F0011",
               "F0012"
             ],
             "uncertain": false
@@ -148,117 +322,120 @@
   },
   "findings": {
     "F0001": {
-      "statement": "The frontend container image installs dependencies with npm ci from package.json and package-lock.json, copies the source tree, and starts the Next.js dev server bound to all interfaces via 'npm run dev -- --hostname 0.0.0.0', exposing port 3000.",
-      "sources": [
-        "S0001",
-        "S0002"
-      ],
-      "uncertain": false
-    },
-    "F0002": {
-      "statement": "The image runs the development server (next dev) rather than a production build/start, so production serving behavior is not shown by these files.",
-      "sources": [
-        "S0001",
-        "S0002"
-      ],
-      "uncertain": false
-    },
-    "F0003": {
-      "statement": "The package is a private Next.js 16 / React 19 web application, pinned to Node '>=22 <23', with next dev/build/start scripts driving the App Router.",
-      "sources": [
-        "S0002"
-      ],
-      "uncertain": false
-    },
-    "F0004": {
-      "statement": "The user-facing entry point is the App Router root layout (RootLayout in src/app/layout.tsx), which imports the global stylesheet, declares page metadata (title 'Hybrid RAG Search', description 'Evidence-first enterprise search'), and wraps the page children in an html/body shell.",
-      "sources": [
-        "S0006"
-      ],
-      "uncertain": false
-    },
-    "F0005": {
-      "statement": "The index route (Home in src/app/page.tsx) is purely static markup: an eyebrow label 'Hybrid RAG Search', an h1 'Evidence-first answers, built for inspection.', and a note that the search workspace is ready for its first collection. It has no state, props, inputs, event handlers, or async data loading.",
-      "sources": [
-        "S0008"
-      ],
-      "uncertain": false
-    },
-    "F0006": {
-      "statement": "No fetch call, API route, database access, environment-variable read, rewrite, or redirect appears in the supplied frontend sources, so any runtime linkage from this frontend to the answers, foundation, or retrieval subsystems is untraced.",
-      "sources": [
-        "S0001",
-        "S0002",
-        "S0005",
-        "S0006",
-        "S0008"
-      ],
-      "uncertain": false
-    },
-    "F0007": {
-      "statement": "Next.js config enables reactStrictMode and disables agentRules (a Next option), with no rewrites, redirects, headers, or proxying declared, leaving client-to-backend routing unspecified.",
-      "sources": [
-        "S0005"
-      ],
-      "uncertain": false
-    },
-    "F0008": {
-      "statement": "A Vitest test renders the Home component in jsdom and asserts a level-1 heading with the text 'Evidence-first answers, built for inspection.', providing the only observed automated check of the page's rendered output.",
-      "sources": [
-        "S0007",
-        "S0010"
-      ],
-      "uncertain": false
-    },
-    "F0009": {
-      "statement": "The test toolchain is configured with the Vite React plugin and jsdom environment, so component tests run in a simulated browser DOM rather than a real one.",
-      "sources": [
-        "S0010"
-      ],
-      "uncertain": false
-    },
-    "F0010": {
-      "statement": "eslint.config.mjs applies Next.js core-web-vitals and TypeScript rule sets and ignores build/coverage outputs; this gates source quality but is a development-time concern, not runtime behavior.",
-      "sources": [
-        "S0003"
-      ],
-      "uncertain": false
-    },
-    "F0011": {
-      "statement": "The lint, format, typecheck, and test scripts (eslint --max-warnings=0, prettier, tsc --noEmit, vitest run) define static quality gates over the sources without executing application logic.",
-      "sources": [
-        "S0002"
-      ],
-      "uncertain": false
-    },
-    "F0012": {
-      "statement": "tsconfig.json establishes strict TypeScript compilation for ES2022 with no emission, React JSX transform, bundler module resolution, and a '@/\u2026' path alias mapping to './src/*'.",
-      "sources": [
-        "S0009"
-      ],
-      "uncertain": false
-    },
-    "F0013": {
-      "statement": "next-env.d.ts is a generated, non-editable type reference file pulling in Next.js and image type declarations plus generated route and root-param types; it carries no runtime behavior.",
+      "statement": "The web app exposes a catch-all API route handler (forward, exported as GET/POST/PATCH/PUT/DELETE) under /api/[...path] that acts as a fixed reverse proxy: it only permits paths whose first segment is \"v1\" and whose segments match /^[a-zA-Z0-9_-]+$/, returning a 404 not_found JSON error otherwise.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
-    "F0014": {
-      "statement": "The observed end-to-end flow is: a viewer requests the index route, the root layout supplies the HTML shell, stylesheet, and metadata, and the static Home component renders the heading and workspace placeholder; no data is read, stored, or sent.",
+    "F0002": {
+      "statement": "The proxy builds its upstream URL from process.env.API_INTERNAL_URL (defaulting to http://127.0.0.1:8000) plus the sanitized path, and forwards request.method, selected headers, and the request body (with duplex: \"half\" for non-GET/HEAD methods), so browser clients reach the backend API through the same origin.",
       "sources": [
-        "S0006",
-        "S0008"
+        "S0004",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0003": {
+      "statement": "Only an allowlist of request headers is forwarded upstream \u2014 content-type, accept, x-demo-user-id, idempotency-key, last-event-id \u2014 so cookies and authorization headers are intentionally stripped (the backend, not this proxy, owns authorization).",
+      "sources": [
+        "S0004",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0004": {
+      "statement": "The proxy streams upstream responses rather than buffering: it pipes response.body through a ReadableStream reader, forwards content-type, content-disposition, and x-request-id, and always sets Cache-Control: no-store and X-Accel-Buffering: no, which supports live server-sent-event answer streams.",
+      "sources": [
+        "S0004",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0005": {
+      "statement": "Cancellation is propagated end-to-end: the incoming request.signal is linked to a local AbortController that aborts the upstream fetch, and cancelling the downstream ReadableStream (cancel handler) or a read error aborts the upstream request and releases the reader.",
+      "sources": [
+        "S0004",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "If the upstream fetch throws (e.g., connection refused), the proxy returns a sanitized 503 api_unavailable JSON error message and does not leak upstream error detail to the client.",
+      "sources": [
+        "S0004",
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "The home page (Home in page.tsx, exercised by page.test.tsx) is a client-side document workspace that loads demo identities, workspaces/collections, capabilities, documents, and saved answers from the same-origin API and renders selectors for collection scope and demo user identity.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "Asking a question streams answer events (progress, content, citations, complete, error) from the /answers/stream endpoint; partial \"content\" drafts are shown while streaming and are replaced by the final AnswerResult text once a \"complete\" event arrives.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0009": {
+      "statement": "Failed or interrupted answer streams clear the in-progress draft and surface a safe message (e.g., \"Connection interrupted\" or the server-provided message such as \"The answer could not be verified.\"); a new request is only started on explicit manual retry (\"Retry question\"), not automatically.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0010": {
+      "statement": "While an answer is streaming the UI offers a \"Stop\" action that aborts the in-flight stream request (the fetch signal is marked aborted) and clears both the draft and any citations, showing \"You stopped this answer\" instead.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0011": {
+      "statement": "Selecting a citation (\"Open source 1\") fetches and displays the currently authorized source document including original filename, page/locator info (e.g., \"Page 2\"), the cited passage text, and a \"Download original\" control.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0012": {
+      "statement": "Switching the simulated demo identity reloads workspace/collection/capability data for the new identity and explicitly clears previously loaded answers, open source context (e.g., notes.txt), and manager-only controls like \"Permissions\"; a read-only identity instead sees a read-only notice about the collection.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0013": {
+      "statement": "The page honors direct-link query parameters (workspace, answer, source) on load, using them to load the saved answer and open the referenced source through the selected identity, and preserves an explicit \"All accessible collections\" scope (collection_id null in the request body) across an answer refresh.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0014": {
+      "statement": "The document workspace exposes an upload flow reachable from an \"Add your documents\" action, showing a \"Choose a file\" control and stated accepted inputs (\"PDF, plain text, Markdown, or HTML \u00b7 up to 20 MB\").",
+      "sources": [
+        "S0006"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "The product purpose indicated by naming and copy is an evidence-first enterprise 'hybrid RAG' search workspace, but the supplied files only show a placeholder landing page, so search, retrieval, or answering capability in the frontend is not evidenced.",
+      "statement": "The root layout (RootLayout) wraps all pages with global styles, page metadata (title \"Hybrid RAG Search\" and a search-over-documents description), and a \"Skip to content\" accessibility link to #main-content.",
       "sources": [
-        "S0002",
-        "S0006",
-        "S0008"
+        "S0005"
+      ],
+      "uncertain": false
+    },
+    "F0016": {
+      "statement": "The Next.js configuration enables React strict mode and disables dev indicators and agent rules; next-env.d.ts only references Next's ambient types and generated route/param types, and is explicitly marked as not to be edited.",
+      "sources": [
+        "S0001",
+        "S0002"
       ],
       "uncertain": false
     }
@@ -266,68 +443,44 @@
   "sources": {
     "S0001": {
       "id": "S0001",
-      "path": "frontend/Dockerfile",
-      "start": 1,
-      "end": 12
-    },
-    "S0002": {
-      "id": "S0002",
-      "path": "frontend/package.json",
-      "start": 1,
-      "end": 39
-    },
-    "S0003": {
-      "id": "S0003",
-      "path": "frontend/eslint.config.mjs",
-      "start": 1,
-      "end": 9
-    },
-    "S0004": {
-      "id": "S0004",
       "path": "frontend/next-env.d.ts",
       "start": 1,
       "end": 7
     },
-    "S0005": {
-      "id": "S0005",
+    "S0002": {
+      "id": "S0002",
       "path": "frontend/next.config.ts",
       "start": 1,
-      "end": 7
+      "end": 8
+    },
+    "S0003": {
+      "id": "S0003",
+      "path": "frontend/src/app/api/[...path]/route.test.ts",
+      "start": 1,
+      "end": 97
+    },
+    "S0004": {
+      "id": "S0004",
+      "path": "frontend/src/app/api/[...path]/route.ts",
+      "start": 1,
+      "end": 104
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "frontend/src/app/layout.tsx",
+      "start": 1,
+      "end": 25
     },
     "S0006": {
       "id": "S0006",
-      "path": "frontend/src/app/layout.tsx",
-      "start": 1,
-      "end": 19
-    },
-    "S0007": {
-      "id": "S0007",
       "path": "frontend/src/app/page.test.tsx",
       "start": 1,
-      "end": 14
-    },
-    "S0008": {
-      "id": "S0008",
-      "path": "frontend/src/app/page.tsx",
-      "start": 1,
-      "end": 9
-    },
-    "S0009": {
-      "id": "S0009",
-      "path": "frontend/tsconfig.json",
-      "start": 1,
-      "end": 33
-    },
-    "S0010": {
-      "id": "S0010",
-      "path": "frontend/vitest.config.ts",
-      "start": 1,
-      "end": 7
+      "end": 321
     }
   },
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:24:41.881136+00:00",
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:20:08.828525+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
       {
@@ -432,6 +585,6 @@
       }
     ],
     "local_changes": false,
-    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+    "repository_url": "https://github.com/Justin-Mendoza/Afterclass"
   }
 }

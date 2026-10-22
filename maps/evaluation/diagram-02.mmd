@@ -1,11 +1,11 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Debug search<br/>request"]
-  n1["Local-only check"]
-  n2["Dataset<br/>preparation<br/>check"]
-  n3["Run chosen<br/>search style"]
-  n4["Ranked results<br/>or error"]
-  n0 -->|"Incoming call"| n1
-  n1 -->|"Allowed locally"| n2
-  n2 -->|"Corpus is ready"| n3
-  n3 -->|"Results or<br/>status"| n4
+  n0["Dataset builder<br/>command"]
+  n1["Fetch verified<br/>archive"]
+  n2["Convert to<br/>bundle format"]
+  n3["Pick baseline<br/>subset"]
+  n4["Re-load and<br/>validate"]
+  n0 -->|"Download request"| n1
+  n1 -->|"Verified archive"| n2
+  n2 -->|"Full dataset"| n3
+  n3 -->|"Built subset"| n4

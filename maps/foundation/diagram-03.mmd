@@ -1,10 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Readiness<br/>request"]
-  n1["Run all probes"]
-  n2["Postgres, Redis,<br/>OpenSearch"]
-  n3["Ready or<br/>unavailable"]
-  n0 -->|"check<br/>dependencies"| n1
-  n1 -->|"concurrent<br/>probes"| n2
-  n2 -->|"true or false<br/>each"| n1
-  n1 -->|"all true?"| n3
+  n0["Document request"]
+  n1["Check document<br/>permission"]
+  n2["Fetch stored<br/>bytes"]
+  n3["Mark as deleting"]
+  n4["Remove stored<br/>file"]
+  n5["Marked deleted"]
+  n0 -->|"who may access"| n1
+  n1 -->|"allowed"| n2
+  n1 -->|"delete request"| n3
+  n3 -->|"delete bytes"| n4
+  n4 -->|"success"| n5

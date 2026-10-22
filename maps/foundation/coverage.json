@@ -1,19 +1,112 @@
 {
-  "tracked_files": 223,
-  "eligible_files": 39,
-  "selected_files": 39,
-  "selected_chars": 124407,
-  "redacted_lines": 4,
-  "omissions": [],
-  "excluded_files": 184,
+  "tracked_files": 260,
+  "eligible_files": 55,
+  "selected_files": 35,
+  "selected_chars": 179993,
+  "redacted_lines": 5,
+  "omissions": [
+    {
+      "path": "backend/tests/test_management.py",
+      "reason": "only first 424 lines selected"
+    },
+    {
+      "path": "backend/tests/test_management_integration.py",
+      "reason": "only first 388 lines selected"
+    },
+    {
+      "path": "backend/migrations/versions/20260915_03_retrieval.py",
+      "reason": "only first 62 lines selected"
+    },
+    {
+      "path": "backend/migrations/versions/20260915_04_evaluation_audit.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/migrations/versions/20260918_05_ingestion_stage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/migrations/versions/20260918_06_ingestion_identity.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/migrations/versions/20260918_07_ingestion_lease.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/migrations/versions/20260918_08_ingestion_retry_time.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/__init__.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/database.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/health.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/models/evaluation.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/models/identity.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/models/retrieval.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/src/hybrid_rag_search/storage.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_database.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_dependency_health.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_documents.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_documents_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_health.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_schema_integration.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_seed.py",
+      "reason": "empty or first line over limit"
+    },
+    {
+      "path": "backend/tests/test_storage.py",
+      "reason": "empty or first line over limit"
+    }
+  ],
+  "excluded_files": 205,
   "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
-  "analyzed_files": 35,
-  "api_calls": 7,
+  "analyzed_files": 10,
+  "api_calls": 3,
   "usage": [
     {
-      "prompt_tokens": 10232,
-      "total_tokens": 11746,
-      "completion_tokens": 1514,
+      "prompt_tokens": 10301,
+      "total_tokens": 11554,
+      "completion_tokens": 1253,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -21,14 +114,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0027453535200000004,
+      "cost": 0.0026104075199999996,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 9519,
-      "total_tokens": 10738,
-      "completion_tokens": 1219,
+      "prompt_tokens": 8441,
+      "total_tokens": 9333,
+      "completion_tokens": 892,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -36,74 +129,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00244333152,
+      "cost": 0.0020541805200000006,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 10496,
-      "total_tokens": 11802,
-      "completion_tokens": 1306,
-      "prompt_tokens_details": {
-        "cached_tokens": 256,
-        "cache_write_tokens": null
-      },
-      "completion_tokens_details": {
-        "reasoning_tokens": 0
-      },
-      "cost": 0.0026773135200000003,
-      "cache_discount": 2.414592e-05,
-      "cached_tokens": 256
-    },
-    {
-      "prompt_tokens": 9409,
-      "total_tokens": 10769,
-      "completion_tokens": 1360,
-      "prompt_tokens_details": {
-        "cached_tokens": 256,
-        "cache_write_tokens": null
-      },
-      "completion_tokens_details": {
-        "reasoning_tokens": 0
-      },
-      "cost": 0.00250248852,
-      "cache_discount": 2.414592e-05,
-      "cached_tokens": 256
-    },
-    {
-      "prompt_tokens": 10194,
-      "total_tokens": 11694,
-      "completion_tokens": 1500,
-      "prompt_tokens_details": {
-        "cached_tokens": 256,
-        "cache_write_tokens": null
-      },
-      "completion_tokens_details": {
-        "reasoning_tokens": 0
-      },
-      "cost": 0.00273023352,
-      "cache_discount": 2.414592e-05,
-      "cached_tokens": 256
-    },
-    {
-      "prompt_tokens": 9458,
-      "total_tokens": 10807,
-      "completion_tokens": 1349,
-      "prompt_tokens_details": {
-        "cached_tokens": 256,
-        "cache_write_tokens": null
-      },
-      "completion_tokens_details": {
-        "reasoning_tokens": 0
-      },
-      "cost": 0.0025055125199999998,
-      "cache_discount": 2.414592e-05,
-      "cached_tokens": 256
-    },
-    {
-      "prompt_tokens": 12369,
-      "total_tokens": 14540,
-      "completion_tokens": 2171,
+      "prompt_tokens": 5905,
+      "total_tokens": 7927,
+      "completion_tokens": 2022,
       "prompt_tokens_details": {
         "cached_tokens": 640,
         "cache_write_tokens": null
@@ -111,7 +144,7 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0034513668000000007,
+      "cost": 0.0021451878,
       "cache_discount": 6.03648e-05,
       "cached_tokens": 640
     }
@@ -148,7 +181,7 @@
     "max_file_chars": 18000,
     "max_total_chars": 180000,
     "batch_chars": 24000,
-    "max_calls": 7,
+    "max_calls": 3,
     "max_output_tokens": 6000,
     "max_diagrams": 6,
     "request_timeout_seconds": 120,
@@ -291,9 +324,30 @@
     "full_refresh_after_updates": 20
   },
   "not_analyzed_due_to_call_budget": [
-    "backend/tests/test_schema_integration.py",
-    "backend/tests/test_seed.py",
-    "backend/tests/test_storage.py",
-    "compose.yaml"
+    "backend/src/hybrid_rag_search/management.py",
+    "backend/src/hybrid_rag_search/management_api.py",
+    "backend/src/hybrid_rag_search/management_schemas.py",
+    "backend/src/hybrid_rag_search/models/__init__.py",
+    "backend/src/hybrid_rag_search/models/answers.py",
+    "backend/src/hybrid_rag_search/models/content.py",
+    "backend/src/hybrid_rag_search/models/uploads.py",
+    "backend/src/hybrid_rag_search/seed.py",
+    "backend/tests/test_authorization.py",
+    "backend/tests/test_authorization_api.py",
+    "backend/tests/test_authorization_integration.py",
+    "backend/tests/test_authorized_search.py",
+    "backend/tests/test_management.py",
+    "backend/tests/test_management_integration.py",
+    "compose.yaml",
+    "backend/Dockerfile",
+    "backend/migrations/README.md",
+    "infra/README.md",
+    ".github/workflows/ci.yml",
+    ".github/workflows/repo-map.yml",
+    ".pre-commit-config.yaml",
+    "backend/migrations/env.py",
+    "backend/migrations/versions/20260915_01_identity.py",
+    "backend/migrations/versions/20260915_02_content.py",
+    "backend/migrations/versions/20260915_03_retrieval.py"
   ]
 }

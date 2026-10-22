@@ -1,9 +1,13 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Site visitor"]
-  n1["Web server"]
-  n2["Page shell and<br/>styling"]
-  n3["Landing page<br/>content"]
-  n0 -->|"Opens the site"| n1
-  n1 -->|"Builds the page"| n2
-  n2 -->|"Shows headings"| n3
+  n0["Person using the<br/>site"]
+  n1["Document<br/>workspace page"]
+  n2["Same-origin<br/>forwarder"]
+  n3["Answer service"]
+  n4["Opened source<br/>view"]
+  n0 -->|"Picks scope and<br/>asks"| n1
+  n1 -->|"Sends question"| n2
+  n2 -->|"Forwards without<br/>cookies"| n3
+  n3 -->|"Streams draft<br/>then final"| n1
+  n0 -->|"Opens a citation"| n4
+  n2 -->|"Fetches source<br/>file"| n4

@@ -1,11 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Dataset builder<br/>command"]
-  n1["Fetch verified<br/>archive"]
-  n2["Convert to<br/>dataset format"]
-  n3["Pick baseline<br/>subset"]
-  n4["Re-load and<br/>validate"]
-  n0 -->|"Download request"| n1
-  n1 -->|"Verified archive"| n2
-  n2 -->|"Full dataset"| n3
-  n3 -->|"Built subset"| n4
+  n0["Bundle directory"]
+  n1["Recheck file<br/>fingerprints"]
+  n2["Parse and cross-<br/>check records"]
+  n3["Loaded bundle<br/>with hashes"]
+  n0 -->|"Manifest and<br/>files"| n1
+  n1 -->|"Fingerprints<br/>match"| n2
+  n2 -->|"Valid records"| n3

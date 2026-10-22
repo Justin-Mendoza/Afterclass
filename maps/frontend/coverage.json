@@ -1,19 +1,24 @@
 {
-  "tracked_files": 223,
-  "eligible_files": 10,
-  "selected_files": 10,
-  "selected_chars": 3798,
-  "redacted_lines": 0,
-  "omissions": [],
-  "excluded_files": 213,
+  "tracked_files": 260,
+  "eligible_files": 17,
+  "selected_files": 17,
+  "selected_chars": 71852,
+  "redacted_lines": 1,
+  "omissions": [
+    {
+      "path": "frontend/src/app/page.tsx",
+      "reason": "only first 562 lines selected"
+    }
+  ],
+  "excluded_files": 243,
   "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
-  "analyzed_files": 10,
+  "analyzed_files": 6,
   "api_calls": 2,
   "usage": [
     {
-      "prompt_tokens": 4129,
-      "total_tokens": 5213,
-      "completion_tokens": 1084,
+      "prompt_tokens": 8690,
+      "total_tokens": 9931,
+      "completion_tokens": 1241,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -21,14 +26,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0013480765200000002,
+      "cost": 0.0022991245200000006,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 3485,
-      "total_tokens": 4298,
-      "completion_tokens": 813,
+      "prompt_tokens": 3408,
+      "total_tokens": 4916,
+      "completion_tokens": 1508,
       "prompt_tokens_details": {
         "cached_tokens": 640,
         "cache_write_tokens": null
@@ -36,7 +41,7 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0010023048000000001,
+      "cost": 0.0013818168000000002,
       "cache_discount": 6.03648e-05,
       "cached_tokens": 640
     }
@@ -215,5 +220,17 @@
     "max_total_calls": 24,
     "full_refresh_after_updates": 20
   },
-  "not_analyzed_due_to_call_budget": []
+  "not_analyzed_due_to_call_budget": [
+    "frontend/src/app/page.tsx",
+    "frontend/src/components/documents.tsx",
+    "frontend/src/components/icons.tsx",
+    "frontend/src/components/permissions.tsx",
+    "frontend/src/lib/api.test.ts",
+    "frontend/src/lib/api.ts",
+    "frontend/Dockerfile",
+    "frontend/package.json",
+    "frontend/eslint.config.mjs",
+    "frontend/tsconfig.json",
+    "frontend/vitest.config.ts"
+  ]
 }

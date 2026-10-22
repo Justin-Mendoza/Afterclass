@@ -1,13 +1,17 @@
 {
-  "tracked_files": 223,
-  "eligible_files": 25,
-  "selected_files": 23,
-  "selected_chars": 179986,
+  "tracked_files": 260,
+  "eligible_files": 27,
+  "selected_files": 24,
+  "selected_chars": 179990,
   "redacted_lines": 15,
   "omissions": [
     {
+      "path": "backend/tests/test_lexical_retrieval_integration.py",
+      "reason": "only first 59 lines selected"
+    },
+    {
       "path": "backend/tests/test_reranked_retrieval.py",
-      "reason": "only first 384 lines selected"
+      "reason": "empty or first line over limit"
     },
     {
       "path": "backend/tests/test_reranking.py",
@@ -18,15 +22,15 @@
       "reason": "empty or first line over limit"
     }
   ],
-  "excluded_files": 198,
+  "excluded_files": 233,
   "scope": "Tracked, eligible text only; bounded excerpts, not exhaustive.",
   "analyzed_files": 1,
   "api_calls": 2,
   "usage": [
     {
-      "prompt_tokens": 6806,
-      "total_tokens": 7998,
-      "completion_tokens": 1192,
+      "prompt_tokens": 6630,
+      "total_tokens": 8017,
+      "completion_tokens": 1387,
       "prompt_tokens_details": {
         "cached_tokens": 256,
         "cache_write_tokens": null
@@ -34,14 +38,14 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.00191526552,
+      "cost": 0.00199256652,
       "cache_discount": 2.414592e-05,
       "cached_tokens": 256
     },
     {
-      "prompt_tokens": 4242,
-      "total_tokens": 5646,
-      "completion_tokens": 1404,
+      "prompt_tokens": 4061,
+      "total_tokens": 5525,
+      "completion_tokens": 1464,
       "prompt_tokens_details": {
         "cached_tokens": 640,
         "cache_write_tokens": null
@@ -49,7 +53,7 @@
       "completion_tokens_details": {
         "reasoning_tokens": 0
       },
-      "cost": 0.0014804748000000001,
+      "cost": 0.0014802858,
       "cache_discount": 6.03648e-05,
       "cached_tokens": 640
     }
@@ -231,16 +235,18 @@
   "not_analyzed_due_to_call_budget": [
     "backend/src/hybrid_rag_search/hybrid_retrieval.py",
     "backend/src/hybrid_rag_search/lexical_retrieval.py",
-    "backend/src/hybrid_rag_search/models/retrieval.py",
     "backend/src/hybrid_rag_search/opensearch_index.py",
+    "backend/src/hybrid_rag_search/reranked_retrieval.py",
+    "backend/src/hybrid_rag_search/retrieval_filters.py",
+    "backend/src/hybrid_rag_search/search.py",
+    "backend/tests/test_authorized_search.py",
+    "backend/src/hybrid_rag_search/models/retrieval.py",
     "backend/src/hybrid_rag_search/providers/cohere_embeddings.py",
     "backend/src/hybrid_rag_search/providers/cohere_reranking.py",
     "backend/src/hybrid_rag_search/providers/embeddings.py",
     "backend/src/hybrid_rag_search/providers/errors.py",
     "backend/src/hybrid_rag_search/providers/reranking.py",
     "backend/src/hybrid_rag_search/providers/usage.py",
-    "backend/src/hybrid_rag_search/reranked_retrieval.py",
-    "backend/src/hybrid_rag_search/retrieval_filters.py",
     "backend/tests/test_cohere_embeddings.py",
     "backend/tests/test_cohere_reranking.py",
     "backend/tests/test_dense_retrieval.py",
@@ -249,7 +255,6 @@
     "backend/tests/test_hybrid_retrieval.py",
     "backend/tests/test_hybrid_retrieval_integration.py",
     "backend/tests/test_lexical_retrieval.py",
-    "backend/tests/test_lexical_retrieval_integration.py",
-    "backend/tests/test_reranked_retrieval.py"
+    "backend/tests/test_lexical_retrieval_integration.py"
   ]
 }

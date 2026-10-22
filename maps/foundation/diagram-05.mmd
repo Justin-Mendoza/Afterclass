@@ -1,13 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["Developer<br/>commands"]
-  n1["Web server<br/>started"]
-  n2["Database<br/>prepared"]
-  n3["Demo data loaded"]
-  n4["Tests and checks<br/>run"]
-  n5["Local services<br/>started"]
-  n0 -->|"start backend"| n1
-  n0 -->|"apply migrations"| n2
-  n2 -->|"after schema"| n3
-  n0 -->|"verify"| n4
-  n5 -->|"supports running<br/>app"| n1
+  n0["Health check<br/>request"]
+  n1["Process is<br/>running"]
+  n2["Check<br/>dependencies"]
+  n3["Ready or<br/>unavailable"]
+  n0 -->|"liveness only"| n1
+  n0 -->|"readiness"| n2
+  n2 -->|"all reachable?"| n3

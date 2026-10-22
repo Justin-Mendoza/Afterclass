@@ -1,0 +1,9 @@
+%%{init: {"themeVariables": {"fontSize": "22px"}}}%%
+flowchart TD
+  n0["Stored dataset<br/>versions"]
+  n1["Stored relevance<br/>labels"]
+  n2["Stored benchmark<br/>runs"]
+  n3["Stored audit<br/>trail"]
+  n0 -->|"Labels belong to<br/>dataset"| n1
+  n0 -->|"Runs reference<br/>dataset"| n2
+  n1 -.->|"Actions recorded"| n3

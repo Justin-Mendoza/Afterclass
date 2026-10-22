@@ -1,245 +1,298 @@
 {
   "map": {
-    "summary": "This area defines the app's own contract for asking an AI model to write an answer, plus two implementations: a real Cohere adapter and a fake one used for testing. A caller supplies a validated list of chat messages and a token limit; the result carries the generated text, why it stopped, the model used, and usage/cost details. Live use is opt-in because a configured factory requires an API key. No caller or route choosing an adapter is evidenced.",
+    "summary": "This area answers a person's question using their own authorized documents, streaming the answer back live so text appears as it is written. Every claim is checked against the cited passages, and unusable or unverifiable answers are replaced with clear messages instead of invented text. Completed answers are saved privately per user and re-checked on later viewing, so withdrawn source access hides the old answer.",
     "unknowns": [
-      "No caller, command-line entry point, or web route selecting between the live and test answer providers is evidenced, so runtime wiring is unknown (F0030).",
-      "Which component opens and closes the underlying network client outside the factory helpers is not evidenced (F0014, F0025).",
-      "How downstream code uses the returned cost estimate, latency, or finish reason is not shown (F0011, F0012).",
-      "Whether these answer providers are connected to the retrieval or evaluation flows elsewhere in the application is not evidenced."
+      "Which concrete answer provider (live online service or test stand-in) is chosen at runtime for the history and streaming flows is not evidenced (F0048, F0064, F0112).",
+      "How identity and authorization scopes are actually established is outside these excerpts; the demo user and policy implementations are not shown (F0016).",
+      "How an in-memory answer result from the answer service is written into the saved-answer table is not shown in the service excerpt, though the streaming transport and history service both persist results (F0030, F0074).",
+      "The non-streaming 'answer and save' flow has no HTTP route in the provided excerpts (F0001).",
+      "Exact cancellation handling for newer server gateway interface versions is truncated in the excerpts (F0080)."
     ],
     "diagrams": [
       {
-        "title": "How a prompt becomes an answer",
-        "description": "A caller supplies validated chat messages; the answer provider forwards one non-streaming request to the model service, re-checks the reply, and returns answer text with finish reason and usage.",
+        "title": "How a question becomes a saved answer",
+        "description": "Someone asks a question; the system finds their permitted passages, the model writes a checked answer streamed live, and the finished answer is saved for that person.",
         "nodes": [
           {
-            "id": "req",
-            "label": "Validated prompt",
+            "id": "ask",
+            "label": "Question asked",
             "finding_ids": [
-              "F0002",
-              "F0003"
+              "F0007",
+              "F0082"
             ]
           },
           {
-            "id": "provider",
-            "label": "Answer provider",
-            "finding_ids": [
-              "F0001",
-              "F0004"
-            ]
-          },
-          {
-            "id": "svc",
-            "label": "Model service",
+            "id": "find",
+            "label": "Find permitted passages",
             "finding_ids": [
               "F0017",
               "F0018"
             ]
           },
           {
-            "id": "check",
-            "label": "Reply checked",
+            "id": "gen",
+            "label": "Write grounded answer",
             "finding_ids": [
-              "F0008",
-              "F0010"
+              "F0020",
+              "F0023"
             ]
           },
           {
-            "id": "result",
-            "label": "Answer and usage",
+            "id": "check",
+            "label": "Check answer and citations",
             "finding_ids": [
-              "F0011",
-              "F0012"
+              "F0021",
+              "F0022"
+            ]
+          },
+          {
+            "id": "save",
+            "label": "Save private answer",
+            "finding_ids": [
+              "F0074",
+              "F0029"
             ]
           }
         ],
         "edges": [
           {
-            "from": "req",
-            "to": "provider",
-            "label": "Messages and limit",
+            "from": "ask",
+            "to": "find",
+            "label": "Question text",
             "finding_ids": [
-              "F0002",
-              "F0004"
+              "F0017"
             ],
             "uncertain": false
           },
           {
-            "from": "provider",
-            "to": "svc",
-            "label": "One chat request",
+            "from": "find",
+            "to": "gen",
+            "label": "Allowed passages",
             "finding_ids": [
               "F0017",
-              "F0032"
+              "F0019"
             ],
             "uncertain": false
           },
           {
-            "from": "svc",
+            "from": "gen",
             "to": "check",
-            "label": "Raw reply text",
+            "label": "Draft text and sources",
             "finding_ids": [
-              "F0008",
-              "F0004"
+              "F0023",
+              "F0021"
             ],
             "uncertain": false
           },
           {
             "from": "check",
-            "to": "result",
-            "label": "Accepts answer",
+            "to": "save",
+            "label": "Verified answer",
             "finding_ids": [
-              "F0010",
-              "F0011"
+              "F0022",
+              "F0074"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "save",
+            "to": "ask",
+            "label": "Live text and answer id",
+            "finding_ids": [
+              "F0072",
+              "F0073"
             ],
             "uncertain": false
           }
         ]
       },
       {
-        "title": "Choosing a provider and its limits",
-        "description": "Two interchangeable providers exist: a live online service gated by an API key, and a deterministic stand-in for testing. Both return the same answer shape. Which one runs is not evidenced.",
+        "title": "How a live answer reaches the reader",
+        "description": "While the model writes, small updates flow to the reader in order, ending with one complete record that names the saved answer.",
         "nodes": [
           {
-            "id": "settings",
-            "label": "App settings",
+            "id": "work",
+            "label": "Answer work in progress",
             "finding_ids": [
-              "F0015",
-              "F0025"
-            ]
-          },
-          {
-            "id": "live",
-            "label": "Live answer provider",
-            "finding_ids": [
-              "F0004",
-              "F0014"
-            ]
-          },
-          {
-            "id": "fake",
-            "label": "Test answer provider",
-            "finding_ids": [
-              "F0028",
-              "F0029"
-            ]
-          },
-          {
-            "id": "same",
-            "label": "Shared answer shape",
-            "finding_ids": [
-              "F0027",
+              "F0013",
               "F0011"
             ]
-          }
-        ],
-        "edges": [
-          {
-            "from": "settings",
-            "to": "live",
-            "label": "Key and model",
-            "finding_ids": [
-              "F0015",
-              "F0025"
-            ],
-            "uncertain": false
           },
           {
-            "from": "live",
-            "to": "same",
-            "label": "Returns answer",
+            "id": "queue",
+            "label": "Ordered update queue",
             "finding_ids": [
               "F0011",
-              "F0001"
-            ],
-            "uncertain": false
-          },
-          {
-            "from": "fake",
-            "to": "same",
-            "label": "Returns answer",
-            "finding_ids": [
-              "F0028",
-              "F0027"
-            ],
-            "uncertain": true
-          },
-          {
-            "from": "settings",
-            "to": "fake",
-            "label": "Provider choice",
-            "finding_ids": [
-              "F0030"
-            ],
-            "uncertain": true
-          }
-        ]
-      },
-      {
-        "title": "When the model service fails",
-        "description": "Failures from the online service are turned into one closed set of error codes with retry guidance, and messages never include the provider's raw reply body or headers.",
-        "nodes": [
-          {
-            "id": "call",
-            "label": "Live call",
-            "finding_ids": [
-              "F0005",
-              "F0024"
+              "F0008"
             ]
           },
           {
-            "id": "map",
-            "label": "Failure mapped",
+            "id": "frames",
+            "label": "Streamed updates",
             "finding_ids": [
-              "F0006",
-              "F0020"
+              "F0008",
+              "F0072"
             ]
           },
           {
-            "id": "codes",
-            "label": "Error codes",
+            "id": "done",
+            "label": "Finished answer record",
             "finding_ids": [
-              "F0007",
-              "F0019"
-            ]
-          },
-          {
-            "id": "retry",
-            "label": "Retry guidance",
-            "finding_ids": [
-              "F0006",
-              "F0005"
+              "F0073",
+              "F0074"
             ]
           }
         ],
         "edges": [
           {
-            "from": "call",
-            "to": "map",
-            "label": "Call fails",
+            "from": "work",
+            "to": "queue",
+            "label": "Stage and text updates",
+            "finding_ids": [
+              "F0011",
+              "F0013"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "queue",
+            "to": "frames",
+            "label": "In order, with heartbeats",
+            "finding_ids": [
+              "F0008",
+              "F0011"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "frames",
+            "to": "done",
+            "label": "Final complete event",
+            "finding_ids": [
+              "F0073",
+              "F0074"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "Viewing saved answers later",
+        "description": "A person lists their own past answers and opens one; access to the original passages is re-checked each time, so withdrawn sources hide the answer text.",
+        "nodes": [
+          {
+            "id": "list",
+            "label": "List own answers",
+            "finding_ids": [
+              "F0002",
+              "F0050"
+            ]
+          },
+          {
+            "id": "detail",
+            "label": "Open one answer",
+            "finding_ids": [
+              "F0003",
+              "F0061"
+            ]
+          },
+          {
+            "id": "recheck",
+            "label": "Re-check source access",
             "finding_ids": [
               "F0005",
-              "F0020"
+              "F0051"
+            ]
+          },
+          {
+            "id": "out",
+            "label": "Shown or withheld",
+            "finding_ids": [
+              "F0051",
+              "F0052"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "list",
+            "to": "detail",
+            "label": "Picks an answer",
+            "finding_ids": [
+              "F0002",
+              "F0003"
             ],
             "uncertain": false
           },
           {
-            "from": "map",
-            "to": "codes",
-            "label": "Sanitized code",
+            "from": "detail",
+            "to": "recheck",
+            "label": "Answer's sources",
             "finding_ids": [
-              "F0006",
-              "F0007"
+              "F0005",
+              "F0061"
             ],
             "uncertain": false
           },
           {
-            "from": "codes",
-            "to": "retry",
-            "label": "Retryable flag",
+            "from": "recheck",
+            "to": "out",
+            "label": "Allowed or hidden",
             "finding_ids": [
-              "F0006",
-              "F0007"
+              "F0051",
+              "F0053"
+            ],
+            "uncertain": false
+          }
+        ]
+      },
+      {
+        "title": "When the answer cannot be produced",
+        "description": "Missing permitted passages, timeouts, model faults, or unverifiable drafts become one clear message for the reader, never raw internal detail.",
+        "nodes": [
+          {
+            "id": "trouble",
+            "label": "Answer cannot proceed",
+            "finding_ids": [
+              "F0025",
+              "F0070"
+            ]
+          },
+          {
+            "id": "classify",
+            "label": "Classify the failure",
+            "finding_ids": [
+              "F0010",
+              "F0075"
+            ]
+          },
+          {
+            "id": "message",
+            "label": "Plain message to reader",
+            "finding_ids": [
+              "F0079",
+              "F0022"
+            ]
+          }
+        ],
+        "edges": [
+          {
+            "from": "trouble",
+            "to": "classify",
+            "label": "Recorded failure",
+            "finding_ids": [
+              "F0025",
+              "F0075"
+            ],
+            "uncertain": false
+          },
+          {
+            "from": "classify",
+            "to": "message",
+            "label": "Safe fixed wording",
+            "finding_ids": [
+              "F0010",
+              "F0079"
             ],
             "uncertain": false
           }
@@ -250,276 +303,933 @@
   },
   "findings": {
     "F0001": {
-      "statement": "The subsystem's central contract is GenerationProvider, a Protocol declaring one async generate(request) -> GenerationResult operation; adapters such as CohereGenerationProvider implement it so callers depend on an app-owned interface rather than a vendor SDK.",
+      "statement": "The answers subsystem implements two distinct answer flows: non-streaming 'answer and save' (answer_history.py's AnswerHistory.answer_and_save calls the answer service then persists) and a server-sent-events streaming flow (answer_stream.py's stream_answer). Only the streaming flow, list, and get are exposed via HTTP routes in the provided excerpts; answer_and_save has no route shown here.",
       "sources": [
-        "S0003"
+        "S0002",
+        "S0003",
+        "S0001"
       ],
       "uncertain": false
     },
     "F0002": {
-      "statement": "GenerationRequest carries an ordered, nonempty tuple of GenerationMessage plus max_output_tokens, and validates that at least one message has the USER role and that the token limit is a positive int, so malformed requests fail before any network call.",
+      "statement": "A GET endpoint lists answer history for a workspace, returning up to 100 items per page (limit default 50, offset default 0) as summaries; the list service re-authorizes the caller via policy.scope before querying.",
       "sources": [
-        "S0003"
+        "S0001",
+        "S0002"
       ],
       "uncertain": false
     },
     "F0003": {
-      "statement": "GenerationMessage enforces a known MessageRole (system/user/assistant) and nonblank content at construction; invalid roles or empty content raise ValueError.",
+      "statement": "A GET endpoint retrieves one saved answer by answer_id within a workspace; if no row matches id/tenant/author it raises AccessDenied with HTTP 404 ('Answer not found').",
       "sources": [
-        "S0003"
+        "S0001",
+        "S0002"
       ],
       "uncertain": false
     },
     "F0004": {
-      "statement": "CohereGenerationProvider.generate converts each contract message into Cohere's SystemChatMessageV2/UserChatMessageV2/AssistantChatMessageV2 via _messages, then issues one non-streaming client.chat call with model, max_tokens, temperature, and request_options.",
-      "sources": [
-        "S0001"
-      ],
-      "uncertain": false
-    },
-    "F0005": {
-      "statement": "Each generate call applies a hard wall-clock bound using asyncio.timeout(self.timeout_seconds) and disables SDK retries by setting max_retries=0 in RequestOptions, so retry/backoff behavior is not delegated to the Cohere SDK.",
-      "sources": [
-        "S0001"
-      ],
-      "uncertain": false
-    },
-    "F0006": {
-      "statement": "SDK and transport failures are mapped to sanitized ProviderError codes and retryability: TimeoutError/httpx.TimeoutException -> timeout(retryable), httpx.TransportError -> unavailable(retryable), 401/403/498 -> authentication, 429 -> rate_limited(retryable), >=500 -> unavailable(retryable), other ApiError -> invalid_request, ValueError/TypeError -> invalid_response.",
-      "sources": [
-        "S0001"
-      ],
-      "uncertain": false
-    },
-    "F0007": {
-      "statement": "ProviderError carries only a stable code from a closed Literal set (timeout, unavailable, authentication, rate_limited, invalid_request, invalid_response) plus a retryable flag, and its message intentionally excludes provider response bodies or headers.",
+      "statement": "Saved answers are scoped by both tenant_id and author_user_id: list and get filter on SavedAnswer.tenant_id == workspace_id and SavedAnswer.author_user_id == scope.user_id, so a workspace user only sees their own answers.",
       "sources": [
         "S0002"
       ],
       "uncertain": false
     },
-    "F0008": {
-      "statement": "The Cohere response is re-validated against a strict internal model _ChatResponse (finish_reason as a fixed Literal set, assistant message text parts, and optional token/billed usage) before any result is produced; ValidationError becomes ProviderError('invalid_response').",
+    "F0005": {
+      "statement": "On every read (list and get), the service re-checks current document-level access for each piece of evidence (result.evidence document_ids) via policy.document_scope; if any is denied, 'available' is False, and for get the result payload is nulled out ('result if available else None').",
       "sources": [
-        "S0001"
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0006": {
+      "statement": "Answers are persisted only as terminal server-produced results: save() stores the AnswerResult serialized to JSON (model_dump mode='json') along with tenant, author, and question, and the docstring states provisional drafts are never saved.",
+      "sources": [
+        "S0002"
+      ],
+      "uncertain": false
+    },
+    "F0007": {
+      "statement": "The streaming endpoint POST /v1/workspaces/{workspace_id}/answers/stream accepts a question (1..4096 chars, whitespace-stripped, extra fields forbidden) and optional collection_id, resolves an authorized scope, and returns a text/event-stream response.",
+      "sources": [
+        "S0003"
+      ],
+      "uncertain": false
+    },
+    "F0008": {
+      "statement": "The stream emits ordered SSE frames typed progress, content, citations, complete, error, each with a monotonically increasing sequence id; payloads are JSON-encoded with non-ASCII preserved.",
+      "sources": [
+        "S0003"
       ],
       "uncertain": false
     },
     "F0009": {
-      "statement": "Provider finish reasons are normalized onto the app contract: TIMEOUT maps to a retryable timeout error, ERROR maps to retryable unavailable, TOOL_CALL maps to non-retryable invalid_response, MAX_TOKENS maps to GenerationFinishReason.MAX_TOKENS, and everything else that passes validation maps to COMPLETE.",
+      "statement": "The stream producer runs under answer_request_timeout_seconds; a timeout saves a failed AnswerResult (best-effort, 5s cap) and emits an error event with code request_timeout and a human-readable message.",
       "sources": [
-        "S0001",
         "S0003"
       ],
       "uncertain": false
     },
     "F0010": {
-      "statement": "On success, generate concatenates all text content parts and rejects empty/whitespace-only output as invalid_response, ensuring GenerationResult.text is meaningful.",
+      "statement": "Stream errors are mapped to a closed set of codes with fixed messages: request_timeout, database_unavailable, and verification failures (invalid_citation, missing_citations, invalid_answer_status, empty_answer); generic and provider exceptions fall back to answer_failed/answer_unavailable, and comment states provider exceptions, source text, and internal paths are never sent to clients.",
       "sources": [
-        "S0001"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0011": {
-      "statement": "GenerationResult is produced with text, finish_reason, model, adapter ('cohere' or 'fake'), and a GenerationUsage carrying reported input/output tokens, separate billed input/output tokens, locally measured latency_ms via perf_counter, and an estimated cost.",
+      "statement": "The producer uses a bounded asyncio queue (maxsize 16) so provider work stays request-owned, and the consumer emits ': keepalive\\n\\n' heartbeats every 1.0s when no event is available.",
       "sources": [
-        "S0001",
         "S0003"
       ],
       "uncertain": false
     },
     "F0012": {
-      "statement": "Estimated generation cost is computed in Decimal as (billed_input * input_rate + billed_output * output_rate) / 1_000_000 from per-million-token rates, and returns None when billed token counts are absent; the rates are also echoed back on the result.",
+      "statement": "Client disconnect and cancellation are handled: the consumer's finally block cancels the producer task and awaits it under a shielded cancel scope, and ClosingStreamingResponse overrides __call__ to aclose the body iterator when the response ends or a send fails.",
       "sources": [
-        "S0001"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0013": {
-      "statement": "Configured per-call rates default to Decimal('0.0375') input and Decimal('0.15') output per million tokens, and the class validates model nonblank, timeout finite and positive, temperature within [0,1], and rates finite and nonnegative; hawaii",
+      "statement": "The streaming answer service is obtained via configured_answer_service(settings) inside an async context manager, and streamed updates are classified as AnswerProgress (progress stage) or AnswerDraft (content text); a terminal AnswerResult is required or a ValueError('Missing terminal answer result') is raised.",
       "sources": [
-        "S0001"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0014": {
-      "statement": "CohereGenerationProvider does not create or close its client: the injected cohere.AsyncClientV2 owns its own lifetime and the factory context managers are responsible for opening it.",
+      "statement": "Timing telemetry is attached to the final result's configuration (first_content_ms, total_ms, generation_ms from usage latency_ms) before saving.",
       "sources": [
-        "S0001"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0015": {
-      "statement": "open_cohere_generation is an async context manager that validates a nonblank API key and yields a configured CohereGenerationProvider, while configured_cohere_generation reads Settings (key, model, timeout, temperature, rates) and raises ValueError when COHERE_API_KEY is absent, so live generation is opt-in.",
+      "statement": "Resuming a stream is explicitly rejected: if a Last-Event-ID header is present the endpoint raises APIError(409, 'resume_not_supported'), and the route documentation states no replay and that draft content is provisional.",
       "sources": [
-        "S0001"
+        "S0003"
       ],
       "uncertain": false
     },
     "F0016": {
-      "statement": "Sibling telemetry lives in usage.py: EmbeddingUsage separates reported versus billed input tokens, latency, and estimated cost, and estimate_embedding_cost returns None (unknown, not zero) when billed tokens or the rate are missing, mirroring the generation adapter's cost convention.",
+      "statement": "Both routers declare handler parameters demo_user (DemoUser) and depend on a Policy/Authorization provider for tenant scoping; the concrete policy and demo-user implementations live outside these excerpts, so how identity is established is not evidenced here.",
+      "sources": [
+        "S0001",
+        "S0003"
+      ],
+      "uncertain": true
+    },
+    "F0017": {
+      "statement": "AnswerService orchestrates the answer flow: its prepare() validates the question (rejecting blank or over 4096 characters), calls the evidence retriever's search with mode 'hybrid_rerank', converts returned chunks into AnswerEvidence records, and selects a token-budgeted subset; answer() then builds a generation request and validate_answer() checks the model's output. It is the main entry point that ties retrieval to generation.",
       "sources": [
         "S0004"
       ],
       "uncertain": false
     },
-    "F0017": {
-      "statement": "The Cohere generation adapter (CohereGenerationProvider) turns a validated GenerationRequest into a non-streaming Cohere /v2/chat call, sending the given system/user/assistant messages plus max_tokens and temperature, then returns a GenerationResult with concatenated text, finish reason, model, adapter 'cohere', and usage.",
-      "sources": [
-        "S0005"
-      ],
-      "uncertain": false
-    },
     "F0018": {
-      "statement": "Cohere provider maps provider finish reasons to GenerationFinishReason: COMPLETE and STOP_SEQUENCE become COMPLETE, MAX_TOKENS becomes MAX_TOKENS.",
+      "statement": "select_evidence() enforces authorization boundaries: it raises ValueError('evidence_scope_violation') if a candidate's tenant_id differs from the scope, its collection is not in scope.collection_ids, or its document is in scope.excluded_document_ids; it also rejects ambiguous duplicate chunk IDs and empty text. This is a hard per-answer authorization gate on evidence, not just filtering.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0019": {
-      "statement": "Non-text provider finish reasons (TIMEOUT, ERROR, TOOL_CALL) are raised as ProviderError with codes timeout (retryable) and unavailable (retryable), while TOOL_CALL maps to invalid_response (non-retryable).",
+      "statement": "Evidence selection preserves ranking order and never truncates source text: it walks candidates in order, skips whole chunks that exceed the remaining token budget, counts tokens via a tokenizer, and stops after max_chunks. Token counting is described as a local/offline estimate, not the generation provider's billing.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0020": {
-      "statement": "HTTP error statuses from Cohere are sanitized into ProviderError without leaking provider detail: 400 invalid_request, 401/403/498 authentication, 429 rate_limited (retryable), 500/503 unavailable (retryable); each attempt makes exactly one HTTP call (no retries), and the ProviderError suppresses the original exception context.",
+      "statement": "The grounding system prompt (GROUNDING_PROMPT, version 'grounded-answer-v1') instructs the model to answer only from supplied documents, treat documents as untrusted evidence rather than instructions, begin with a STATUS line of answered/partial/insufficient_evidence, cite every material claim, and describe conflicting evidence instead of silently choosing. AnswerEvidence text is passed as GenerationDocument content, so document content enters the prompt as data.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0021": {
-      "statement": "Malformed Cohere responses (empty body, empty/blank text content, non-text thinking content, unknown finish reason, negative token counts, non-numeric billed units) raise ProviderError with code invalid_response.",
+      "statement": "validate_answer() checks syntax and provenance rather than semantic truth: it requires a leading STATUS line, non-empty answer text, integer citation offsets that map back to matching substrings within the answer (after the status prefix), and source_ids that all appear in the selected evidence chunk IDs. Any violation returns outcome 'failed' with a specific error_code such as invalid_answer_status, empty_answer, invalid_citation, or missing_citations.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0022": {
-      "statement": "Transport and parse failures are translated into ProviderError: httpx.ReadTimeout to timeout, httpx.ConnectError to unavailable, and JSON/ValueError parse errors to invalid_response.",
+      "statement": "For the insufficient_evidence status, the code discards the model's prose and substitutes a fixed abstention string 'The supplied evidence is insufficient to answer this question.', preventing arbitrary provider text from being published under an abstention label. An answered/partial result with no citations is treated as failed (missing_citations), and a MAX_TOKENS finish reason appends a cut-short notice and downgrades the outcome to 'partial'.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0023": {
-      "statement": "The Cohere provider is registered with strict configuration validation: model must be non-blank, timeout_seconds positive, temperature finite and within [0,1], and input/output rate Decimals must be non-negative and finite; invalid values raise ValueError at construction.",
+      "statement": "The stream() method yields staged progress (AnswerProgress 'retrieving', then 'generating', then 'validating') and, once it sees a complete first line matching the STATUS pattern, streams AnswerDraft text deltas to the caller; it suppresses draft text while status is insufficient_evidence. It buffers the initial prefix (up to ~100 chars before a newline) to detect the status line before emitting content.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0024": {
-      "statement": "The Cohere provider enforces a total timeout (timeout_seconds) around the chat call, and caller-side asyncio cancellation propagates as asyncio.CancelledError rather than being converted to a ProviderError.",
+      "statement": "Streaming enforces a protocol on the provider: receiving a GenerationTextDelta after a final GenerationResult, a second final result, or ending with no assembled result raises ProviderError('invalid_response'); provider errors are converted into a failed AnswerResult rather than propagated. The stream is closed via aclosing when the consumer stops.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0025": {
-      "statement": "open_cohere_generation and configured_cohere_generation factories construct the provider; the configured factory reads the API key and model from Settings (COHERE_API_KEY, COHERE_GENERATION_MODEL) and supplies baseline per-million token rates, and both manage the underlying AsyncClientV2 lifetime as an async context manager that is closed on exit.",
+      "statement": "Retrieval or provider errors during prepare() are caught (RetrievalError, ProviderError) and returned as a failed AnswerResult carrying the error's code plus the run configuration, so failures surface as a structured result rather than an exception to the caller of answer()/stream().",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0026": {
-      "statement": "Blank or missing Cohere API keys fail fast with ValueError ('API key'/'COHERE_API_KEY').",
+      "statement": "If no usable authorized evidence is found after selection, prepare() short-circuits to an insufficient_evidence AnswerResult ('No usable authorized evidence was found.') without invoking the generation provider, avoiding a model call with empty evidence.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0027": {
-      "statement": "The generation contract defines validating dataclasses: GenerationMessage enforces a known role and non-empty content; GenerationRequest requires a nonempty tuple of messages including at least one user message and a positive integer max_tokens; GenerationResult requires non-empty text, known finish reason, non-empty model, and finite usage.",
+      "statement": "configured_answer_service() is the runtime assembly wiring for this feature: it loads a local offline tokenizer from settings.tokenizer_root, opens AuthorizedSearch as the evidence retriever and the configured Cohere generation provider as the model, and yields an AnswerService combining them. It is an async context manager, so the retrieval and provider resources are opened and closed together.",
       "sources": [
-        "S0006"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0028": {
-      "statement": "FakeGenerationProvider is a deterministic, repeatable implementation of GenerationProvider: identical requests yield identical results, response text starts with 'Synthetic response ' and excludes prompt/private content, finish reason is COMPLETE, model 'fake-generation-v1', adapter 'fake', with billed tokens and cost zero and input/output tokens and latency unset.",
+      "statement": "AnswerResult is a frozen contract capturing outcome, answer text, validated citations, the evidence used, model name, usage, error_code, and the configuration snapshot (prompt_version, max_chunks, evidence_token_budget, budget_tokenizer note, max_output_tokens). Each AnswerCitation carries start/end offsets, cited text, and deduplicated source_ids.",
       "sources": [
-        "S0006"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0029": {
-      "statement": "FakeGenerationProvider varies its response text when the user message content or max_output_tokens changes, producing distinct outputs for distinct requests.",
+      "statement": "SavedAnswer (table 'saved_answers') persists author-owned answer history: tenant_id, author_user_id, question text, a JSONB 'result' object, and a server-default created_at. Constraints enforce question length 1\u20134096, that result is a JSON object, and a composite foreign key (tenant_id, author_user_id) to memberships with CASCADE delete, plus a history index on (tenant_id, author_user_id, created_at, id).",
       "sources": [
-        "S0006"
+        "S0005"
       ],
       "uncertain": false
     },
     "F0030": {
-      "statement": "GenerationRequest and its messages are supplied by the caller of GenerationProvider.generate; no orchestrator, HTTP route, or CLI selecting between the fake and Cohere adapters is evidenced in these excerpts, so the runtime wiring that chooses an adapter is unknown.",
+      "statement": "The two files together show the boundary between computation and storage: answers.py produces an AnswerResult in memory (with usage/configuration) but this excerpt contains no code that writes an AnswerResult into saved_answers, so how results become SavedAnswer rows is not evidenced here.",
       "sources": [
-        "S0005",
-        "S0006"
+        "S0004",
+        "S0005"
       ],
       "uncertain": true
     },
     "F0031": {
-      "statement": "The Cohere adapter measures latency locally with perf_counter and computes estimated_cost_usd and per-million-token rates as Decimal values from reported billed usage; when usage tokens are absent, reported/billed tokens and estimated cost are None.",
+      "statement": "The module docstring states there is no HTTP generation endpoint and no paid retries in this code, so the answer service is invoked by an in-process caller rather than being a web route, and the configured factory is the only evidenced wiring point.",
       "sources": [
-        "S0005"
+        "S0004"
       ],
       "uncertain": false
     },
     "F0032": {
-      "statement": "Tests indicate SDK chat calls disable streaming ('stream': False) and authenticate via Bearer token in the Authorization header.",
+      "statement": "The generation provider abstraction (GenerationProvider, StreamingGenerationProvider, GenerationRequest with messages/documents/max_output_tokens, GenerationResult, GenerationTextDelta) is the interface AnswerService depends on, but this excerpt only names the configured_cohere_generation factory as the real implementation; no fake/test provider or adapter selection appears in these two files.",
       "sources": [
-        "S0005"
+        "S0004"
+      ],
+      "uncertain": true
+    },
+    "F0033": {
+      "statement": "This area defines the app's own text-generation contract (GenerationRequest, GenerationResult, GenerationMessage, GenerationDocument, GenerationCitation, GenerationUsage) so callers ask for an answer without knowing which model service is used; responses carry answer text, a finish reason (complete or max_tokens), model name, citation spans, and token/cost usage.",
+      "sources": [
+        "S0007"
       ],
       "uncertain": false
+    },
+    "F0034": {
+      "statement": "GenerationRequest enforces its inputs before any network call: a nonempty tuple of messages including at least one user message, a positive integer max_output_tokens, and optional documents whose IDs must be unique and whose text must be nonblank.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0035": {
+      "statement": "CohereGenerationProvider.generate translates the app's message history into Cohere chat messages by role (system/user/assistant), and attaches request documents as Cohere Document objects with id and {'text': ...} data so the model can cite them.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0036": {
+      "statement": "generate makes one non-streaming call to Cohere's async chat client with the configured model, max tokens, temperature, and a zero-retry request option, wrapped in an overall asyncio timeout equal to timeout_seconds.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0037": {
+      "statement": "Provider failures are mapped to a small closed set of ProviderError codes: timeouts and transport errors become retryable timeout/unavailable, HTTP 401/403/498 become authentication, 429 becomes retryable rate_limited, 5xx becomes retryable unavailable, and other API errors become invalid_request.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0038": {
+      "statement": "The Cohere reply is re-validated through a strict Pydantic model before use; unparseable replies, a TOOL_CALL finish reason, or blank aggregated answer text are rejected as invalid_response, and provider finish_reason TIMEOUT/ERROR are re-raised as retryable errors.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0039": {
+      "statement": "Accepted generate results are assembled into GenerationResult with concatenated answer text, mapped finish reason (MAX_TOKENS vs COMPLETE), adapter label 'cohere', citations rebuilt from Cohere citation spans and source document IDs, and usage that includes token counts, measured latency, and an estimated USD cost computed from per-million billed token rates.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0040": {
+      "statement": "stream performs the same translation over one cancellable Cohere streaming call and yields provisional text deltas followed by exactly one assembled GenerationResult; it rejects unknown event kinds, a message-end after the stream already ended, a missing message-end, over 100k accumulated characters, or more than 256 citations as invalid_response.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0041": {
+      "statement": "The streaming path accumulates text and citation payloads locally, converts the terminal message-end event into the same internal response shape used by generate, and reuses the same result-assembly and usage/cost logic.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0042": {
+      "statement": "open_cohere_generation and configured_cohere_generation are async context manager factory helpers: they validate a nonblank API key, build a Cohere SDK client, yield a provider, and are intended to own/close the client's lifetime across the 'async with' block.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0043": {
+      "statement": "Live generation is opt-in: configured_cohere_generation reads the Cohere API key, model, timeout, temperature, and input/output token prices from Settings and raises a ValueError if the API key is not configured; the docstring notes ordinary tests and load runs use a fake instead.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0044": {
+      "statement": "CohereGenerationProvider validates its configuration at construction: nonblank model, positive finite timeout, temperature between zero and one, and nonnegative finite token prices, otherwise raising ValueError.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": false
+    },
+    "F0045": {
+      "statement": "GenerationUsage and GenerationResult enforce that any supplied token, latency, or usage numbers are finite and nonnegative, and that answer text and model name are nonblank; GenerationTextDelta is explicitly labelled as provisional text not yet an assertion that citations have been checked.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0046": {
+      "statement": "Two Protocol interfaces define interchangeable roles: GenerationProvider exposes a single async generate, and StreamingGenerationProvider exposes stream that must yield provisional text then exactly one assembled result, so live and test adapters share one contract.",
+      "sources": [
+        "S0007"
+      ],
+      "uncertain": false
+    },
+    "F0047": {
+      "statement": "The factory called from settings accepts redacted credential-looking values; the excerpt shows only that a client is constructed with an API key and yields a provider, with the client-open/close details not visible in this excerpt.",
+      "sources": [
+        "S0006"
+      ],
+      "uncertain": true
+    },
+    "F0048": {
+      "statement": "No caller, route, or command-line entry point that selects between the live Cohere provider and a fake, or that opens the client, is evidenced in this batch, so runtime wiring of these providers to answers, retrieval, or evaluation flows is unknown.",
+      "sources": [
+        "S0006",
+        "S0007"
+      ],
+      "uncertain": true
+    },
+    "F0049": {
+      "statement": "AnswerHistory is the runtime service that orchestrates saving and reading an answer: it calls the answer generator's answer method with an authorized scope and question, persists a SavedAnswer row via the policy session, and exposes list/get/answer_and_save operations. Source S0008 (test_history_save_read_and_withholding_after_source_denial) shows AnswerHistory(policy).answer_and_save calling generator.answer(scope, question) once and then being retrievable; S0009 constructs AnswerHistory(policy) with a real Authorization policy.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0050": {
+      "statement": "Saved answers are private per author: listing returns only the requesting user's rows in newest-first order (second question before first), and other members of the same workspace (owner DEMO_USER_ID, admin HR_USER_ID) see an empty list and a 404 for another user's answer. S0009 lines 120-134. This is the isolation boundary enforced on history endpoints.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0051": {
+      "statement": "Access to a saved answer is re-evaluated at read time against current source permissions. When the author's CollectionGrant is deleted, the answer still exists but is returned with available=false and result=null, and the protected answer text (\"Supported portion.\"/\"Protected\") and evidence content is withheld from the response body; when the grant is restored, available returns to true. S0008 lines 76-80; S0009 lines 143-162.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0052": {
+      "statement": "If a referenced document's status changes to \"deleting\", the saved answer's result is withheld (result null) on read, even though the grant is present. S0009 lines 163-167.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0053": {
+      "statement": "Losing workspace membership changes the error contract: after the author's Membership row is deleted, reading their own saved answer returns HTTP 403 (not 404), i.e. denial is due to lack of any workspace access. S0009 lines 168-170.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0054": {
+      "statement": "Cross-workspace access is blocked at two levels: a database composite foreign key on SavedAnswer (tenant_id + author_user_id referencing membership) makes a forged SavedAnswer row for a foreign tenant raise IntegrityError, and HTTP requests from a user of a foreign workspace get 403 on the author's tenant path and 404 on their own tenant path for the same answer id. S0009 lines 102-112, 135-141.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0055": {
+      "statement": "History HTTP endpoints are mounted under /v1/workspaces/{workspace_id}/answers with GET list and GET /{answer_id} detail; the detail path is present in the OpenAPI schema with a get operation, and POST to the collection path returns 405 (no creation route). S0008 lines 88-100.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0056": {
+      "statement": "List endpoint validates pagination: limit outside 1..100, negative offset, and non-UUID answer ids are rejected with 422 by the framework before reaching the service. S0008 lines 90-93.",
+      "sources": [
+        "S0008"
+      ],
+      "uncertain": false
+    },
+    "F0057": {
+      "statement": "Recent-history listing deliberately omits answer result text: the integration listing response contains no \"Protected\" text even though the stored result does, so list rows carry identity/availability metadata rather than full content. S0009 lines 121-122.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0058": {
+      "statement": "Missing or unauthorized reads are expressed as domain errors that the API maps to stable HTTP errors: a not-found SavedAnswer raises AccessDenied(\"Answer not found\") which surfaces as 404 with JSON error code \"not_found\" (S0008 lines 69-70, 95-96), and a missing identity via policy.scope raises AccessDenied(401) surfaced as 401 (S0008 lines 97-98, S0009 line 142).",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0059": {
+      "statement": "The authorization dependency (api.authorization) is the injection point for the AuthorizedScope policy; tests override it to control tenant/user/collection scope and to simulate denial. This shows the API layer delegates all scoping decisions to Authorization/policy objects rather than querying directly. S0008 lines 54-59 and 86; S0009 lines 91-114.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0060": {
+      "statement": "The store used for saved answers is a database session factory yielding an async session that supports add/flush/scalar/scalars, provided through Authorization(sessions); the memory version in tests and the real async_sessionmaker in integration tests share this interface. S0008 lines 25-51; S0009 lines 41-42, 91-92.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0061": {
+      "statement": "The AnswerResult object (outcome, text, evidence) is what gets persisted and returned from get; the integration test asserts the detail response's result.text equals the model text and its evidence[0].document_id matches the document UUID. S0008 lines 66, 72-73; S0009 lines 95-97, 126-128.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0062": {
+      "statement": "Saving is parameterized by an optional collection (answer_and_save called with and without a collection argument), and each call produces a distinct answer id; the saved rows store the question text supplied by the caller. S0009 lines 99-101.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0063": {
+      "statement": "The demo identity header X-Demo-User-ID is honored by the history routes in integration testing, selecting which user the request acts as; removing it yields 401. This indicates a header-based demo identity mechanism feeding policy.scope. S0009 lines 118, 130, 135, 142.",
+      "sources": [
+        "S0009"
+      ],
+      "uncertain": false
+    },
+    "F0064": {
+      "statement": "Inferred: the previous summary said no caller/route choosing an answer provider was evidenced, but these tests show the history subsystem invokes an answer generator through AnswerHistory.answer_and_save and exposes HTTP list/detail routes, so the answer flow is wired at least into the history API surface; which concrete provider (live Cohere vs fake) is chosen at runtime is still not shown in these excerpts. S0008 lines 65-75; S0009 lines 92-100.",
+      "sources": [
+        "S0008",
+        "S0009"
+      ],
+      "uncertain": true
+    },
+    "F0065": {
+      "statement": "CohereGenerationProvider.stream drives a streaming generation request through the Cohere SDK: it asserts the outgoing request has stream=true and includes the supplied documents, then assembles incremental text deltas, citation start/end events, and a final message-end record into one final GenerationTextDelta carrying full text, citations, and usage/cost. Test evidence constructs the provider with a mocked httpx transport and iterates the async generator.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0066": {
+      "statement": "Streaming assembly is validated: malformed, incomplete, or excessive output is rejected with a ProviderError code 'invalid_response'. Parametrized cases include empty streams, deltas after message-end, tool-call events, non-string delta values, oversized single deltas (over 100k chars), missing finish reason, non-COMPLETE finish reasons, and more than the allowed number of citation events (257).",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0067": {
+      "statement": "Streaming provider errors are mapped to a bounded code set and sanitized: httpx.ConnectError->unavailable, httpx.ReadTimeout->timeout, ApiError 401->authentication, 429->rate_limited, 503->unavailable, 400->invalid_request, ValueError->invalid_response. The raw error text ('private') never appears in the failure message. Whether mapping happens inside the provider or via imported helpers is not fully visible in this excerpt.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0068": {
+      "statement": "Streaming has a configurable timeout (timeout_seconds) that raises ProviderError 'timeout' when the SDK stalls, and closing the async generator early (via aclosing) still runs the SDK's finally block so the underlying stream is closed before completion.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0069": {
+      "statement": "AnswerService.stream consumes the provider stream in stages: it emits AnswerProgress 'retrieving', then 'generating', then 'validating'; AnswerDraft items carry incremental text excluding the leading STATUS header line; the terminal item is an outcome (e.g. 'answered') with citations whose offsets are validated against the produced text.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0070": {
+      "statement": "AnswerService abstains rather than generating when retrieval returns no chunks: the terminal outcome is 'insufficient_evidence'. When the model itself returns status 'insufficient_evidence', no AnswerDraft is emitted and the terminal text is a fixed insufficient-evidence message.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0071": {
+      "statement": "AnswerService validation failures produce a terminal 'failed' outcome with specific error codes: invalid_answer_status for malformed status headers or oversized header lines, invalid_response for a missing terminal result, text appended after a final result, or conflicts, and 'unavailable' when the provider stream raises ProviderError.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0072": {
+      "statement": "The answer_stream transport module builds a Server-Sent-Events response: transport.answer_events is an async generator yielding SSE frames with ordered 'data: ' JSON payloads and monotonic 'id: N' frame headers, and a keepalive comment ': keepalive' frame while waiting for the first event.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0073": {
+      "statement": "Event ordering in the SSE stream is progress, content, progress, citations, complete: progress events surround draft content, and the terminal 'complete' event embeds the final result including configuration timings such as first_content_ms and the persisted answer identifier.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0074": {
+      "statement": "The transport persists the final result through AnswerHistory.save into the caller's session row, and stores the terminal result without hidden drafts (draft text asserted absent from the saved row). Saved records include an answer_id used in the terminal event.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0075": {
+      "statement": "Transport failures map to safe terminal error events with an answer_id when persisted and no answer_id when the database write fails: AnswerResult error_code invalid_citation propagates, ValueError/OSError->answer_unavailable, RuntimeError->answer_failed, no terminal result or an idle producer -> answer_unavailable, an elapsed answer_request_timeout_seconds->request_timeout, and SQLAlchemyError or TimeoutError during save->database_unavailable. Raw error strings are asserted absent from emitted JSON.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0076": {
+      "statement": "Cancellation of the SSE generator (client disconnect) closes the underlying producer work (the fake stream's state.closed becomes true) while persisting nothing: policy.sessions.session.row stays None after awaiting only the keepalive frame and exiting aclosing.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0077": {
+      "statement": "The stream HTTP route at /v1/workspaces/{tenant}/answers/stream (POST) enforces request preflight: blank question -> 422, unexpected extra fields -> 422, a Last-Event-ID header -> 409 (resumption not supported), success -> 200 with Cache-Control: no-store, and the last parsed event type is 'complete'.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0078": {
+      "statement": "A capabilities endpoint at /v1/workspaces/{tenant}/collections/{collection}/capabilities (GET) returns can_upload/can_manage booleans: both true when policy allows, both false on AccessDenied 403, and a 404 status on AccessDenied 404. Authorization denials on the stream route surface as 401 when scope selection is denied.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0079": {
+      "statement": "transport.error_message maps internal error codes to user-facing messages, e.g. 'missing_citations' begins 'The answer could not be verified' and 'database_unavailable' begins 'The answer could not be saved'. This function is the user-facing text boundary for failures.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": false
+    },
+    "F0080": {
+      "statement": "A ClosingStreamingResponse wraps the SSE generator for ASGI delivery and reacts to client disconnect across ASGI spec versions ('2.0' and '2.4'), cleaning up the producer without persisting; the excerpt is truncated mid-test, so the exact disconnect handling for spec 2.4 is not fully shown.",
+      "sources": [
+        "S0010"
+      ],
+      "uncertain": true
+    },
+    "F0081": {
+      "statement": "The answer service (AnswerService.answer) orchestrates a question into a validated answer: it takes an authorized scope and a question string, calls the retrieval component with mode 'hybrid_rerank', selects evidence, calls the generation provider, and returns an answer result carrying outcome, text, citations, evidence, and configuration. Test asserts retrieval.search is called with (scope, question, 'hybrid_rerank') and that a GenerationRequest is built with GenerationDocument entries.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0082": {
+      "statement": "Questions are validated: blank strings and strings of length 4097 are rejected with ValueError mentioning 'Question', and the generation request sets max_output_tokens=512 with a system message stating evidence is untrusted (contains 'untrusted').",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0083": {
+      "statement": "select_evidence enforces tenant/collection scope, rejects excluded documents, deduplicates identical chunks, drops blank evidence, raises on ambiguous duplicate chunks with differing text ('ambiguous'), and enforces max_chunks and max_tokens budgets; results are ordered by a ranking that budget-limits chunk count and token count.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0084": {
+      "statement": "validate_answer maps a provider GenerationResult to an answer outcome ('answered', 'partial', 'insufficient_evidence', 'failed') by checking a 'STATUS:' header, resolving citations against supplied evidence, and detecting finish reasons such as MAX_TOKENS (appending 'This answer was cut short by the output limit.').",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0085": {
+      "statement": "Invalid provider citations (out-of-range, mismatched text, empty/unsupplied source ids, reversed ranges, boolean index, blank text) cause validate_answer to return outcome 'failed' with error_code 'invalid_citation' and strip text, citations, and evidence so no answer is exposed.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0086": {
+      "statement": "validate_answer returns specific error codes for malformed provider output: 'invalid_answer_status' (no STATUS header), 'empty_answer' (blank body), and 'missing_citations' (no citations when one is expected).",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0087": {
+      "statement": "When retrieval returns no chunks, AnswerService returns outcome 'insufficient_evidence' without calling the generation provider; when retrieval raises RetrievalError('index_unavailable', retryable=True) or the provider raises ProviderError('rate_limited'), the corresponding error code is returned and generation is not invoked for the retrieval failure.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0088": {
+      "statement": "configured_answer_service is an async context manager that acquires the tokenizer, retrieval, and generation resources and releases them on exit in LIFO order (test observes 'enter','enter','exit','exit' ordering).",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0089": {
+      "statement": "The GenerationRequest contract rejects invalid documents: a bare string in the documents list, and two documents sharing the same id, both raise ValueError; GenerationDocument rejects blank id or blank text.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0090": {
+      "statement": "validate_answer is JSON-round-trippable: the result model validates from its own model_dump_json output and preserves citation text-to-range correspondence and source locator page numbers.",
+      "sources": [
+        "S0012"
+      ],
+      "uncertain": false
+    },
+    "F0091": {
+      "statement": "The integrated flow (test_upload_processing_streamed_answer_history_and_source_access) exercises: upload a text document (202 with Idempotency-Key and document_id/job_id receipt), poll the job until 'succeeded', POST /answers/stream returning Server-Sent Events, read the final 'complete' event's outcome/text/evidence/citations, then GET the saved answer and document content. Demonstrated by the test, not by inspecting route source.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": true
+    },
+    "F0092": {
+      "statement": "The streamed answer endpoint emits SSE lines prefixed 'data: ', including 'content' text-delta events whose concatenated text equals the final answer text, and a final 'complete' event carrying answer_id and a 'result' object with outcome, text, evidence, and citations.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": true
+    },
+    "F0093": {
+      "statement": "Saved answers are per-user scoped: the same answer_id requested by a different demo user returns 404, and after the source document is deleted the saved answer reports available=false with result null and the document content endpoint returns 404. Demonstrated via the integration test's HTTP assertions.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": true
+    },
+    "F0094": {
+      "statement": "Answer history persists exactly one SavedAnswer row for the completed flow, per the SQLAlchemy count assertion; the test also reads back the saved answer's 'result' matching the stream's final result.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": false
+    },
+    "F0095": {
+      "statement": "The offline integration harness wires components by monkeypatching module-level settings and provider factories (get_settings in api/answer_stream/management_api/main; search.configured_cohere_embeddings/reranking; answers.configured_cohere_generation and load_local_tokenizer; runtime equivalents) and injects an Authorization policy and ManagementService via app.dependency_overrides. This shows these are the runtime seams for provider and authorization selection.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": false
+    },
+    "F0096": {
+      "statement": "In the test harness a Publisher submits ingestion work by scheduling runtime.run_configured_job with settings, an OpenSearchDocumentIndex, and the job, tracked as async tasks and cancelled on teardown; OpenSearchIndexManager creates and (via httpx DELETE) removes the temporary index, and seed_database seeds tenant/collection/user data.",
+      "sources": [
+        "S0011"
+      ],
+      "uncertain": false
+    },
+    "F0097": {
+      "statement": "The CohereGenerationProvider sends a single non-streaming chat request to the Cohere /v2/chat endpoint using the v2 SDK, posting the messages, model, max_tokens, temperature 0.0, and stream=false; the returned multipart text content is concatenated into the answer text.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0098": {
+      "statement": "Provider finish reasons are normalized to the app's enum: COMPLETE and STOP_SEQUENCE map to COMPLETE, MAX_TOKENS maps to MAX_TOKENS; TIMEOUT, ERROR, and TOOL_CALL raise ProviderError with codes timeout (retryable), unavailable (retryable), and invalid_response (not retryable) respectively.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0099": {
+      "statement": "HTTP status failures map to a closed error code set: 400->invalid_request, 401/403/498->authentication (all non-retryable), 429->rate_limited (retryable), 500/503->unavailable (retryable); the provider makes only one attempt with no retries and strips the provider's raw body/headers from the surfaced error (via __suppress_context__).",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0100": {
+      "statement": "Malformed responses (empty content, whitespace-only text, unknown finish reasons, negative or non-numeric usage counters, thinking-only content) raise ProviderError with code 'invalid_response'.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0101": {
+      "statement": "Transport and parse failures are also converted into ProviderError: httpx.ReadTimeout->timeout, httpx.ConnectError->unavailable, ValueError->invalid_response.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0102": {
+      "statement": "The provider enforces a total timeout (default from configuration) by cancelling the in-flight SDK call; on total timeout it raises ProviderError 'timeout', while an external caller cancellation propagates as asyncio.CancelledError rather than being swallowed.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0103": {
+      "statement": "Provider construction validates configuration and raises ValueError for blank model, non-positive timeout, invalid or out-of-range temperature (must be in [0,1]), and negative or NaN cost rates.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0104": {
+      "statement": "Live use is gated on an API key: open_cohere_generation raises ValueError on a blank key and manages the SDK AsyncClientV2 lifecycle (awaiting __aexit__ to close the client); configured_cohere_generation reads COHERE_API_KEY, COHERE_GENERATION_MODEL, and baseline rates from Settings and raises ValueError when the key is missing.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0105": {
+      "statement": "Per-call usage is recorded with reported input/output tokens, separate billed input/output tokens, latency measured with perf_counter, and an estimated cost computed from per-million input (0.0375) and output (0.15) rates, using Decimal arithmetic.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0106": {
+      "statement": "When the request includes documents, the provider forwards them to Cohere as {id, data:{text}} entries, and returned citations are converted to results carrying the caller's source_ids and citation text; the provider's echoed document text is not retained on the citation object (test asserts no 'document' attribute).",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0107": {
+      "statement": "Malformed native citation payloads (e.g. non-integer start) raise ProviderError 'invalid_response' rather than surfacing the malformed data.",
+      "sources": [
+        "S0013"
+      ],
+      "uncertain": false
+    },
+    "F0108": {
+      "statement": "ProviderError is a single exception type carrying a closed ProviderErrorCode literal ('timeout','unavailable','authentication','rate_limited','invalid_request','invalid_response') and a retryable boolean, with a fixed message that never includes provider response bodies or headers.",
+      "sources": [
+        "S0014"
+      ],
+      "uncertain": false
+    },
+    "F0109": {
+      "statement": "estimate_embedding_cost computes Decimal cost = billed_input_tokens * usd_per_million_tokens / 1_000_000, and returns None (treated as unknown, not zero) when either input is None; EmbeddingUsage is an immutable record separating reported input tokens, billed input tokens, latency, cost, and per-million rate.",
+      "sources": [
+        "S0015"
+      ],
+      "uncertain": false
+    },
+    "F0110": {
+      "statement": "FakeGenerationProvider is deterministic and repeatable across instances: identical requests yield identical results, responses vary with the request text and max_output_tokens, and the text contains no prompt content; it reports billed tokens and cost of 0, unreported input/output tokens and latency as None, model 'fake-generation-v1', and adapter 'fake'.",
+      "sources": [
+        "S0016"
+      ],
+      "uncertain": false
+    },
+    "F0111": {
+      "statement": "The shared generation contract validates messages (roles from MessageRole, non-blank content) and requests (nonempty tuple of GenerationMessage, at least one user message, positive integer max_tokens excluding bool), and results reject empty text, blank model, unknown finish reason, negative token counts, and non-finite latency.",
+      "sources": [
+        "S0016"
+      ],
+      "uncertain": false
+    },
+    "F0112": {
+      "statement": "The source excerpts show no caller, route, or command-line entry point selecting between the live Cohere generation adapter and the fake adapter, so how either is wired into the wider answer flow is not evidenced here.",
+      "sources": [
+        "S0013",
+        "S0016"
+      ],
+      "uncertain": true
     }
   },
   "sources": {
     "S0001": {
       "id": "S0001",
-      "path": "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+      "path": "backend/src/hybrid_rag_search/answer_api.py",
       "start": 1,
-      "end": 231
+      "end": 44
     },
     "S0002": {
       "id": "S0002",
+      "path": "backend/src/hybrid_rag_search/answer_history.py",
+      "start": 1,
+      "end": 115
+    },
+    "S0003": {
+      "id": "S0003",
+      "path": "backend/src/hybrid_rag_search/answer_stream.py",
+      "start": 1,
+      "end": 220
+    },
+    "S0004": {
+      "id": "S0004",
+      "path": "backend/src/hybrid_rag_search/answers.py",
+      "start": 1,
+      "end": 348
+    },
+    "S0005": {
+      "id": "S0005",
+      "path": "backend/src/hybrid_rag_search/models/answers.py",
+      "start": 1,
+      "end": 33
+    },
+    "S0006": {
+      "id": "S0006",
+      "path": "backend/src/hybrid_rag_search/providers/cohere_generation.py",
+      "start": 1,
+      "end": 364
+    },
+    "S0007": {
+      "id": "S0007",
+      "path": "backend/src/hybrid_rag_search/providers/generation.py",
+      "start": 1,
+      "end": 132
+    },
+    "S0008": {
+      "id": "S0008",
+      "path": "backend/tests/test_answer_history.py",
+      "start": 1,
+      "end": 100
+    },
+    "S0009": {
+      "id": "S0009",
+      "path": "backend/tests/test_answer_history_integration.py",
+      "start": 1,
+      "end": 172
+    },
+    "S0010": {
+      "id": "S0010",
+      "path": "backend/tests/test_answer_stream.py",
+      "start": 1,
+      "end": 467
+    },
+    "S0011": {
+      "id": "S0011",
+      "path": "backend/tests/test_answer_stream_integration.py",
+      "start": 1,
+      "end": 206
+    },
+    "S0012": {
+      "id": "S0012",
+      "path": "backend/tests/test_answers.py",
+      "start": 1,
+      "end": 256
+    },
+    "S0013": {
+      "id": "S0013",
+      "path": "backend/tests/test_cohere_generation.py",
+      "start": 1,
+      "end": 369
+    },
+    "S0014": {
+      "id": "S0014",
       "path": "backend/src/hybrid_rag_search/providers/errors.py",
       "start": 1,
       "end": 19
     },
-    "S0003": {
-      "id": "S0003",
-      "path": "backend/src/hybrid_rag_search/providers/generation.py",
-      "start": 1,
-      "end": 90
-    },
-    "S0004": {
-      "id": "S0004",
+    "S0015": {
+      "id": "S0015",
       "path": "backend/src/hybrid_rag_search/providers/usage.py",
       "start": 1,
       "end": 22
     },
-    "S0005": {
-      "id": "S0005",
-      "path": "backend/tests/test_cohere_generation.py",
-      "start": 1,
-      "end": 314
-    },
-    "S0006": {
-      "id": "S0006",
+    "S0016": {
+      "id": "S0016",
       "path": "backend/tests/test_generation.py",
       "start": 1,
       "end": 102
     }
   },
   "metadata": {
-    "revision": "3537e913c1eeec5b5f34d6cbdbf4dc3f8bc74b25",
-    "generated_at": "2026-10-19T00:19:50.529485+00:00",
+    "revision": "e4abb88a149b365c2838b0f2f0606dff0127b1ab",
+    "generated_at": "2026-10-22T15:17:36.966572+00:00",
     "model": "deepseek-v4.1-flash",
     "model_responses": [
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
+      {
+        "requested": "deepseek-v4.1-flash",
+        "reported": "deepseek-v4.1-flash",
+        "kyma_served": "deepseek-v4.1-flash"
+      },
       {
         "requested": "deepseek-v4.1-flash",
         "reported": "deepseek-v4.1-flash",
@@ -537,6 +1247,6 @@
       }
     ],
     "local_changes": false,
-    "repository_url": "https://github.com/Justin-Mendoza/hybrid-rag-search"
+    "repository_url": "https://github.com/Justin-Mendoza/Afterclass"
   }
 }

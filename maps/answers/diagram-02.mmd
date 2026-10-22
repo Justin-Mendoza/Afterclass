@@ -1,10 +1,9 @@
 %%{init: {"themeVariables": {"fontSize": "22px"}}}%%
 flowchart TD
-  n0["App settings"]
-  n1["Live answer<br/>provider"]
-  n2["Test answer<br/>provider"]
-  n3["Shared answer<br/>shape"]
-  n0 -->|"Key and model"| n1
-  n1 -->|"Returns answer"| n3
-  n2 -.->|"Returns answer"| n3
-  n0 -.->|"Provider choice"| n2
+  n0["Answer work in<br/>progress"]
+  n1["Ordered update<br/>queue"]
+  n2["Streamed updates"]
+  n3["Finished answer<br/>record"]
+  n0 -->|"Stage and text<br/>updates"| n1
+  n1 -->|"In order, with<br/>heartbeats"| n2
+  n2 -->|"Final complete<br/>event"| n3
