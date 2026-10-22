@@ -1,10 +1,10 @@
 """Bounded, authorized grounded answers; no HTTP generation endpoint or paid retries."""
 
 import re
-from collections.abc import AsyncIterator, Sequence
-from contextlib import asynccontextmanager
-from dataclasses import asdict
-from typing import Any, Literal, Protocol
+from collections.abc import AsyncGenerator, AsyncIterator, Sequence
+from contextlib import aclosing, asynccontextmanager
+from dataclasses import asdict, dataclass
+from typing import Any, Literal, Protocol, cast
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -22,7 +22,9 @@ from hybrid_rag_search.providers.generation import (
     GenerationProvider,
     GenerationRequest,
     GenerationResult,
+    GenerationTextDelta,
     MessageRole,
+    StreamingGenerationProvider,
 )
 from hybrid_rag_search.search import AuthorizedSearch
 from hybrid_rag_search.tokenization import (
@@ -189,6 +191,16 @@ def validate_answer(
     )
 
 
+@dataclass(frozen=True)
+class AnswerProgress:
+    stage: Literal["retrieving", "generating", "validating"]
+
+
+@dataclass(frozen=True)
+class AnswerDraft:
+    text: str
+
+
 class AnswerService:
     def __init__(
         self,
@@ -200,7 +212,9 @@ class AnswerService:
         self.settings, self.retrieval = settings, retrieval
         self.provider, self.tokenizer = provider, tokenizer
 
-    async def answer(self, scope: AuthorizedScope, question: str) -> AnswerResult:
+    async def prepare(
+        self, scope: AuthorizedScope, question: str
+    ) -> tuple[tuple[AnswerEvidence, ...], dict[str, Any]] | AnswerResult:
         if not question.strip() or len(question) > 4096:
             raise ValueError("Question must contain 1–4096 characters")
         config = {
@@ -229,24 +243,96 @@ class AnswerService:
                 text="No usable authorized evidence was found.",
                 configuration=config,
             )
+        return evidence, config
+
+    @staticmethod
+    def generation_request(
+        question: str, evidence: tuple[AnswerEvidence, ...], limit: int
+    ) -> GenerationRequest:
+        return GenerationRequest(
+            messages=(
+                GenerationMessage(MessageRole.SYSTEM, GROUNDING_PROMPT),
+                GenerationMessage(MessageRole.USER, question),
+            ),
+            max_output_tokens=limit,
+            documents=tuple(
+                GenerationDocument(item.chunk_id, item.content_text) for item in evidence
+            ),
+        )
+
+    async def answer(self, scope: AuthorizedScope, question: str) -> AnswerResult:
+        prepared = await self.prepare(scope, question)
+        if isinstance(prepared, AnswerResult):
+            return prepared
+        evidence, config = prepared
         try:
             generated = await self.provider.generate(
-                GenerationRequest(
-                    messages=(
-                        GenerationMessage(MessageRole.SYSTEM, GROUNDING_PROMPT),
-                        GenerationMessage(MessageRole.USER, question),
-                    ),
-                    max_output_tokens=self.settings.answer_max_output_tokens,
-                    documents=tuple(
-                        GenerationDocument(item.chunk_id, item.content_text) for item in evidence
-                    ),
-                )
+                self.generation_request(question, evidence, self.settings.answer_max_output_tokens)
             )
         except ProviderError as error:
             return AnswerResult(
                 outcome="failed", text="", error_code=error.code, configuration=config
             )
         return validate_answer(generated, evidence).model_copy(update={"configuration": config})
+
+    async def stream(
+        self, scope: AuthorizedScope, question: str
+    ) -> AsyncGenerator[AnswerProgress | AnswerDraft | AnswerResult, None]:
+        yield AnswerProgress("retrieving")
+        prepared = await self.prepare(scope, question)
+        if isinstance(prepared, AnswerResult):
+            yield prepared
+            return
+        evidence, config = prepared
+        yield AnswerProgress("generating")
+        provider = cast(StreamingGenerationProvider, self.provider)
+        prefix_buffer = ""
+        status: str | None = None
+        assembled: GenerationResult | None = None
+        try:
+            async with aclosing(
+                provider.stream(
+                    self.generation_request(
+                        question, evidence, self.settings.answer_max_output_tokens
+                    )
+                )
+            ) as events:
+                async for event in events:
+                    if isinstance(event, GenerationTextDelta):
+                        if assembled is not None:
+                            raise ProviderError("invalid_response")
+                        if status is None:
+                            prefix_buffer += event.text
+                            if "\n" not in prefix_buffer and len(prefix_buffer) <= 100:
+                                continue
+                            header = _STATUS.match(prefix_buffer)
+                            if header is None:
+                                yield AnswerResult(
+                                    outcome="failed",
+                                    text="",
+                                    error_code="invalid_answer_status",
+                                    configuration=config,
+                                )
+                                return
+                            status = header.group(1)
+                            part = prefix_buffer[header.end() :]
+                        else:
+                            part = event.text
+                        if status != "insufficient_evidence" and part:
+                            yield AnswerDraft(part)
+                    else:
+                        if assembled is not None:
+                            raise ProviderError("invalid_response")
+                        assembled = event
+            if assembled is None:
+                raise ProviderError("invalid_response")
+        except ProviderError as error:
+            yield AnswerResult(
+                outcome="failed", text="", error_code=error.code, configuration=config
+            )
+            return
+        yield AnswerProgress("validating")
+        yield validate_answer(assembled, evidence).model_copy(update={"configuration": config})
 
 
 @asynccontextmanager

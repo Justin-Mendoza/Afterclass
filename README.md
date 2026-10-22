@@ -4,7 +4,7 @@ A production-style enterprise search system built to explore the engineering beh
 
 The project intentionally focuses on the **search system around the language model**, rather than building another generic “chat with a PDF” application.
 
-> **Current status:** Day 17 collection, document, permission, upload, and job APIs are implemented, including durable upload retry keys and coordinated deletion. Day 15 retrieval baselines are verified on the synthetic workspace and a fixed SciFact subset; full SciFact is deferred. Next: grounded answers and citation mapping. Identity verification is simulated; authorization is enforced.
+> **Current status:** Days 18–21 now provide a local document Q&A workspace: uploads and processing status, live answer drafts, checked citations, source inspection, private history, and permission management. See the [combined runbook](docs/tickets/days-18-21.md). Identity verification remains simulated; backend authorization is enforced. Day 22 adds search diagnostics and evaluation views.
 
 ---
 
@@ -438,7 +438,7 @@ Start the complete local stack:
 make stack-up
 ```
 
-The command waits until all six services pass their health checks.
+Run `make stack-up` to start Docker Desktop, then build and start the complete six-service environment. Docker Desktop startup completes before Compose runs, and the command waits until the frontend, API, worker, PostgreSQL, Redis, and OpenSearch health checks pass.
 
 | Service | Address |
 |---|---|
@@ -449,7 +449,7 @@ The command waits until all six services pass their health checks.
 | OpenSearch | `http://127.0.0.1:9200` |
 | OpenSearch Metrics | `http://127.0.0.1:9600` |
 
-Inspect service status:
+Use `make stack-status` to inspect health and `make stack-logs` to follow recent logs. `make stack-down` removes the containers and network while preserving all named-volume data, then stops Docker Desktop to release its Linux VM's memory. Stopping Docker Desktop affects every local Docker project, not just this stack. The next `make stack-up` starts Docker Desktop and restores the persisted data.
 
 ```bash
 make stack-status
@@ -583,17 +583,16 @@ Implemented work includes:
 
 ### Next Milestone
 
-**Day 19**
+**Day 22 — Search details and evaluation views**
 
-Day 18 adds the internal grounded answer service, validated request-bound citations,
-and author-private answer history. Read the [Day 18 runbook](docs/tickets/day-18.md)
-for evidence budgets, outcome handling, history APIs, and zero-cost verification.
-Day 19 will expose answer creation through streaming and add cancellation.
-Collection/document management remains documented in the [Day 17 runbook](docs/tickets/day-17.md).
+The [Days 18–21 runbook](docs/tickets/days-18-21.md) covers the usable browser
+workflow, streaming contract, cancellation/history rules, and verification.
+The [Day 18 runbook](docs/tickets/day-18.md) explains evidence budgets and citation
+validation; [Day 17](docs/tickets/day-17.md) documents the management APIs.
 
 ### Upcoming
 
-**Days 19–22**
+**Day 22 and later**
 
 Cited-answer product:
 

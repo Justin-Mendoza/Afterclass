@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 
 from hybrid_rag_search.answers import AnswerResult, AnswerService
-from hybrid_rag_search.authorization import AccessDenied, Authorization
+from hybrid_rag_search.authorization import AccessDenied, Authorization, AuthorizedScope
 from hybrid_rag_search.models import SavedAnswer
 
 
@@ -36,7 +36,10 @@ class AnswerHistory:
     ) -> UUID:
         scope = await self.policy.scope(user_id, workspace_id, collection_id)
         result = await service.answer(scope, question)
-        # JSON serialization normalizes UUIDs, Decimals, source spans, and timestamps.
+        return await self.save(scope, question, result)
+
+    async def save(self, scope: AuthorizedScope, question: str, result: AnswerResult) -> UUID:
+        """Persist a terminal server-produced result, never a provisional draft."""
         row = SavedAnswer(
             tenant_id=scope.tenant_id,
             author_user_id=scope.user_id,

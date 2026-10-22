@@ -2,11 +2,11 @@
 
 import asyncio
 import math
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
+from collections.abc import AsyncGenerator, AsyncIterator
+from contextlib import aclosing, asynccontextmanager
 from decimal import Decimal
 from time import perf_counter
-from typing import Literal, TypedDict
+from typing import Any, Literal, TypedDict, cast
 
 import cohere
 import httpx
@@ -28,6 +28,7 @@ from hybrid_rag_search.providers.generation import (
     GenerationFinishReason,
     GenerationRequest,
     GenerationResult,
+    GenerationTextDelta,
     GenerationUsage,
     MessageRole,
 )
@@ -98,7 +99,7 @@ def _estimate_cost(
 
 
 class CohereGenerationProvider:
-    """Non-streaming Chat adapter; the injected SDK client owns its lifetime."""
+    """Complete and streaming Chat adapter; the injected SDK client owns its lifetime."""
 
     def __init__(
         self,
@@ -180,6 +181,9 @@ class CohereGenerationProvider:
             )
         except ValidationError:
             raise ProviderError("invalid_response") from None
+        return self._result(parsed, started)
+
+    def _result(self, parsed: _ChatResponse, started: float) -> GenerationResult:
         if parsed.finish_reason == "TIMEOUT":
             raise ProviderError("timeout", retryable=True)
         if parsed.finish_reason == "ERROR":
@@ -222,6 +226,101 @@ class CohereGenerationProvider:
                 output_usd_per_million_tokens=self.output_rate,
             ),
         )
+
+    async def stream(
+        self, request: GenerationRequest
+    ) -> AsyncGenerator[GenerationTextDelta | GenerationResult, None]:
+        """Use one cancellable SDK stream; no retries and no provider-echoed evidence."""
+        options: RequestOptions = {
+            "timeout_in_seconds": math.ceil(self.timeout_seconds),
+            "max_retries": 0,
+        }
+        arguments: _EvidenceArguments = {}
+        if request.documents:
+            arguments["documents"] = [
+                Document(id=item.id, data={"text": item.text}) for item in request.documents
+            ]
+        started = perf_counter()
+        text = ""
+        citations: list[dict[str, Any]] = []
+        ended = False
+        try:
+            async with asyncio.timeout(self.timeout_seconds):
+                async with aclosing(
+                    cast(
+                        AsyncGenerator[Any, None],
+                        self.client.chat_stream(
+                            model=self.model,
+                            messages=self._messages(request),
+                            max_tokens=request.max_output_tokens,
+                            temperature=self.temperature,
+                            request_options=options,
+                            **arguments,
+                        ),
+                    )
+                ) as events:
+                    async for event in events:
+                        data = event.model_dump(by_alias=True, warnings=False)
+                        kind = data.get("type")
+                        if ended:
+                            raise ProviderError("invalid_response")
+                        if kind == "content-delta":
+                            part = _TextContent.model_validate(
+                                {
+                                    "type": "text",
+                                    "text": data["delta"]["message"]["content"]["text"],
+                                }
+                            ).text
+                            text += part
+                            if len(text) > 100_000:
+                                raise ProviderError("invalid_response")
+                            if part:
+                                yield GenerationTextDelta(part)
+                        elif kind == "citation-start":
+                            citation = dict(data["delta"]["message"]["citations"])
+                            if citation.get("type") is None:
+                                citation["type"] = "TEXT_CONTENT"
+                            citations.append(_Citation.model_validate(citation).model_dump())
+                            if len(citations) > 256:
+                                raise ProviderError("invalid_response")
+                        elif kind == "message-end":
+                            delta = data["delta"]
+                            parsed = _ChatResponse.model_validate(
+                                {
+                                    "finish_reason": delta["finish_reason"],
+                                    "message": {
+                                        "content": [{"type": "text", "text": text}],
+                                        "citations": citations,
+                                    },
+                                    "usage": delta.get("usage"),
+                                }
+                            )
+                            ended = True
+                            yield self._result(parsed, started)
+                        elif kind not in {
+                            "message-start",
+                            "content-start",
+                            "content-end",
+                            "citation-end",
+                            "debug",
+                        }:
+                            raise ProviderError("invalid_response")
+            if not ended:
+                raise ProviderError("invalid_response")
+        except (TimeoutError, httpx.TimeoutException):
+            raise ProviderError("timeout", retryable=True) from None
+        except httpx.TransportError:
+            raise ProviderError("unavailable", retryable=True) from None
+        except ApiError as error:
+            if error.status_code in (401, 403, 498):
+                raise ProviderError("authentication") from None
+            if error.status_code == 429:
+                raise ProviderError("rate_limited", retryable=True) from None
+            if error.status_code is not None and error.status_code >= 500:
+                raise ProviderError("unavailable", retryable=True) from None
+            raise ProviderError("invalid_request") from None
+        except (ValueError, TypeError, KeyError, AttributeError):
+            raise ProviderError("invalid_response") from None
 
 
 @asynccontextmanager

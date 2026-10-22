@@ -25,10 +25,12 @@ frontend-dev:
 	npm --prefix frontend run dev
 
 stack-up:
+	docker desktop start
 	docker compose up --build --detach --wait
 
 stack-down:
 	docker compose down
+	docker desktop stop
 
 stack-status:
 	docker compose ps

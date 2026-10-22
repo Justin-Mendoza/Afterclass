@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     cohere_rerank_usd_per_search_unit: Decimal | None = Field(
         default=None, ge=0, allow_inf_nan=False
     )
+    answer_request_timeout_seconds: float = Field(default=90.0, gt=0, allow_inf_nan=False)
     answer_max_chunks: int = Field(default=5, gt=0)
     answer_evidence_token_budget: int = Field(default=2000, gt=0)
     answer_max_output_tokens: int = Field(default=512, gt=0)

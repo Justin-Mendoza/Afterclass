@@ -1,6 +1,7 @@
 """Text generation with optional request-bound evidence and native citations."""
 
 import math
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from decimal import Decimal
 from enum import StrEnum
@@ -113,4 +114,19 @@ class GenerationResult:
 class GenerationProvider(Protocol):
     async def generate(self, request: GenerationRequest) -> GenerationResult:
         """Generate one complete text response for an ordered message history."""
+        ...
+
+
+@dataclass(frozen=True)
+class GenerationTextDelta:
+    """Provisional text, never an assertion that citations have been checked."""
+
+    text: str
+
+
+class StreamingGenerationProvider(Protocol):
+    def stream(
+        self, request: GenerationRequest
+    ) -> AsyncGenerator[GenerationTextDelta | GenerationResult, None]:
+        """Yield provisional text followed by exactly one assembled result."""
         ...

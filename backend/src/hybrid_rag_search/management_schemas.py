@@ -93,3 +93,8 @@ class ErrorDetail(Contract):
 
 class ErrorView(Contract):
     error: ErrorDetail
+
+
+class CollectionCapabilities(Contract):
+    can_upload: bool
+    can_manage: bool

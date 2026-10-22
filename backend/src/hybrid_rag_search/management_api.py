@@ -16,6 +16,7 @@ from hybrid_rag_search.ingestion.dispatch import DramatiqJobPublisher
 from hybrid_rag_search.ingestion.indexing import IndexWriteError
 from hybrid_rag_search.management import ManagementService
 from hybrid_rag_search.management_schemas import (
+    CollectionCapabilities,
     CollectionCreate,
     CollectionEdit,
     CollectionView,
@@ -351,3 +352,20 @@ async def delete_document(
             503, "deletion_pending", "Cleanup failed; retry this delete request."
         ) from None
     return Response(status_code=204)
+
+
+@router.get("/collections/{collection_id}/capabilities", response_model=CollectionCapabilities)
+async def collection_capabilities(
+    workspace_id: UUID, collection_id: UUID, policy: Policy, demo_user: DemoUser = None
+) -> CollectionCapabilities:
+    await policy.scope(demo_user, workspace_id, collection_id)
+    allowed = {}
+    for action in ("write", "manage"):
+        try:
+            await policy.require(demo_user, workspace_id, action, collection_id)
+            allowed[action] = True
+        except AccessDenied as error:
+            if error.status_code != 403:
+                raise
+            allowed[action] = False
+    return CollectionCapabilities(can_upload=allowed["write"], can_manage=allowed["manage"])
