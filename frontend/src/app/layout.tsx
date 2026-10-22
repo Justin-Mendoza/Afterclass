@@ -5,7 +5,8 @@ import "./styles.css";
 
 export const metadata: Metadata = {
   title: "Hybrid RAG Search",
-  description: "Evidence-first enterprise search",
+  description:
+    "Ask questions about your documents and inspect the sources behind each answer.",
 };
 
 export default function RootLayout({
@@ -13,7 +14,12 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <a className="skip-link" href="#main-content">
+          Skip to content
+        </a>
+        {children}
+      </body>
     </html>
   );
 }

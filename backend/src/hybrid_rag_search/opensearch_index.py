@@ -180,11 +180,15 @@ class OpenSearchDocumentIndex(DocumentIndex):
         return IndexReceipt.from_request(request)
 
     async def delete_document(self, tenant_id: str, document_id: str) -> None:
-        await self._request(
+        response = await self._request(
             "POST",
             f"/{self.write_alias}/_delete_by_query?refresh=true&conflicts=proceed",
             json={"query": {"bool": {"filter": self._document_filters(tenant_id, document_id)}}},
         )
+
+        result = response.json()
+        if result.get("timed_out") or result.get("failures") or result.get("version_conflicts"):
+            raise IndexWriteError("document_delete_incomplete", retryable=True)
 
     def _bulk_body(self, request: ReplaceDocumentRequest) -> bytes:
         lines: list[str] = []

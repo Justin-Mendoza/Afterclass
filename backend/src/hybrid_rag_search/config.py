@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     rerank_candidate_limit: int = Field(default=20, gt=0)
     rerank_result_limit: int = Field(default=10, gt=0)
     retrieval_deadline_seconds: float = Field(default=8.0, gt=0, allow_inf_nan=False)
+    upload_max_bytes: int = Field(default=20 * 1024 * 1024, gt=0)
     storage_root: Path = Path(".data/originals")
     tokenizer_root: Path = Path(".data/tokenizers")
     ingestion_artifact_root: Path = Path(".data/ingestion-artifacts")
@@ -46,6 +47,10 @@ class Settings(BaseSettings):
     cohere_rerank_usd_per_search_unit: Decimal | None = Field(
         default=None, ge=0, allow_inf_nan=False
     )
+    answer_request_timeout_seconds: float = Field(default=90.0, gt=0, allow_inf_nan=False)
+    answer_max_chunks: int = Field(default=5, gt=0)
+    answer_evidence_token_budget: int = Field(default=2000, gt=0)
+    answer_max_output_tokens: int = Field(default=512, gt=0)
     cohere_generation_model: str = "command-r7b-12-2024"
     cohere_generation_timeout_seconds: float = Field(default=30.0, gt=0, allow_inf_nan=False)
     cohere_generation_temperature: float = Field(default=0.0, ge=0, le=1, allow_inf_nan=False)

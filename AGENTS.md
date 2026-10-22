@@ -107,6 +107,12 @@ actually built, use the project's existing terms, and stay compact enough to
 scan alongside the summary. Skip it for trivial changes where prose already
 communicates the flow clearly.
 
+After successfully opening any pull request, run `make stack-down` from the
+repository root before the final handoff so local Docker services are not left
+running. Preserve persisted data: do not use `stack-reset`, `down --volumes`, or
+other data-deleting cleanup commands. Confirm the shutdown succeeded in the
+handoff; if it fails, report the failure rather than claiming the stack is down.
+
 ## Teaching depth
 
 Assume the owner is technically curious and wants engineering-level understanding, but may not know every tool in this stack. Start with the mental model, then add implementation detail. Prefer explaining a small amount at the moment it becomes relevant over delivering a large tutorial after all code is written.

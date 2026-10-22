@@ -25,10 +25,12 @@ frontend-dev:
 	npm --prefix frontend run dev
 
 stack-up:
+	docker desktop start
 	docker compose up --build --detach --wait
 
 stack-down:
 	docker compose down
+	docker desktop stop
 
 stack-status:
 	docker compose ps
@@ -137,3 +139,11 @@ build:
 	npm --prefix frontend run build
 
 check: format-check lint typecheck test build
+
+.PHONY: management-test
+management-test:
+	.venv/bin/pytest backend/tests/test_management.py backend/tests/test_authorization_api.py --no-cov
+
+.PHONY: answer-test
+answer-test:
+	.venv/bin/pytest backend/tests/test_answers.py backend/tests/test_answer_history.py backend/tests/test_cohere_generation.py --no-cov

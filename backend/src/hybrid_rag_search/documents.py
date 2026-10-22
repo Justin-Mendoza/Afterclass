@@ -48,45 +48,59 @@ class DocumentService:
         media_type: str,
         content: bytes,
     ) -> UploadResult:
+        async with self.sessions.begin() as session:
+            return await self.upload_in_session(
+                session, tenant_id, collection_id, filename, media_type, content
+            )
+
+    async def upload_in_session(
+        self,
+        session: AsyncSession,
+        tenant_id: UUID,
+        collection_id: UUID,
+        filename: str,
+        media_type: str,
+        content: bytes,
+    ) -> UploadResult:
+        """Save within the caller's transaction, including its upload receipt/job."""
         if not filename.strip() or not media_type.strip():
             raise ValueError("Filename and media type must be nonblank")
         digest = hashlib.sha256(content).hexdigest()
-        async with self.sessions.begin() as session:
-            collection = await session.scalar(
-                select(Collection)
-                .where(Collection.tenant_id == tenant_id, Collection.id == collection_id)
-                .with_for_update()
+        collection = await session.scalar(
+            select(Collection)
+            .where(Collection.tenant_id == tenant_id, Collection.id == collection_id)
+            .with_for_update()
+        )
+        if collection is None:
+            raise DocumentNotFound("Collection not found")
+        duplicate = await session.scalar(
+            select(Document).where(
+                Document.tenant_id == tenant_id,
+                Document.collection_id == collection_id,
+                Document.content_hash == digest,
+                Document.status.not_in([DocumentStatus.DELETING, DocumentStatus.DELETED]),
             )
-            if collection is None:
-                raise DocumentNotFound("Collection not found")
-            duplicate = await session.scalar(
-                select(Document).where(
-                    Document.tenant_id == tenant_id,
-                    Document.collection_id == collection_id,
-                    Document.content_hash == digest,
-                    Document.status.not_in([DocumentStatus.DELETING, DocumentStatus.DELETED]),
-                )
+        )
+        if duplicate is not None:
+            return UploadResult(duplicate.id, duplicate=True)
+        document_id = uuid4()
+        key = storage_key(tenant_id, document_id)
+        session.add(
+            Document(
+                id=document_id,
+                tenant_id=tenant_id,
+                collection_id=collection_id,
+                source_key=str(document_id),
+                storage_key=key,
+                original_filename=filename,
+                media_type=media_type,
+                content_hash=digest,
+                size_bytes=len(content),
+                status=DocumentStatus.PENDING,
             )
-            if duplicate is not None:
-                return UploadResult(duplicate.id, duplicate=True)
-            document_id = uuid4()
-            key = storage_key(tenant_id, document_id)
-            session.add(
-                Document(
-                    id=document_id,
-                    tenant_id=tenant_id,
-                    collection_id=collection_id,
-                    source_key=str(document_id),
-                    storage_key=key,
-                    original_filename=filename,
-                    media_type=media_type,
-                    content_hash=digest,
-                    size_bytes=len(content),
-                    status=DocumentStatus.PENDING,
-                )
-            )
-            await session.flush()
-            await asyncio.to_thread(self.storage.save, key, content)
+        )
+        await session.flush()
+        await asyncio.to_thread(self.storage.save, key, content)
         return UploadResult(document_id, duplicate=False)
 
     async def _document(

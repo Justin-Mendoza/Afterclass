@@ -15,7 +15,8 @@ from hybrid_rag_search.ingestion.runtime import run_configured_job, run_configur
 from hybrid_rag_search.opensearch_index import OpenSearchDocumentIndex
 
 settings = get_settings()
-broker = RedisBroker(url=settings.redis_url)
+# Dramatiq does not provide a typed RedisBroker constructor.
+broker = RedisBroker(url=settings.redis_url)  # type: ignore[no-untyped-call]
 dramatiq.set_broker(broker)
 document_index = OpenSearchDocumentIndex(
     settings.opensearch_url,

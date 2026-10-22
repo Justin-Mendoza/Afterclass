@@ -3,9 +3,13 @@ from typing import Literal
 from fastapi import FastAPI, Response, status
 from pydantic import BaseModel
 
+from hybrid_rag_search.answer_api import router as answer_router
+from hybrid_rag_search.answer_stream import router as stream_router
+from hybrid_rag_search.api import router as product_router
+from hybrid_rag_search.api_errors import install_errors
 from hybrid_rag_search.config import get_settings
-from hybrid_rag_search.evaluation.api import router as evaluation_router
 from hybrid_rag_search.health import dependency_status
+from hybrid_rag_search.management_api import router as management_router
 
 
 class HealthResponse(BaseModel):
@@ -21,7 +25,11 @@ class ReadinessResponse(BaseModel):
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title="Hybrid RAG Search API", version="0.1.0")
-    app.include_router(evaluation_router)
+    install_errors(app)
+    app.include_router(product_router)
+    app.include_router(stream_router)
+    app.include_router(answer_router)
+    app.include_router(management_router)
 
     async def live() -> HealthResponse:
         return HealthResponse(status="ok", environment=settings.app_env)

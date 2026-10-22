@@ -1,3 +1,4 @@
+from hybrid_rag_search.models.answers import SavedAnswer
 from hybrid_rag_search.models.content import (
     Collection,
     CollectionGrant,
@@ -18,8 +19,11 @@ from hybrid_rag_search.models.evaluation import (
 )
 from hybrid_rag_search.models.identity import Membership, MembershipRole, Tenant, User
 from hybrid_rag_search.models.retrieval import QueryTrace, RetrievalConfig
+from hybrid_rag_search.models.uploads import UploadReceipt
 
 __all__ = [
+    "SavedAnswer",
+    "UploadReceipt",
     "Collection",
     "CollectionGrant",
     "CollectionPermission",

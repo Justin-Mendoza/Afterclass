@@ -49,6 +49,8 @@ class HybridSearch(Protocol):
         *,
         tenant_id: UUID,
         collection_id: UUID | None = None,
+        collection_ids: tuple[UUID, ...] | None = None,
+        excluded_document_ids: tuple[UUID, ...] = (),
         source_type: str | None = None,
         author: str | None = None,
         source_date_from: datetime | None = None,
@@ -154,6 +156,8 @@ class RerankedRetriever:
         *,
         tenant_id: UUID,
         collection_id: UUID | None = None,
+        collection_ids: tuple[UUID, ...] | None = None,
+        excluded_document_ids: tuple[UUID, ...] = (),
         source_type: str | None = None,
         author: str | None = None,
         source_date_from: datetime | None = None,
@@ -175,6 +179,12 @@ class RerankedRetriever:
                     source_date_to=source_date_to,
                     limit=self.config.candidate_limit,
                     debug=debug,
+                    **({"collection_ids": collection_ids} if collection_ids is not None else {}),
+                    **(
+                        {"excluded_document_ids": excluded_document_ids}
+                        if excluded_document_ids
+                        else {}
+                    ),
                 )
         except TimeoutError:
             raise RetrievalError("retrieval_deadline_exceeded", retryable=True) from None

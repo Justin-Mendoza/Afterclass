@@ -4,7 +4,7 @@ A production-style enterprise search system built to explore the engineering beh
 
 The project intentionally focuses on the **search system around the language model**, rather than building another generic “chat with a PDF” application.
 
-> **Current status:** Retrieval, hybrid ranking, neural reranking, ingestion, parsing, storage, infrastructure, and versioned evaluation datasets are implemented. Retrieval benchmarking is the next milestone, followed by cited answer generation and adaptive retrieval.
+> **Current status:** Days 18–21 now provide a local document Q&A workspace: uploads and processing status, live answer drafts, checked citations, source inspection, private history, and permission management. See the [combined runbook](docs/tickets/days-18-21.md). Identity verification remains simulated; backend authorization is enforced. Day 22 adds search diagnostics and evaluation views.
 
 ---
 
@@ -400,8 +400,8 @@ then `make scifact-validate`. Both datasets use the same manifest, corpus,
 queries, and graded-judgments contract described in
 [`datasets/README.md`](datasets/README.md). Run `make evaluation-prepare`, then
 `make evaluation-run` to compare BM25, dense, hybrid, and hybrid-plus-rerank with
-Recall@5/10/50, MRR@10, and nDCG@10. The shared search boundary is also available
-through `POST /debug/search`. Preparation reuses completed ingestion work in an
+Recall@5/10/50, MRR@10, and nDCG@10. The benchmark CLI uses isolated evaluation data; application search uses
+`POST /v1/search` with a selected demo identity. Preparation reuses completed ingestion work in an
 isolated evaluation scope. See the [Day 15 runbook](docs/tickets/day-15.md) for
 reproduction, API examples, and pacing. Day 15 uses the committed
 `scifact-subset` fixture (500 documents, 30 queries); full SciFact is deferred.
@@ -438,7 +438,7 @@ Start the complete local stack:
 make stack-up
 ```
 
-The command waits until all six services pass their health checks.
+Run `make stack-up` to start Docker Desktop, then build and start the complete six-service environment. Docker Desktop startup completes before Compose runs, and the command waits until the frontend, API, worker, PostgreSQL, Redis, and OpenSearch health checks pass.
 
 | Service | Address |
 |---|---|
@@ -449,7 +449,7 @@ The command waits until all six services pass their health checks.
 | OpenSearch | `http://127.0.0.1:9200` |
 | OpenSearch Metrics | `http://127.0.0.1:9600` |
 
-Inspect service status:
+Use `make stack-status` to inspect health and `make stack-logs` to follow recent logs. `make stack-down` removes the containers and network while preserving all named-volume data, then stops Docker Desktop to release its Linux VM's memory. Stopping Docker Desktop affects every local Docker project, not just this stack. The next `make stack-up` starts Docker Desktop and restores the persisted data.
 
 ```bash
 make stack-status
@@ -561,7 +561,7 @@ Each numbered "Day" represents approximately one focused 2–4 hour engineering 
 
 ### Completed Foundation
 
-**Days 1–14**
+**Days 1–18**
 
 Implemented work includes:
 
@@ -576,22 +576,23 @@ Implemented work includes:
 - vector retrieval
 - hybrid RRF retrieval
 - neural reranking
-- versioned evaluation datasets
+- versioned evaluation datasets and verified synthetic/SciFact-subset baselines
+- demo identities and database-backed tenant/collection authorization
+- collection, document, permission, upload, and job management APIs
+- bounded grounded generation, request-bound citations, and author-private answer history
 
 ### Next Milestone
 
-**Day 15**
+**Day 22 — Search details and evaluation views**
 
-Run reproducible retrieval benchmarks across the evaluation datasets and establish measured baselines for:
-
-- BM25
-- dense retrieval
-- hybrid retrieval
-- hybrid + reranking
+The [Days 18–21 runbook](docs/tickets/days-18-21.md) covers the usable browser
+workflow, streaming contract, cancellation/history rules, and verification.
+The [Day 18 runbook](docs/tickets/day-18.md) explains evidence budgets and citation
+validation; [Day 17](docs/tickets/day-17.md) documents the management APIs.
 
 ### Upcoming
 
-**Days 16–22**
+**Day 22 and later**
 
 Cited-answer product:
 
